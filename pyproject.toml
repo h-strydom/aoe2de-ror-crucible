@@ -1,0 +1,43 @@
+[project]
+name = "aoe2de-ror-crucible"
+version = "0.1.0"
+description = "A Crucible-style roguelite campaign for AoE2 DE Return of Rome: survival runs and a hub where progress carries over."
+authors = [
+    { name = "Hannes Strydom", email = "13560787+h-strydom@users.noreply.github.com" }
+]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    # The scenario toolkit: writes RoR scenarios/campaigns, triggers, AI and blocks. Pinned to a release tag;
+    # bump it when this project needs a new toolkit feature.
+    "aoe-agent-editor @ git+https://github.com/h-strydom/aoe-agent-editor@v0.6.0",
+]
+
+[project.scripts]
+crucible = "crucible.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/crucible"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "SIM", "UP", "I"]
+ignore = ["E501"]
