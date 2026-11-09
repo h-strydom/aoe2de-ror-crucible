@@ -53,3 +53,21 @@ blast level flag does).
 2. **Data mod tasks**: charge (ported Elite Hoplite), aura (copy the Centurion's onto a RoR unit), loot, the Mule Cart,
    HP transform.
 3. **Data mod techs**: spawn unit, an enemy curse (type 21/26), a team buff.
+
+## Results, part 1 (`crucible mech-test`, 2026-11-09, attributes set by trigger)
+
+Logged every 2 s; the Crucible Test Data mod was active (Axemen 400 HP). Some enemy units wandered, which muddied
+lanes 5 and 10 after the first 30 s.
+
+| Lane | Result |
+|---|---|
+| 1 Regeneration out of combat | **Works, on units and buildings**: 60/min healed exactly 1 HP a second on the swordsman and on the House, up to full; the controls stayed damaged |
+| 2 Regeneration in combat | **Works in combat too**: the regenerating swordsman ended its fight with 6 HP against the control's 4 (the fight lasted ~12 s) |
+| 3 Reflection, melee | **Works, but weakly**: the Axeman hitting the reflecting swordsman lost 5 HP (the control's lost none), all in the first ~8 s, far less than 50% of the damage dealt |
+| 4 Reflection, ranged | **Doesn't reflect ranged attacks**: the Bowman lost nothing |
+| 5 Area damage, Bowman | **Needs splash width**: with width 1 the neighbour took damage (19), with area damage alone it took none |
+| 6 Area damage, swordsman | **Works on melee too, with splash width**: the neighbour took 84; area damage alone did nothing |
+| 7 Bonus damage resistance 40% | **Works**: the resistant Cavalry had 97 HP when the control had 75, and lived ~4 s longer against Camel Riders |
+| 8 Add attack type (161), then +50 vs buildings | **Works by trigger**: that House fell in ~15 s; the one only "set" +50 vs buildings (a class the Axeman lacks) took ~80 s. So a trigger *can* add an attack class: set 161 to the class first, then set the amount |
+| 9 Dead unit | **Horse Archer → Bowman works** (your Bowmen went 3 → 4 when it died). The Camel Rider → Broad Swordsman made no Broad Swordsman (count stayed 0) |
+| 10 Charge | **Type 1 works**: the first hit took 41 against the plain elephant's 11 (+30, the charge). Type 3 hit for 23 (+12, its charge) but splashed nothing, even with splash width 1 |
