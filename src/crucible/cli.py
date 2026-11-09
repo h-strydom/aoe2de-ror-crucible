@@ -26,6 +26,10 @@ def main(argv: list[str] | None = None) -> int:
                                                   "projectiles, minimum and maximum range, trade shares)")
     p_combat.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("combat-report", help="print what the combat test recorded")
+    p_mech = sub.add_parser("mech-test", help="build the AoE2 mechanics test, part 1 (attributes set by trigger: "
+                                              "regeneration, reflection, area damage, charge...)")
+    p_mech.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
+    sub.add_parser("mech-report", help="print what the mechanics test recorded")
     p_fire = sub.add_parser("fire-test", help="build the friendly fire test scenario")
     p_fire.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("fire-report", help="print what the friendly fire test recorded")
@@ -86,6 +90,19 @@ def main(argv: list[str] | None = None) -> int:
         if args.install:
             from aoe2ed import game
             print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "mech-test":
+        from . import mechtest
+        path, _ = mechtest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "mech-report":
+        from aoe2ed import game
+        from . import mechtest
+        print(mechtest.report(Path(game.read_xsdat(mechtest.NAME)["path"]), mechtest.labels()))
         return 0
     if args.command == "combat-report":
         from aoe2ed import game
