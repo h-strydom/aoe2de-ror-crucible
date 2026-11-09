@@ -30,6 +30,9 @@ def test_build(tmp_path):
     sites = json.loads((res["data_mod"] / testmod.ROR_DAT / "dropsites.json").read_text())["drop_site_list"]
     houses = [s for s in sites if s["building_id"] in testmod.HOUSE_IDS]
     assert len(houses) == 4 and all(t["name"] == "Trees" for s in houses for t in s["target_list"])
+    for uid in testmod.LUMBERJACKS:                                      # and lumberjacks list the House to drop at
+        assert testmod.HOUSE_IDS[0] in modded.civs[1].units[uid].bird.drop_sites
+        assert testmod.HOUSE_IDS[0] not in original.civs[1].units[uid].bird.drop_sites
 
     camp = Campaign.read(res["campaign"])
     assert camp.name == testmod.CAMPAIGN and len(camp.scenarios) == 2

@@ -36,6 +36,7 @@ HOPLITE = 93
 GREEK = 2                                  # civ index in RoR's data
 HOUSE_IDS = [70, 463, 464, 465]            # the House and its age looks
 STORAGE_PIT = 562
+LUMBERJACKS = (123, 218)                   # male and female lumberjack units (a villager's unit while chopping)
 TRAIN_LOCATION, TRAIN_BUTTON, SET = 42, 43, 1
 SCOUT_BUTTON = 9
 SIZE = 48
@@ -71,6 +72,13 @@ def build_data_mod(root: Path) -> Path:
         for uid, hp in HP.items():
             if len(civ.units) > uid and civ.units[uid]:
                 civ.units[uid].hit_points = hp
+        # A drop site needs both halves: dropsites.json makes the building accept the resource, and each villager job
+        # unit lists the buildings it may drop at (second run, 2026-11-09: Houses showed the drop-off cursor but
+        # lumberjacks went idle, because they only listed the Town Center and Storage Pit).
+        for uid in LUMBERJACKS:
+            unit = civ.units[uid] if len(civ.units) > uid else None
+            if unit and unit.bird and HOUSE_IDS[0] not in unit.bird.drop_sites:
+                unit.bird.drop_sites.append(HOUSE_IDS[0])
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
