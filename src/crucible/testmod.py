@@ -61,6 +61,16 @@ MONUMENT, RUINS = 826, 52                        # King of the Hill's Monument, 
 ARTIFACT, ARTIFACT_CLASS, PRIEST_CLASS, INFANTRY_CLASS = 25, 1, 18, 6
 BARRACKS = (12, 20, 132, 498)                    # the Barracks and its age looks
 EVERY_GARRISON = 127                             # garrison type: every category
+AOE2_DAT = Path("resources") / "_common" / "dat"
+# Ported from AoE2's data file: Knight (a slot RoR reuses for its Cavalry), Crossbowman (ranged: brings its
+# projectiles), and the Chronicles Hoplite and Immortal. Trained at the Barracks on free buttons.
+PORTED = {38: 5, 24: 8, 2110: 9, 2101: 10}       # AoE2 unit id: Barracks button
+PORTED_TRAIN_TIME = 10
+# Mutually exclusive techs, Chronicles-style: each one's effect disables all three. Names use Chronicles'
+# Oligarchy / Democracy / Tyranny strings (does RoR have them?); each pays a different resource so the pick shows.
+EXCLUSIVE = ((407051, 3, 11), (407052, 1, 12), (407053, 0, 13))   # name string, resource paid, Barracks button
+EXCLUSIVE_PAY, EXCLUSIVE_COST, EXCLUSIVE_TIME = 200, 50, 20
+AXE_TECH, DISABLE_TECH, RESOURCE_MODIFY = 63, 102, 1
 SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
@@ -112,6 +122,8 @@ def build_data_mod(root: Path) -> Path:
     _buildable_towers(d)
     _ruin_monument(d)
     _garrisonable_artifacts(d)
+    _ported_units(d)
+    _exclusive_techs(d)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -273,6 +285,90 @@ def _garrisonable_artifacts(d) -> tuple[int, int]:
             unit.name, unit.class_ = name, cls
             civ.units.append(unit)
     return new_id, new_id + 1
+
+
+def _aoe2_dat():
+    from genieutils.datfile import DatFile
+    return DatFile.parse(str(find_game_dir() / AOE2_DAT / "empires2_x2_p1.dat"))
+
+
+def _ported_units(d, src=None) -> dict[int, int]:
+    """Port the PORTED units (and everything they link to) from AoE2's data file, enable them and put them on the
+    Barracks. Returns {AoE2 id: RoR id} for every unit ported."""
+    from .port import Porter
+    porter = Porter(src or _aoe2_dat(), d)
+    for uid, button in PORTED.items():
+        new = porter.unit(uid)
+        for civ in d.civs:
+            unit = civ.units[new]
+            if unit is None:
+                continue
+            unit.enabled = 1
+            if unit.creatable:
+                loc = unit.creatable.train_locations
+                loc[0].unit_id, loc[0].button_id, loc[0].train_time = BARRACKS[0], button, PORTED_TRAIN_TIME
+                unit.creatable.train_locations = loc[:1]
+    return dict(porter.units)
+
+
+_PORTED_IDS: dict[int, int] | None = None
+
+
+def ported_ids() -> dict[int, int]:
+    """{AoE2 id: RoR id} as the data mod numbers them: rebuilds the ports on RoR's data padded to where they start
+    (after the artifact copies). Slow (both data files are parsed), so cached."""
+    global _PORTED_IDS
+    if _PORTED_IDS is None:
+        from genieutils.datfile import DatFile
+        d = DatFile.parse(str(_source_dat() / "empires2_x2_p1.dat"))
+        start = artifact_ids()[1] + 1
+        for civ in d.civs:
+            civ.units += [None] * (start - len(civ.units))
+        _PORTED_IDS = _ported_units(d)
+    return _PORTED_IDS
+
+
+def exclusive_tech_ids() -> tuple[int, ...]:
+    from genieutils.datfile import DatFile
+    first = len(DatFile.parse(str(_source_dat() / "empires2_x2_p1.dat")).techs)
+    return tuple(range(first, first + len(EXCLUSIVE)))
+
+
+def _exclusive_techs(d) -> tuple[int, ...]:
+    """Three techs at the Barracks; researching any one disables all three (Chronicles' pattern: each choice's
+    effect has a "disable tech" command for every tech in the set, itself included). Returns their ids."""
+    first = len(d.techs)
+    ids = tuple(range(first, first + len(EXCLUSIVE)))
+    template = d.techs[AXE_TECH]
+    disable = next(c for e in d.effects for c in e.effect_commands if c.type == DISABLE_TECH)
+    for k, (name, resource, button) in enumerate(EXCLUSIVE):
+        effect = copy.deepcopy(d.effects[template.effect_id])
+        pay = copy.deepcopy(disable)
+        pay.type, pay.a, pay.b, pay.c, pay.d = RESOURCE_MODIFY, resource, 1, -1, float(EXCLUSIVE_PAY)
+        commands = [pay]
+        for tid in ids:
+            c = copy.deepcopy(disable)
+            c.d = float(tid)
+            commands.append(c)
+        effect.effect_commands = commands
+        effect.name = f"Crucible exclusive {k + 1}"
+        d.effects.append(effect)
+        tech = copy.deepcopy(template)
+        tech.name = f"Crucible exclusive {k + 1}"
+        tech.language_dll_name, tech.language_dll_description = name, name + 1000
+        tech.language_dll_help, tech.language_dll_tech_tree = name + 100000, name + 150000
+        tech.effect_id, tech.civ, tech.repeatable = len(d.effects) - 1, -1, 0
+        tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
+        costs = list(tech.resource_costs)
+        costs[0].type, costs[0].amount, costs[0].flag = 0, EXCLUSIVE_COST, 1
+        for c in costs[1:]:
+            c.type, c.amount, c.flag = -1, 0, 0
+        tech.resource_costs = tuple(costs)
+        loc = tech.research_locations
+        loc[0].location_id, loc[0].button_id, loc[0].research_time = BARRACKS[0], button, EXCLUSIVE_TIME
+        tech.research_locations = loc[:1]
+        d.techs.append(tech)
+    return ids
 
 
 def _info(folder: Path, title: str, description: str) -> None:

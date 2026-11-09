@@ -40,6 +40,9 @@ def main(argv: list[str] | None = None) -> int:
                                              "speed up every Barracks)")
     p_ru.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("ruins-report", help="print what the ruins and artifacts test recorded")
+    p_pt = sub.add_parser("port-test", help="build the ported units and exclusive techs test (also rebuilds and "
+                                            "installs the data mod)")
+    p_pt.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     args = parser.parse_args(argv)
 
     if args.command == "test-map":
@@ -142,6 +145,15 @@ def main(argv: list[str] | None = None) -> int:
 
         from . import ruinstest
         print(ruinstest.report(Path(game.read_xsdat(ruinstest.NAME)["path"])))
+        return 0
+    if args.command == "port-test":
+        from . import porttest, testmod
+        path = porttest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
         return 0
     parser.print_help()
     return 0
