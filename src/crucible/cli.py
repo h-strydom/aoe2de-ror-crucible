@@ -38,6 +38,10 @@ def main(argv: list[str] | None = None) -> int:
                                               "Khmer farmers, no drop-off, mercenaries)")
     p_unit.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     sub.add_parser("unit-report", help="print what the unit test recorded")
+    p_tm = sub.add_parser("tower-modes", help="build the tower modes test (arrows, a close-range boulder, a "
+                                              "ballista mode)")
+    p_tm.add_argument("--install", action="store_true", help="install the data mod and the scenario")
+    sub.add_parser("tower-modes-report", help="print what the tower modes test recorded")
     p_fire = sub.add_parser("fire-test", help="build the friendly fire test scenario")
     p_fire.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("fire-report", help="print what the friendly fire test recorded")
@@ -124,6 +128,20 @@ def main(argv: list[str] | None = None) -> int:
             from aoe2ed import game
             print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
             print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "tower-modes":
+        from . import testmod, towermodetest
+        path, _ = towermodetest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "tower-modes-report":
+        from aoe2ed import game
+        from . import towermodetest
+        print(towermodetest.report(Path(game.read_xsdat(towermodetest.NAME)["path"]), towermodetest.labels()))
         return 0
     if args.command == "unit-report":
         from aoe2ed import game

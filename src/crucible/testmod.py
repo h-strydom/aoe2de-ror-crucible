@@ -109,6 +109,14 @@ HORSE_ARCHER, BOWMAN, CAVALRY = 39, 4, 38
 KIPCHAK_SPREAD, KIPCHAK_ARROWS, CKN_ARROW = (1.0, 1.0, 1.0), 3, 510
 SWITCH_TRAIT, CATAPULT_SHOT, SIEGE_BONUS, BUILDING_ARMOUR = 8, 656, 40, 11   # 11: the buildings armour class
 MERC_TOKEN, MERC_BUTTON, MERC_GIFT, MERC_TECH_BUTTON = 214, 5, 5, 5
+# The over-the-top tower (tower modes test): a Sentry Tower copy firing arrows with a 2-tile minimum range, plus a
+# charge-type-6 boulder (a catapult stone copy carrying its own 30 melee damage and splash, since a charge projectile
+# hits with its own attacks) for enemies inside that range; switchable (trait 8) to a Ballista Tower twin. Which charge
+# event and target mean "close enemies" isn't known, so two towers: the Hearth Troop's settings (event 0, target 127)
+# and the Fire Archer's (event -4, target 191).
+SENTRY_TOWER, BALLISTA_TOWER_UNIT, CATAPULT_STONE_UNIT = 234, 236, 656
+TOWER_MIN_RANGE, BOULDER_DAMAGE, BOULDER_SPLASH, BOULDER_RECHARGE = 2.0, 30, 1.0, 0.5
+TOWER_CHARGES = (("Hearth Troop charge", 0, 127), ("Fire Archer charge", -4, 191))
 HOPLITE, AXEMAN, SHORT_SWORDSMAN, LONG_SWORDSMAN, CLUBMAN, WAR_ELEPHANT = 93, 531, 74, 77, 281, 1132
 AURA, LOOT, HP_TRANSFORM, EXTRA_SPAWN = 155, 154, 158, 156
 PHALANX = (116, 117)                             # the Chronicles Hoplite's per-hoplite aura stats (armour)
@@ -183,6 +191,7 @@ def build_data_mod(root: Path) -> Path:
             if sites and mule not in sites:
                 sites.append(mule)
     _unit_modes(d)
+    _tower_modes(d)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -612,6 +621,50 @@ def _unit_modes(d) -> None:
     loc[0].location_id, loc[0].button_id, loc[0].research_time = WONDER, MERC_TECH_BUTTON, WONDER_TIME
     tech.research_locations = loc[:1]
     d.techs.append(tech)
+
+
+def tower_mode_ids() -> dict[str, int]:
+    """The tower modes test's units: the boulder, then each tower and its ballista twin (after the unit modes)."""
+    first = unit_mode_ids()[1] + 1
+    out = {"boulder": first}
+    for k, (label, _, _) in enumerate(TOWER_CHARGES):
+        out[label] = first + 1 + k * 2
+        out[f"{label} (ballista)"] = first + 2 + k * 2
+    return out
+
+
+def _tower_modes(d) -> None:
+    """The boulder projectile and two switchable towers (see TOWER_CHARGES)."""
+    ids = tower_mode_ids()
+    assert len(d.civs[0].units) == ids["boulder"], "tower mode ids out of step with the data mod"
+    for civ in d.civs:
+        u = civ.units
+        stone, sentry, ballista = (u[i] if len(u) > i else None for i in (CATAPULT_STONE_UNIT, SENTRY_TOWER,
+                                                                          BALLISTA_TOWER_UNIT))
+        if not (stone and sentry and ballista):
+            u += [None] * (1 + 2 * len(TOWER_CHARGES))
+            continue
+        boulder = copy.deepcopy(stone)
+        boulder.id = boulder.copy_id = boulder.base_id = ids["boulder"]
+        boulder.name = "Projectile Tower Boulder"
+        hit = copy.deepcopy(sentry.type_50.attacks[0])
+        hit.class_, hit.amount = 4, BOULDER_DAMAGE                    # melee, as the Stone Thrower hits
+        boulder.type_50.attacks = [hit]
+        boulder.type_50.blast_width = BOULDER_SPLASH
+        u.append(boulder)
+        for label, event, target in TOWER_CHARGES:
+            tower = copy.deepcopy(sentry)
+            twin = copy.deepcopy(ballista)
+            tower.id = tower.copy_id = tower.base_id = ids[label]
+            twin.id = twin.copy_id = twin.base_id = ids[f"{label} (ballista)"]
+            tower.name, twin.name = f"Tower ({label})", f"Tower ({label}, ballista)"
+            tower.type_50.min_range = TOWER_MIN_RANGE
+            cr = tower.creatable
+            cr.max_charge, cr.recharge_rate, cr.charge_event, cr.charge_type = 1.0, BOULDER_RECHARGE, event, 6
+            cr.charge_target, cr.charge_projectile_unit = target, ids["boulder"]
+            tower.trait, tower.nothing = SWITCH_TRAIT, twin.id
+            twin.trait, twin.nothing = SWITCH_TRAIT, tower.id
+            u += [tower, twin]
 
 
 def _mule_cart_drop_site(data: dict) -> None:
