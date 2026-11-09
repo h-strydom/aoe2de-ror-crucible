@@ -17,6 +17,11 @@ def main(argv: list[str] | None = None) -> int:
                                             "two-mission test campaign")
     p_mod.add_argument("--install", action="store_true", help="copy the mods into your profile's local mods and the "
                                                               "campaign into Return of Rome's campaign folder")
+    p_res = sub.add_parser("resource-test", help="build the resource test scenario (extreme gather values, a "
+                                                 "mismatched gather swap, trickles, generation)")
+    p_res.add_argument("--install", action="store_true", help="also rebuild and install the data mod, and copy the "
+                                                              "scenario into your Return of Rome scenario folder")
+    sub.add_parser("resource-report", help="print what the resource test recorded")
     args = parser.parse_args(argv)
 
     if args.command == "test-map":
@@ -35,6 +40,23 @@ def main(argv: list[str] | None = None) -> int:
         if args.install:
             for key, path in testmod.install(res).items():
                 print(f"  installed {key}: {path}")
+        return 0
+    if args.command == "resource-test":
+        from . import resourcetest, testmod
+        path, _, _ = resourcetest.build_mission(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            res = testmod.build(ROOT / "out")
+            print(f"  installed data mod: {testmod.install(res)['data_mod']}")
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "resource-report":
+        from aoe2ed import game
+
+        from . import resourcetest
+        record = Path(game.read_xsdat(resourcetest.CAMPAIGN)["path"])
+        print(resourcetest.report(record))
         return 0
     parser.print_help()
     return 0

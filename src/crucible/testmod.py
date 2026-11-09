@@ -49,6 +49,7 @@ CIVILIAN, ARCHER = 4, 0                    # unit classes
 VILLAGER = 83
 GARRISON_ACTION, BUILDINGS, TRANSPORTS = 3, 3, 20     # task action type, and the classes a garrison task aims at
 FOOT = (0, 6)                              # archer and infantry classes
+FISHING_BOATS, GATHER_ACTION, FISH, WOOD = (13, 82), 5, 17, 1   # gather tasks name the resource they take
 SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
@@ -90,6 +91,12 @@ def build_data_mod(root: Path) -> Path:
             if unit and unit.bird and HOUSE_IDS[0] not in unit.bird.drop_sites:
                 unit.bird.drop_sites.append(HOUSE_IDS[0])
         _garrison_into_buildings(civ)
+        # Resource test: fishing boats told to take wood (not fish) from fish. Does a mismatched gather do anything?
+        for uid in FISHING_BOATS:
+            unit = civ.units[uid] if len(civ.units) > uid else None
+            for t in (unit.bird.tasks if unit and unit.bird else []):
+                if t.action_type == GATHER_ACTION and t.resource_in == FISH:
+                    t.resource_in = WOOD
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only

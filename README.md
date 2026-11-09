@@ -58,6 +58,18 @@ dropdown. The briefing lists the checks.
 Found so far: a mod holding only `dropsites.json` counts as a data mod of its own, so everything goes in one data
 mod. Scouts trained at the Barracks by trigger alone.
 
+## The resource test
+
+```bash
+uv run crucible resource-test --install
+uv run crucible resource-report
+```
+
+A standalone scenario (pick "Crucible Test Data" as the Data Mod in the Scenario lobby). Each allied computer
+player tests one thing: stone miners at Stone Bonus 0, normal and 10 and at work rate 0; food and wood generation;
+the military food trickle; chopping that also gives gold. Your fishing boat is told by the data mod to take wood from
+fish. A script logs every player's stockpile and each pile every 10 seconds; `resource-report` prints it.
+
 ## What's possible
 
 [docs/feasibility.md](docs/feasibility.md) collects every idea tried so far, what the engine allows, and how sure we are.
