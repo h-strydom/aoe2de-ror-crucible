@@ -165,6 +165,18 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
     switches the boost on (keep it there, or remove it as spent);
   - a data mod artifact in a garrisonable class with a garrison task, which may break its capture-on-contact.
 
+**Round 2 results** (2026-11-09, 2:20 logged, Crucible Test Data picked):
+- **A data mod Ruin Monument works.** A copy of the Monument (826) with the ruins' graphic, icon and name (unit 2751
+  in the test mod) earns KotH's trickle exactly like the Monument: 8 of each resource every 10 s for its owner (P2
+  and the P3 reference matched to the unit). Player 1 captured the Gaia one and started earning straight away. So
+  "ruins that trickle" is a data mod unit plus the four monument trickles at 1.
+- **Script pay per ruin works:** P4 got 1 of each resource every 10 s for its one Artifact Ruins. Any rate, any
+  resource mix, per player; it doesn't need the data mod.
+- **The AoE1 artifact (25)** looks right in game. It has no garrison button, as expected (no garrison task).
+- **Delivery by proximity:** the script saw one, then both artifacts within 4 tiles of a Barracks and switched the
+  boost on. (Whether training then sped up still has to be confirmed in game.)
+- Still untested: a data mod artifact with a garrison task and a garrisonable class, for a real garrison button.
+
 Plan as written before the test:
 
 | Idea | How | Status |
