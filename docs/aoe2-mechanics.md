@@ -88,3 +88,19 @@ Ruled out for the auras and loot: unit upgrades (an Iron Age start doesn't upgra
 combat level (the same on RoR's units as on AoE2's aura units). Next: port the AoE2 units whole (Camel Raider,
 Centurion, Chronicles Hoplite, with their task target ids remapped) to tell "copied wrong" from "RoR doesn't run
 these tasks".
+
+## Results, part 2 round 2 (2026-11-09, ran to 1:20, then the game crashed)
+
+- **Out-of-combat regeneration by script works** (Mutalisk-style). `xsEffectAmount(cSetUnitAttribute, unit, 109,
+  value, player)` changes one unit's regeneration. Taking 20 damage every 8 s, the scripted Cavalry (regen off for 5 s
+  after each hit) gained only 1-2 HP per cycle, against +5 per 5 s for plain regeneration; the one damaged once
+  regenerated steadily.
+- **The crash** came at game time 1:20 (crash report WorldTime 80321), the moment the scripted Cavalry died (HP 0 in
+  that sample). Most likely cause: `cSetUnitAttribute` on a dying unit, which still "exists". Fixed by skipping units
+  at 0 HP; to be confirmed.
+- **Logistics forced at 0:30 didn't lower the population** (69 before and after, with 10 Slingers and other infantry
+  on the map): it may only apply to units made afterwards. The other half-pop routes weren't readable: the player
+  deleted units to free population room (headroom was -66; RoR's cap comes from Houses), so round 2b adds Houses
+  and +150 headroom.
+- Loot: still no gold, but it's unclear the Camel Raiders got kills before the crash.
+- The data mod's old HP overrides (Hoplite 999, Axeman 400) are retired.
