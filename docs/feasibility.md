@@ -270,6 +270,13 @@ Barracks; three exclusive Barracks techs.
   others (`xsEffectAmount(cModifyTech, tech, cAttributeDisable, 0, p)`), re-enable on cancel, and refund a second
   one that finishes anyway.
 
+**Round 3** (2026-11-09): **the script didn't stop it.** Disabling the others with `xsEffectAmount(cModifyTech, ...,
+cAttributeDisable)` when one was queued didn't block them: all three could be researched in a row (the refund for
+the second and third did fire). In Chronicles, hovering one draws a red cross over the other, the other can't be
+started while one researches, and it vanishes when the first finishes. The data shows no extra link, but the tech
+`type` differs: Chronicles' unique techs are 0, ours were 9 (copied from RoR's Axe), and RoR's own exclusive set (the
+Market's Trade 0/50/100% wood) is 33. Round 4 compares type 0 and 33, script removed.
+
 ## Resources
 
 Resource test scenario (`crucible resource-test`, 2026-11-09; 6.5 minutes logged). Each stone mine started at 350.
