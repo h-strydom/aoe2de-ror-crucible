@@ -142,7 +142,30 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
 
 ## Ruins and artifacts
 
-From RoR's data, 2026-11-09; untested in game.
+**Ruins and artifacts test results** (`crucible ruins-test`, 2026-11-09, about 50 s logged):
+- **The King of the Hill trickle pays for the Monument only.** With the monument trickles (221-224) at 1:
+  - the owner of the KotH Monument (826) got about 0.8 of each resource a second;
+  - an Artifact Ruins owner got nothing, as did the player who captured a Gaia ruin.
+
+  Ruins and the Monument share resource storage 14, but that isn't what the trickle counts.
+- **Ruins trickle, the routes left:**
+  - XS paying per ruin owned (the run ended before its first once-a-minute payment; the mechanism matches the
+    verified wood-to-gold conversion);
+  - a data mod "ruin" that is really a Monument copy with the ruins' look, so KotH's trickle pays it.
+- **Artifacts can't garrison.**
+  - Relic Carts (159) wouldn't enter a Barracks even with every garrison category allowed (garrison type 127).
+    Artifacts are their own unit class (1), which matches no garrison category.
+  - The units:
+    - 159 is a "Relic Cart" with AoE2's relic look;
+    - the AoE1 artifact is 25 "Artifact" (graphic "Artifact (Idle)"), with no garrison task at all;
+    - 44 is the War Chest;
+    - 944 and 1304 are Relic Carts with the artifact look, hidden in the editor.
+- **Artifact boost, the routes left:**
+  - "deliver" instead of garrison: XS spots an artifact next to one of your Barracks (`xsGetUnitPosition`) and
+    switches the boost on (keep it there, or remove it as spent);
+  - a data mod artifact in a garrisonable class with a garrison task, which may break its capture-on-contact.
+
+Plan as written before the test:
 
 | Idea | How | Status |
 |---|---|---|
