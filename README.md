@@ -79,6 +79,23 @@ A script logs every player's stockpile and each pile's amount and stored resourc
 `resource-report` prints it. Round 1's results (work rate, gather multipliers, generation, trickles) are in
 [docs/feasibility.md](docs/feasibility.md).
 
+## The combat test
+
+```bash
+uv run crucible combat-test --install
+uv run crucible combat-report
+```
+
+A standalone scenario: your test units face passive enemy targets in lanes, each change on one unit next to an
+unchanged control:
+- friendly fire 0 and splash width 3 on Stone Throwers;
+- Catapults firing a ballista bolt, and a fast, flat projectile;
+- a Ballista with minimum range 0;
+- a Hoplite with range 3;
+- trade income shares of 25% food, wood and stone on a trade boat.
+
+A script logs hit points and your resources every 5 seconds; `combat-report` prints it.
+
 ## What's possible
 
 [docs/feasibility.md](docs/feasibility.md) collects every idea tried so far, what the engine allows, and how sure we are.

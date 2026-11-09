@@ -22,6 +22,10 @@ def main(argv: list[str] | None = None) -> int:
     p_res.add_argument("--install", action="store_true", help="also rebuild and install the data mod, and copy the "
                                                               "scenario into your Return of Rome scenario folder")
     sub.add_parser("resource-report", help="print what the resource test recorded")
+    p_combat = sub.add_parser("combat-test", help="build the combat test scenario (friendly fire, splash, "
+                                                  "projectiles, minimum and maximum range, trade shares)")
+    p_combat.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
+    sub.add_parser("combat-report", help="print what the combat test recorded")
     args = parser.parse_args(argv)
 
     if args.command == "test-map":
@@ -57,6 +61,21 @@ def main(argv: list[str] | None = None) -> int:
         from . import resourcetest
         record = Path(game.read_xsdat(resourcetest.CAMPAIGN)["path"])
         print(resourcetest.report(record))
+        return 0
+    if args.command == "combat-test":
+        from . import combattest
+        path, _ = combattest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "combat-report":
+        from aoe2ed import game
+
+        from . import combattest
+        record = Path(game.read_xsdat(combattest.NAME)["path"])
+        print(combattest.report(record, combattest.labels()))
         return 0
     parser.print_help()
     return 0
