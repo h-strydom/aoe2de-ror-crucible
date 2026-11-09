@@ -171,7 +171,7 @@ loot (154) don't.
 |---|---|
 | Unbuildable line: Flags; a grass-tuft blocker with "can be built on" 0; the same invisible; a Rock 1 overlay layer | **All buildable.** Objects with "can be built on" 0 don't stop placement, and the overlay layer doesn't change the tile's rules (so it's visual only) |
 | Safe zone A: looping trigger, Enable then Disable Unit Attackable by area | **Fails**: Hoplites inside took damage from about 0:45 (120 → 61-114) |
-| Safe zone B: XS sets each Hoplite's `cUnitAttackable` by position every second | **Fails**, a little later (damage from about 1:00). "Unattackable" doesn't stop splash or hits already on the way |
+| Safe zone B: XS sets each Hoplite's `cUnitAttackable` by position every second | **Works**: the Hoplites inside weren't attacked; the damage logged from about 1:00 came after the player moved them out of the zone |
 | Doubled gold mine by trigger (Modify Object Attribute 21 = 1000 on a Gaia mine) | **No**: stayed 500 |
 | Doubled gold mine by XS (`cUnitAttributeHeld` x 2) | **Works**: 1000 |
 | Three decision popups at once | They stack, but the first (A/B) ended up under the menu options, and the others stay open: you can click several. (Whether the later picks' triggers fired despite being switched off: to check) |
@@ -179,5 +179,5 @@ loot (154) don't.
 Next ideas:
 - Unbuildable line: reverse the layers. Base terrain an unbuildable walkable one (Rock 1, Quicksand), overlay layer
   the look you want (grass, dirt, desert).
-- Safe zone: a fast script that restores the HP of units inside (`cUnitHitpoints` is settable), alone or with
-  unattackable.
+- Safe zone: use the script version (B). Zone A's trigger toggling (Enable for an area, then Disable for the zone,
+  every second) is what leaked, perhaps through the moment between the two effects.
