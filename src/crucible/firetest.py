@@ -1,21 +1,22 @@
-"""The friendly fire test: why didn't Friendly Fire Damage 0 on one Stone Thrower stop it hurting your own units?
+"""The friendly fire test, round 2: Blast Attack Level flags.
 
-Combat test (2026-11-09): your hoplites among a Stone Thrower's targets lost the same hit points whether its
-Friendly Fire Damage (119) was 0 or unchanged. AoE2 does this as a researched bonus on whole unit types (Jurchens:
-multiply 119 by 0.5 for archers, infantry, cavalry, siege, ships...). Possible causes: only the unit type is read,
-not one unit; a 0 counts as "not set"; or only the projectile's value counts.
+Round 1 (2026-11-09): Friendly Fire Damage (119) did nothing in any form (one unit or the whole type, 0 or 0.01, or
+on the projectile); your hoplites lost the same hit points in every lane. It isn't a friendly fire switch: the
+attribute reference calls it "blast damage multiplier to non directly targeted units".
+
+The switch is Blast Attack Level (44): a base level 0-3 plus combinable flags, 4 "damage enemy units only" and 8
+"ignore friendly fire" (ugc.aoe2.rocks, attribute 44). Stone Throwers ship with 2 (hits everyone nearby).
 
 Every lane is self-checking: a siege unit fires into passive enemies with two of your hoplites among them. Friendly
-fire works if your hoplites stay unhurt while the enemies around them take damage. Lanes are 16 tiles apart, beyond
-any of these units' range.
+fire is off if your hoplites stay unhurt while the enemies around them take damage. Lanes are 16 tiles apart.
 
 | Lane | Change |
 |---|---|
-| 1 | Stone Thrower unchanged: the control |
-| 2 | Stone Thrower, 0.01 on that unit only (is 0 special?) |
-| 3 | Catapults, 0 for the whole type |
-| 4 | Heavy Catapults, 0.01 for the whole type |
-| 5 | Stone Thrower firing its own projectile (the Catapult Trireme's), whose type has friendly fire 0 |
+| 1 | Stone Thrower unchanged (level 2): the control |
+| 2 | Stone Thrower, level 6 (2 + "enemy units only") on that unit only |
+| 3 | Stone Thrower, level 10 (2 + "ignore friendly fire") on that unit only |
+| 4 | Catapults, level 6 for the whole type |
+| 5 | Heavy Catapults, level 10 for the whole type |
 """
 from __future__ import annotations
 
@@ -30,11 +31,10 @@ NAME = "crucible_friendly_fire_test"
 SIZE = 96
 MAGIC, VERSION, TAG_SAMPLE = 412320999, 1, 1
 INTERVAL = 5
-FRIENDLY_FIRE, PROJECTILE_UNIT = 119, 16
-SPARE_PROJECTILE = 369                # the Catapult Trireme's projectile: no land unit uses it
+BLAST_ATTACK_LEVEL = 44              # base level 0-3, + 4 "damage enemy units only", + 8 "ignore friendly fire"
 REVEAL_MAP, SET = 203, 1
-LANES = {1: ("STONE_THROWER", "unit", None), 2: ("STONE_THROWER", "unit", 0.01),
-         3: ("CATAPULT", "type", 0), 4: ("HEAVY_CATAPULT", "type", 0.01), 5: ("STONE_THROWER", "projectile", 0)}
+LANES = {1: ("STONE_THROWER", "unit", None), 2: ("STONE_THROWER", "unit", 6), 3: ("STONE_THROWER", "unit", 10),
+         4: ("CATAPULT", "type", 6), 5: ("HEAVY_CATAPULT", "type", 10)}
 LANE_Y = {k: 8 + (k - 1) * 16 for k in LANES}
 SHOOTER_X, TARGET_X = 10, 20
 
@@ -44,8 +44,9 @@ own: watch for about 1 minute, then quit. Enemy targets don't fight back.
 Each lane: a siege unit fires at passive enemies with two of YOUR hoplites standing among them. Friendly fire is \
 off if your hoplites stay unhurt while the enemies around them take damage.
 
-1 Stone Thrower unchanged (control) | 2 Stone Thrower, 0.01 on that unit only | 3 Catapults, 0 for the whole type | \
-4 Heavy Catapults, 0.01 for the whole type | 5 Stone Thrower firing a separate projectile whose type has 0.
+1 Stone Thrower unchanged (control) | 2 Stone Thrower, blast level 6 ("enemy units only") on that unit | \
+3 Stone Thrower, blast level 10 ("ignore friendly fire") on that unit | 4 Catapults, level 6 for the whole type | \
+5 Heavy Catapults, level 10 for the whole type.
 
 Hit points are logged for the report."""
 
@@ -118,18 +119,11 @@ def build(out: Path) -> tuple[Path, list[tuple[str, int]]]:
                             (f"L{lane} enemy centre", clump[0]), (f"L{lane} enemy side", clump[1])]
                 if scope == "unit" and value is not None:
                     settings.append({"type": "modify_object_attribute", "source_player": 1,
-                                     "selected_object_ids": [shooter], "object_attributes": FRIENDLY_FIRE,
+                                     "selected_object_ids": [shooter], "object_attributes": BLAST_ATTACK_LEVEL,
                                      "operation": SET, "quantity": value})
                 elif scope == "type":
                     settings.append({"type": "modify_attribute", "source_player": 1, "object_list_unit_id": unit,
-                                     "object_attributes": FRIENDLY_FIRE, "operation": SET, "quantity": value})
-                elif scope == "projectile":
-                    settings += [{"type": "modify_object_attribute", "source_player": 1,
-                                  "selected_object_ids": [shooter], "object_attributes": PROJECTILE_UNIT,
-                                  "operation": SET, "quantity": SPARE_PROJECTILE},
-                                 {"type": "modify_attribute", "source_player": 1,
-                                  "object_list_unit_id": SPARE_PROJECTILE, "object_attributes": FRIENDLY_FIRE,
-                                  "operation": SET, "quantity": value}]
+                                     "object_attributes": BLAST_ATTACK_LEVEL, "operation": SET, "quantity": value})
                 settings.append({"type": "task_object", "source_player": 1, "selected_object_ids": [shooter],
                                  "location_object_reference": clump[0]})
             _add(s, 1, "TOWN_CENTER", 80, 80)

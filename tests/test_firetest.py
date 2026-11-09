@@ -14,10 +14,10 @@ def test_build(tmp_path):
     o = SESSIONS.open(path)
     try:
         start = T.trigger_to_dict(next(t for t in o.scenario.trigger_manager.triggers if t.name == "Start"))
-        kinds = [(e["type"], e.get("object_attributes")) for e in start["effects"] if "modify" in e["type"]]
-        assert kinds.count(("modify_attribute", ft.FRIENDLY_FIRE)) == 3       # lanes 3, 4 and the projectile
-        assert ("modify_object_attribute", ft.FRIENDLY_FIRE) in kinds        # lane 2
-        assert ("modify_object_attribute", ft.PROJECTILE_UNIT) in kinds      # lane 5
+        levels = sorted((e["type"], e.get("quantity")) for e in start["effects"]
+                        if e.get("object_attributes") == ft.BLAST_ATTACK_LEVEL)
+        assert levels == [("modify_attribute", 6), ("modify_attribute", 10),
+                          ("modify_object_attribute", 6), ("modify_object_attribute", 10)]
         assert sum(e["type"] == "task_object" for e in start["effects"]) == len(ft.LANES)
     finally:
         SESSIONS.close(o.handle)
