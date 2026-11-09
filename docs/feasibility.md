@@ -78,13 +78,14 @@ From RoR's data and XS constants, 2026-11-09. None of this is tested in game yet
 |---|---|---|
 | Gather faster (villagers mine stone 500% faster) | Triggers: Modify Attribute work rate (13) on the job unit (stone miners 124/220, ×6). The pile empties faster too. Data: miner 0.52, lumberjack 0.55, fishing boat 0.40 | Mechanism in data (Babylonian miner bonus); unverified |
 | Get more per unit gathered | Triggers: Modify Resource on the player multiplier each gather task uses: Stone Bonus (79), Gold Bonus (47), Wood Bonus (189), Food Bonus (190), Fishing Productivity (219). Like AoE2's "resources last longer", it should add without emptying the pile faster | Unverified |
-| Depletion per resource | The bonus multipliers above (what you get vs what the pile loses) | Unverified |
-| Depletion per gatherer (ships don't deplete fish, villagers do) | No setting. XS: find each fishing boat's target (`xsGetUnitTargetUnitId`) and top it up, if `xsSetUnitProperty(cUnitAttributeHeld)` sets a pile's remaining amount | Riskiest; unverified |
+| Depletion per resource | The bonus multipliers above are the game's own "Resources last +X%" setting: RoR's lobby techs set Gold Bonus 1.15 (+15%) up to 4.0 (+300%). So the multiplier is how much longer a pile lasts for the same income | Data |
+| Depletion per gatherer (ships don't deplete fish, villagers do) | Villager fishermen (56/57) and fishing boats both use Fishing Productivity (219). Data mod: point the boat's gather task (`resource_multiplier`) at an unused player attribute, then set that very high by trigger: boats' fish last (almost) forever, villagers' don't. Fallback: XS tops up whatever each boat targets | Data; unverified |
 | Animal decay | Disable Animal Decay (292), decay rate (12) | Unverified |
 | Gather X, also get Y | Native player attributes: chopping gives gold (266), stone mining gives gold (241), farming gives gold (236), foraging gives wood (267), butchering gives gold (298). No wood → stone | Unverified |
 | Any ratio (chopping gives a bit of stone) | XS: each second, read total wood gathered (167), pay a share as stone (`xsSetPlayerAttribute`) | Functions exist; unverified |
-| Swap the resource entirely | Data mod: a gather task's `resource_in` (taken from the target) and `resource_out` (paid to the player); e.g. fishing boats take fish (17) and pay food (0) | Data |
-| Passive income (hub perks) | Generation (230-233), relic/workshop/military trickles: per player | Unverified |
+| Swap the resource entirely | Data mod: a gather task's `resource_in` (taken from the target) and `resource_out` (paid to the player); e.g. fishing boats take fish (17) and pay food (0). `resource_in` presumably has to match what the target holds: a boat told to take wood from fish probably gathers nothing, while "take fish, pay wood" should work | Data; unverified |
+| Passive income (hub perks) | Generation (230-233), relic/workshop/military trickles: per player. Game uses: Workshop Food Trickle 1.5 set by RoR's age techs, Military Food Trickle 3 (AoE2 Tuntian), relic food 20 (AoE2 Burgundian team bonus), Monument Food Trickle 1 (King of the Hill). Units (per second or minute) and what each is tied to (relics, workshops, military units) are unverified; no game tech sets the generation ones | Data; unverified |
+| Extreme values (work rate 0, multiplier 0 or huge, negative) | Unknown: a 0 work rate probably leaves villagers gathering nothing; a 0 multiplier might divide by zero (endless pile?) or pay nothing; carry capacity (14) caps each load, so huge work rates mostly turn into walking. Needs a test | Unverified |
 
 ## Garrisons
 
