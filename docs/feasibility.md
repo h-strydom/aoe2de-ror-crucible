@@ -87,8 +87,12 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
   - 64 = damage falls off with distance;
   - 128 = a narrow cone in front.
 
-  Stone Throwers are level 2; 6 or 10 should keep splash on enemies only. RoR's data already uses 6, 10, 34, 66 and
-  138. Being tested in friendly fire test round 2.
+  Stone Throwers are level 2. RoR's data already uses 6, 10, 34, 66 and 138.
+- **Verified (friendly fire test round 2): + 4 switches friendly fire off; + 8 does nothing in RoR.**
+  - Level 6 left your hoplites untouched while the enemy target died, on one Stone Thrower (Modify Object Attribute)
+    and on every Catapult (Modify Attribute).
+  - With the Catapults the splash still hit the enemy beside the target (50 → 33), so splash still works on enemies.
+  - Level 10 hurt your hoplites as much as the control did.
 - **Splash width 3: works.** All four outer targets, 2 tiles from the centre, were hit and died within 25 s.
 - **Minimum range 0: works.** The changed Ballista hit the enemy beside it (600 → 0); the control's target stayed
   at 600.
@@ -101,7 +105,7 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
 
 | Idea | Setting | RoR today |
 |---|---|---|
-| Siege without friendly fire | Blast Attack Level (44) + 4 (enemy units only) or + 8 (ignore friendly fire); not Friendly Fire Damage (119), which does nothing for this | Stone Thrower, Catapult 2; Heavy Catapult 1 |
+| Siege without friendly fire | **Verified:** Blast Attack Level (44) + 4 ("enemy units only"), per unit or per type. Not + 8, and not Friendly Fire Damage (119): both do nothing for this | Stone Thrower, Catapult 2; Heavy Catapult 1 |
 | Bigger splash | Blast Width (22); Blast Attack Level (44) decides who splash hits | Stone Thrower 0.8, Catapult 1.25, Catapult Trireme 1.0 |
 | Trampling melee units | Blast Width plus a Blast Attack Level that splashes (Hoplites are at 3: none) | None in RoR |
 | Projectile speed and arc (cannon-galleon style) | The projectile is a unit: Movement Speed (5) on it, Projectile Arc (69) | Catapult projectile 656: speed 3.5, arc 0.5. Bolt 367: 4.1, arc 0.02. Stone Throwers and Catapults share 656, so changing it changes both unless the data mod gives one its own copy |
