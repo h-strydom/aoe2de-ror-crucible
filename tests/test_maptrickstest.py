@@ -29,7 +29,7 @@ def test_scenario_and_report(tmp_path):
         control = s.map_manager.get_tile(x=mt.STRIP_X[0], y=mt.STRIP_YS[3])
         assert control.terrain_id == mt.ROCK_1 and control.layer in (-1, 255)
         names = {t.name for t in s.trigger_manager.triggers}
-        assert {"Safe zone A", "Enemy attack", "March", "Decisions", "Decision 3 option 2"} <= names
+        assert {"Safe zone A", "Ground attack", "Enemy attack", "March", "Decisions", "Decision 3 option 2"} <= names
     finally:
         SESSIONS.close(o.handle)
     assert xs.check(mt.xs_code((1, 2, 3), 2, mt.ZONE_B, [t for _, t in tracked]))["ok"]

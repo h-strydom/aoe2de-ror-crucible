@@ -7,8 +7,8 @@ measurable.
   across, can anything be built on them, and do the layered ones look like the ground around them?
 - **Safe zones.** Inside a square your units can't be attacked; outside they can. Zone A: a looping trigger enables
   attackable around it, then disables it inside (area effects). Zone B: a script sets each Hoplite's
-  `cUnitAttackable` by its position. At 0:20 an enemy army (swordsmen, bowmen, a Stone Thrower) attack-moves into
-  each zone; one Hoplite per zone waits outside.
+  `cUnitAttackable` by its position (round 2: nothing inside was attacked). Round 3: from 0:12 a Stone Thrower per
+  zone attacks the ground at the zone's centre; the armies attack at 1:30. Does ground-aimed splash get through?
 - **Doubled resources.** Three gold mines (500 each): A doubled by trigger (Modify Object Attribute 21 = 1000), B by
   script (`cUnitAttributeHeld` x 2), C untouched; logged.
 - **Formations.** Three groups of your units march right at 0:30: A in line formation, B in box formation (Task
@@ -31,7 +31,7 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
 NAME = "crucible_map_tricks"
 SIZE = 80
-MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412322005, 2, 1, 5
+MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412322005, 3, 1, 5
 REVEAL_MAP, SET, STORAGE_1, HOPLITE = 203, 1, 21, 93
 BANDS = ((6, 15, 0), (16, 25, 6), (26, 35, 14), (36, 46, 24))     # x from, x to, terrain: grass, dirt, desert, road
 # Round 1 (Flags, build blockers, a Rock 1 overlay layer): all buildable; the layer is visual only. Round 2: the base
@@ -43,7 +43,10 @@ STRIPS = {"Rock 1 + layer": (ROCK_1, True), "Quicksand + layer": (QUICKSAND, Tru
 STRIP_X, STRIP_YS = (6, 46), (6, 10, 14, 18)
 ZONE_A, ZONE_B = (52, 6, 62, 16), (52, 26, 62, 36)
 GOLD_MINE_AMOUNT = 500
-LINE_FORMATION, BOX_FORMATION, MOVE = 18, 19, 1
+LINE_FORMATION, BOX_FORMATION, MOVE, ATTACK_GROUND = 18, 19, 1, 6
+# Round 3: a Stone Thrower per zone bombards the ground at the zone's centre from 0:12 (attack-ground aims at a spot,
+# not a unit); the armies wait until 1:30, so damage inside before then can only be ground splash.
+GROUND_ATTACK_AT, ARMY_AT = 12, 90
 DECISIONS = ((1, "First choice", "A", "B"), (2, "Second choice", "C", "D"), (3, "Third choice", "E", "F"))
 
 INSTRUCTIONS = """Crucible map tricks. Pick "Crucible Test Data" as the Data Mod. The map is revealed; \
@@ -52,8 +55,9 @@ Nothing ends the game.
 UNBUILDABLE LINES (top left), round 2, top to bottom: Rock 1, Quicksand and Bogland underneath with the band's own \
 terrain painted on top (grass, dirt, desert, road), then plain Rock 1. Do the top three look like the ground around \
 them? With your villagers: can you walk across each line, and can you place a House or a wall ON it anywhere?
-SAFE ZONES (right): at 0:20 enemies attack each zone. Zone A (top, trigger) and zone B (below, script): do your \
-Hoplites inside take any damage, even from the Stone Thrower's splash? The one outside each zone should.
+SAFE ZONES (right), round 3: from 0:12 an enemy Stone Thrower bombards the GROUND in the middle of each zone \
+(attack-ground: aimed at a spot, not a unit). Do your Hoplites inside lose HP from the splash? Leave them where they \
+are. At 1:30 the armies attack as before. Zone A (top) is the trigger version, zone B (below) the script version.
 DOUBLED RESOURCES (left): three gold mines; the report shows their amounts (A trigger, B script, C control).
 FORMATIONS (bottom): at 0:30 three groups march right: A in line formation, B in box, C plain. Do A and B keep a \
 formation and arrive together?
@@ -164,7 +168,7 @@ def build(out: Path) -> tuple[Path, list[tuple[str, int]]]:
                 _add(s, 1, "VILLAGER_MALE", 8 + k * 3, 24)
 
             # Safe zones: three Hoplites inside each, one outside; an enemy army for each.
-            armies = []
+            armies, bombards = [], []
             for label, (x1, y1, x2, y2) in (("A trigger", ZONE_A), ("B script", ZONE_B)):
                 cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
                 for road_x in range(x1, x2 + 1):            # a road border to see the square
@@ -180,6 +184,7 @@ def build(out: Path) -> tuple[Path, list[tuple[str, int]]]:
                         + [_add(s, 2, "BOWMAN", 75, cy - 1 + k * 2) for k in range(2)]
                         + [_add(s, 2, "STONE_THROWER", 77, cy)])
                 armies.append((army, (cx, cy)))
+                bombards.append((_add(s, 2, "STONE_THROWER", x2 + 7, cy), (cx, cy)))
 
             # Gold mines: A doubled by trigger, B by script, C control.
             mines = tuple(_add(s, 0, "GOLD_MINE", 8 + k * 6, 32) for k in range(3))
@@ -204,7 +209,10 @@ def build(out: Path) -> tuple[Path, list[tuple[str, int]]]:
                 {"type": "enable_unit_attackable", "source_player": 1, "area": [ax1 - 6, ay1 - 4, ax2 + 8, ay2 + 4]},
                 {"type": "disable_unit_attackable", "source_player": 1, "area": [ax1, ay1, ax2, ay2]}],
                 looping=True)
-            ctx.trigger("Enemy attack", [{"type": "timer", "timer": 20}], [
+            ctx.trigger("Ground attack", [{"type": "timer", "timer": GROUND_ATTACK_AT}], [
+                {"type": "task_object", "source_player": 2, "selected_object_ids": [thrower],
+                 "action_type": ATTACK_GROUND, "location": list(spot)} for thrower, spot in bombards])
+            ctx.trigger("Enemy attack", [{"type": "timer", "timer": ARMY_AT}], [
                 {"type": "attack_move", "source_player": 2, "selected_object_ids": army, "location": list(spot)}
                 for army, spot in armies])
             march = []
