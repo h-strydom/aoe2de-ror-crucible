@@ -42,6 +42,10 @@ def main(argv: list[str] | None = None) -> int:
                                               "ballista mode)")
     p_tm.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     sub.add_parser("tower-modes-report", help="print what the tower modes test recorded")
+    p_mt = sub.add_parser("map-tricks", help="build the map tricks test (unbuildable lines, safe zones, doubled "
+                                             "resources, formations, stacked decisions)")
+    p_mt.add_argument("--install", action="store_true", help="install the data mod and the scenario")
+    sub.add_parser("map-tricks-report", help="print what the map tricks test recorded")
     p_fire = sub.add_parser("fire-test", help="build the friendly fire test scenario")
     p_fire.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("fire-report", help="print what the friendly fire test recorded")
@@ -137,6 +141,20 @@ def main(argv: list[str] | None = None) -> int:
             from aoe2ed import game
             print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
             print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "map-tricks":
+        from . import maptrickstest, testmod
+        path, _ = maptrickstest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "map-tricks-report":
+        from aoe2ed import game
+        from . import maptrickstest
+        print(maptrickstest.report(Path(game.read_xsdat(maptrickstest.NAME)["path"]), maptrickstest.labels()))
         return 0
     if args.command == "tower-modes-report":
         from aoe2ed import game

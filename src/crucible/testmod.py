@@ -127,6 +127,11 @@ TOWER_STYLES = (("Fire Lancer", 4, 127, 1.0, FAST_RECHARGE, "boulder"),
                 ("Fire Archer", -4, 191, 20.0, ALWAYS_FULL, "boulder"),
                 ("Inverted", 4, 127, 1.0, FAST_RECHARGE, "arrows"))
 MODE_TECH_TIME, UPGRADE_UNIT = 3, 3
+# Map tricks: build blockers, gaia objects units walk through but buildings can't be placed on, to lay an unbuildable
+# line over any terrain. Copies of RoR's "Grass Green" decoration (walk-through, but can be built over) with "can be
+# built on" off; the second has no graphic (invisible).
+GRASS_DECORATION = 1358
+BLOCKERS = ("build blocker", "invisible build blocker")
 HOPLITE, AXEMAN, SHORT_SWORDSMAN, LONG_SWORDSMAN, CLUBMAN, WAR_ELEPHANT = 93, 531, 74, 77, 281, 1132
 AURA, LOOT, HP_TRANSFORM, EXTRA_SPAWN = 155, 154, 158, 156
 PHALANX = (116, 117)                             # the Chronicles Hoplite's per-hoplite aura stats (armour)
@@ -202,6 +207,7 @@ def build_data_mod(root: Path) -> Path:
                 sites.append(mule)
     _unit_modes(d)
     _tower_modes(d)
+    _build_blockers(d)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -713,6 +719,29 @@ def _tower_modes(d) -> None:
         loc[0].location_id, loc[0].button_id, loc[0].research_time = ids[src], 1, MODE_TECH_TIME
         tech.research_locations = loc[:1]
         d.techs.append(tech)
+
+
+def blocker_ids() -> dict[str, int]:
+    """The build blockers' unit ids (after the tower modes)."""
+    first = max(tower_mode_ids().values()) + 1
+    return {name: first + k for k, name in enumerate(BLOCKERS)}
+
+
+def _build_blockers(d) -> None:
+    ids = blocker_ids()
+    assert len(d.civs[0].units) == ids[BLOCKERS[0]], "blocker ids out of step with the data mod"
+    for civ in d.civs:
+        grass = civ.units[GRASS_DECORATION] if len(civ.units) > GRASS_DECORATION else None
+        if grass is None:
+            civ.units += [None] * len(BLOCKERS)
+            continue
+        for name in BLOCKERS:
+            unit = copy.deepcopy(grass)
+            unit.id = unit.copy_id = unit.base_id = ids[name]
+            unit.name, unit.can_be_built_on, unit.hide_in_editor = name.capitalize(), 0, 0
+            if name.startswith("invisible"):
+                unit.standing_graphic = (-1, -1)
+            civ.units.append(unit)
 
 
 def _mule_cart_drop_site(data: dict) -> None:
