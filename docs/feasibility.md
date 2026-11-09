@@ -193,6 +193,22 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
   - So a class copy can't sit on the map as an artifact to find. The route: place the real artifact, and when a
     player captures it, swap it for the garrisonable copy (Replace Object, or XS). Untested.
 
+**Round 5 results** (2026-11-09): the editor's per-unit **Capture** setting (`capture_flag` in the scenario,
+format 1.59+) decides who joins at the start. A grid of Gaia artifacts, one row per flag, columns = real artifact,
+infantry copy, priest copy; what had turned to player 1 at the start:
+
+| Capture flag | Real artifact | Infantry copy | Priest copy |
+|---|---|---|---|
+| -1 Default | grey | **joined** | **joined** |
+| 0 Never | grey | grey | grey |
+| 1 Once | **joined** | **joined** | **joined** |
+| 2 Multiple Times | grey | grey | grey |
+| 3 Never (Gaia aggressive) | grey | grey | grey |
+
+So setting the copies' flag to Never, Multiple Times or Never (Gaia aggressive) keeps them grey at the start.
+Still to check: which of those can then be captured on contact (Never presumably not; Multiple Times is the
+likely one).
+
 **Round 4 results** (2026-11-09): **a stacking work rate bonus per garrisoned artifact works.** XS sets the
 Barracks' work rate (13) to 1 + 0.5 × artifacts garrisoned, on each Barracks look (12, 20, 132, 498): one artifact
 made every Barracks work at 150%, two at 200%, for training and research alike (checked by the player in game).
