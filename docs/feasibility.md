@@ -82,12 +82,12 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
 - **Splash width 3: works.** All four outer targets, 2 tiles from the centre, were hit and died within 25 s.
 - **Minimum range 0: works.** The changed Ballista hit the enemy beside it (600 → 0); the control's target stayed
   at 600.
-- **Projectile swaps: work.** The Catapult firing a ballista bolt and the one firing the fast, flat projectile both
-  kept doing catapult damage (about 58 per 5 s). How they looked is from the user's view.
-- **Hoplite with range 3: inconclusive.** Both its target and the control's took damage, likely from units
-  attacking outside their lane.
-- **Trade shares: work.** At 25% each, a 24-gold trade paid 13 gold plus 3 food, 3 wood and 3 stone. Each share
-  came out at about half the setting.
+- **Projectile swaps: work.** The Catapult firing a ballista bolt visibly fired a bolt with normal catapult damage
+  (about 58 per 5 s). The fast, flat projectile looked like a cannon shot (user's view).
+- **"Melee ranged" units: work.** The Hoplite with range 3 attacked from range (user's view). Its target and the
+  control's both took damage in the log, from units straying out of their lanes.
+- **Trade shares: work.** At 25% each, a 24-gold trade paid 13 gold plus 3 food, 3 wood and 3 stone. Each share came
+  out at about half the setting. The trade boat's panel still shows only gold; the extra resources arrive on delivery.
 
 | Idea | Setting | RoR today |
 |---|---|---|
