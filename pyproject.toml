@@ -12,6 +12,8 @@ dependencies = [
     # The scenario toolkit: writes RoR scenarios/campaigns, triggers, AI and blocks. Pinned to a release tag;
     # bump it when this project needs a new toolkit feature.
     "aoe-agent-editor @ git+https://github.com/h-strydom/aoe-agent-editor@v0.6.0",
+    # Reads and writes the game's data file, for the data mod.
+    "genieutils-py>=0.1.2",
 ]
 
 [project.scripts]

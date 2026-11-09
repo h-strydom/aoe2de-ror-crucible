@@ -1,0 +1,180 @@
+"""The data mod test: can a Crucible campaign depend on a mod for what triggers can't do?
+
+Builds two local mods and a two-mission test campaign:
+
+- **Crucible Test Data**, a data mod: Return of Rome's own data file with two visible changes. Clubmen have 400 hit
+  points (40 normally). The Greek civilization loses its bonuses (Hoplites cost 60 food 40 gold instead of
+  48/32, and walk at the normal speed), which tests "a civ with no bonuses". Pick it in the campaign's Data Mod
+  dropdown.
+- **Crucible Test Dropsites**, a plain mod holding only `dropsites.json`: Houses accept wood. It tests whether that
+  file works from an ordinary mod, without being the chosen data mod.
+- **crucible_mod_test**, the campaign: two identical missions (the second checks the data mod carries over). A
+  trigger also makes Scouts trainable at the Barracks, testing "buildings that train units" with triggers alone.
+
+The data file is changed with genieutils-py, which writes RoR's file back identically when nothing is changed
+(checked 2026-11-09: the decompressed bytes match; only the compression differs).
+"""
+from __future__ import annotations
+
+import json
+import shutil
+from pathlib import Path
+
+from aoe2ed import blocks, games, tables
+from aoe2ed.campaign import Campaign, CampaignScenario
+from aoe2ed.config import find_game_dir
+from aoe2ed.session import SESSIONS
+from aoe2ed.tools.world import options_set, player_set
+
+DATA_MOD, JSON_MOD, CAMPAIGN = "Crucible Test Data", "Crucible Test Dropsites", "crucible_mod_test"
+ROR_DAT = Path("modes") / "Pompeii" / "resources" / "_common" / "dat"
+CLUBMAN, CLUBMAN_HP = 281, 400
+GREEK = 2                                  # civ index in RoR's data
+HOUSE_IDS = [70, 463, 464, 465]            # the House and its age looks
+STORAGE_PIT = 562
+TRAIN_LOCATION, TRAIN_BUTTON, SET = 42, 43, 1
+SCOUT_BUTTON = 9
+SIZE = 48
+
+INSTRUCTIONS = """Crucible mod test.
+
+Before starting: in Mods > Installed Mods, enable "Crucible Test Data" and "Crucible Test Dropsites", restart the \
+game, then on the campaign screen set Data Mod to "Crucible Test Data".
+
+1. CLUBMEN: select one. With the data mod: 400 hit points. Without: 40.
+2. GREEK BONUS GONE: train a Hoplite at the Academy. With the data mod: 60 food, 40 gold. With the normal Greek \
+bonus: 48 food, 32 gold.
+3. DROP SITE: send a villager to chop the trees beside the houses. Does it drop the wood at a House (Crucible Test \
+Dropsites, an ordinary mod) or walk to the Town Center?
+4. SCOUT AT BARRACKS (triggers only): does the Barracks offer a Scout?
+
+Walk any unit onto the flag in the far corner to finish the mission. Mission 2 is the same: check 1 and 2 again \
+to see that the data mod carried over."""
+
+
+def _source_dat() -> Path:
+    game = find_game_dir()
+    if game is None:
+        raise FileNotFoundError("AoE2 DE not found")
+    return game / ROR_DAT
+
+
+def build_data_mod(root: Path) -> Path:
+    """The data mod folder: RoR's data file with stronger Clubmen and Greeks without bonuses."""
+    from genieutils.datfile import DatFile
+    d = DatFile.parse(str(_source_dat() / "empires2_x2_p1.dat"))
+    for civ in d.civs:
+        if len(civ.units) > CLUBMAN and civ.units[CLUBMAN]:
+            civ.units[CLUBMAN].hit_points = CLUBMAN_HP
+    greek = d.civs[GREEK]
+    tree = d.effects[greek.tech_tree_id]
+    tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
+    for t in d.techs:
+        if t.civ == GREEK and t.effect_id >= 0:
+            d.effects[t.effect_id].effect_commands = []
+    folder = root / DATA_MOD
+    out = folder / ROR_DAT / "empires2_x2_p1.dat"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    d.save(str(out))
+    _info(folder, DATA_MOD, "Crucible test: Clubmen 400 HP, Greeks without bonuses (Return of Rome).")
+    return folder
+
+
+def build_json_mod(root: Path) -> Path:
+    """The plain mod: RoR's dropsites.json with Houses accepting wood."""
+    data = json.loads((_source_dat() / "dropsites.json").read_text(encoding="utf-8"))
+    pit = next(e for e in data["drop_site_list"] if e["building_id"] == STORAGE_PIT)
+    trees = [t for t in pit["target_list"] if t["name"] == "Trees"]
+    for hid in HOUSE_IDS:
+        data["drop_site_list"].append({"name": "House", "building_id": hid,
+                                       "worker_object_group": pit["worker_object_group"], "target_list": trees})
+    folder = root / JSON_MOD
+    out = folder / ROR_DAT / "dropsites.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(data, indent=4), encoding="utf-8")
+    _info(folder, JSON_MOD, "Crucible test: Houses accept wood (Return of Rome).")
+    return folder
+
+
+def _info(folder: Path, title: str, description: str) -> None:
+    (folder / "info.json").write_text(json.dumps({"Author": "aoe2de-ror-crucible", "CacheStatus": 0,
+                                                  "Description": description, "Title": title}), encoding="utf-8")
+
+
+def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
+    oid = unit if isinstance(unit, int) else tables.object_id(unit, "ror")
+    return s.unit_manager.add_unit(player=player, unit_const=oid, x=x + 0.5, y=y + 0.5).reference_id
+
+
+def build_mission(out: Path, number: int) -> Path:
+    """One test mission (both are the same apart from the title)."""
+    o = SESSIONS.new(SIZE, game="ror")
+    s = o.scenario
+    try:
+        with games.use("ror"):
+            s.player_manager.active_players = 1
+            player_set(o.handle, 1, {"civilization": "GREEK", "starting_age": "CASTLE", "human": True,
+                                     "food": 1000, "wood": 1000, "gold": 1000, "stone": 1000,
+                                     "population_cap": 200})
+            options_set(o.handle, {"victory_condition": "CUSTOM"})
+            _add(s, 1, "TOWN_CENTER", 10, 10)
+            for i in range(5):
+                _add(s, 1, "VILLAGER_MALE", 14 + i, 14)
+            _add(s, 1, "BARRACKS", 20, 8)
+            _add(s, 1, "ACADEMY", 8, 20)
+            for i in range(3):
+                _add(s, 1, "CLUBMAN", 16 + i * 2, 18)
+            # Houses with trees beside them, far from the Town Center: villagers drop wood at a House if they can.
+            for x in (30, 33):
+                _add(s, 1, "HOUSE", x, 30)
+            for x in range(28, 37):
+                for y in (34, 35):
+                    _add(s, 0, "TREE_A", x, y)
+            _add(s, 0, "FLAG_A", 44, 44)
+            ctx = blocks.Ctx(s)
+            ctx.trigger("Scout at the Barracks", [], [
+                {"type": "enable_disable_object", "source_player": 1, "object_list_unit_id": "SCOUT", "enabled": 1},
+                {"type": "modify_attribute", "source_player": 1, "object_list_unit_id": "SCOUT",
+                 "object_attributes": TRAIN_LOCATION, "operation": SET, "quantity": 12},
+                {"type": "modify_attribute", "source_player": 1, "object_list_unit_id": "SCOUT",
+                 "object_attributes": TRAIN_BUTTON, "operation": SET, "quantity": SCOUT_BUTTON}])
+            ctx.trigger("Finish", [{"type": "objects_in_area", "source_player": 1, "area": [42, 42, 47, 47],
+                                    "quantity": 1}], [{"type": "declare_victory", "source_player": 1, "enabled": 1}])
+            s.message_manager.instructions = f"Mission {number}. " + INSTRUCTIONS
+            player_set(o.handle, 1, {"initial_player_view_x": 20, "initial_player_view_y": 20})
+        out.mkdir(parents=True, exist_ok=True)
+        path = out / f"{CAMPAIGN}_{number}.aoe2scenario"
+        SESSIONS.save(o.handle, path, overwrite=True)
+        return path
+    finally:
+        SESSIONS.close(o.handle)
+
+
+def build_campaign(out: Path) -> Path:
+    camp = Campaign(CAMPAIGN)
+    for n in (1, 2):
+        p = build_mission(out, n)
+        camp.scenarios.append(CampaignScenario(f"Mod test {n}", p.name, p.read_bytes()))
+    return camp.write(out / f"{CAMPAIGN}.aoe2campaign")
+
+
+def build(out: Path) -> dict:
+    mods = out / "mods"
+    if mods.exists():
+        shutil.rmtree(mods)
+    return {"data_mod": build_data_mod(mods), "json_mod": build_json_mod(mods), "campaign": build_campaign(out)}
+
+
+def install(res: dict) -> dict:
+    """Copy both mods into the profile's local mods and the campaign into RoR's campaign folder."""
+    from aoe2ed import game
+    from aoe2ed.screens import mod_dir
+    done = {}
+    for key in ("data_mod", "json_mod"):
+        dest = mod_dir(res[key].name, "ror")
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(res[key], dest)
+        done[key] = dest
+    done["campaign"] = Path(game.install(res["campaign"], game="ror")["installed"])
+    return done
