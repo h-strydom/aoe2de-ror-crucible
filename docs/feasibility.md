@@ -188,6 +188,11 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
   bonus damage and counts as infantry for targeting; priest class may draw anti-priest behaviour.
 - Capture-on-contact for the class copies: not confirmed yet.
 
+**Round 4 results** (2026-11-09): **a stacking work rate bonus per garrisoned artifact works.** XS sets the
+Barracks' work rate (13) to 1 + 0.5 × artifacts garrisoned, on each Barracks look (12, 20, 132, 498): one artifact
+made every Barracks work at 150%, two at 200%, for training and research alike (checked by the player in game).
+The same pattern should carry over to any building family (a Storage Pit's research, say).
+
 Plan as written before the test:
 
 | Idea | How | Status |
