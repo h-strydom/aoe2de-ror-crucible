@@ -24,9 +24,11 @@ def test_data_mod_ports_and_exclusive_techs(tmp_path):
     assert d.civs[2].units[ids[2101]].nothing == ids[2174]                    # the Immortal's ranged form came too
     assert 0 not in ids                                                       # `nothing` = 0 isn't a link
     techs = testmod.exclusive_tech_ids()
-    for tid in techs:
-        disabled = {int(c.d) for c in d.effects[d.techs[tid].effect_id].effect_commands if c.type == 102}
-        assert disabled == set(techs)                                         # each disables all three
+    n = len(testmod.EXCLUSIVE)
+    for group, tech_type in ((techs[:n], testmod.EXCLUSIVE_TYPE), (techs[n:], 33)):
+        for tid in group:
+            disabled = {int(c.d) for c in d.effects[d.techs[tid].effect_id].effect_commands if c.type == 102}
+            assert disabled == set(group) and d.techs[tid].type == tech_type  # each disables its whole set
 
 
 def test_exclusive_script_checks():

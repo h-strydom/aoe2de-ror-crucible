@@ -73,8 +73,14 @@ PORTED_TRAIN_TIME = 10
 # Oligarchy / Democracy / Tyranny strings (does RoR have them?); each pays a different resource so the pick shows.
 EXCLUSIVE = ((407051, 3, 11), (407052, 1, 12), (407053, 0, 13))   # name string, resource paid, Barracks button
 EXCLUSIVE_PAY, EXCLUSIVE_COST, EXCLUSIVE_TIME = 200, 50, 20
-# Costs are paid at queue time, so two could be queued and both researched (round 1); a cost in a spare resource is
-# ignored (round 2). The scenario's script handles queueing instead (porttest.py).
+# Costs are paid at queue time, so two could be queued and both researched (rounds 1-3; a cost in a spare resource is
+# ignored, and a script disabling the others didn't hold). But in Chronicles, hovering one draws a red cross over the
+# other and the other can't be started while one researches. The tech `type` is the suspect: Chronicles' unique techs
+# are 0, the first sets were 9 (copied from RoR's Axe), and RoR's own exclusive set (Market: Trade 0/50/100% wood) is
+# 33. Round 4 compares type 0 (Barracks) with type 33 (Town Center).
+EXCLUSIVE_TYPE = 0
+EXCLUSIVE_33 = ((407051, 2, 8), (407052, 3, 9))   # a type 33 pair at the Town Center: pays stone, gold
+TOWN_CENTER = 109
 AXE_TECH, DISABLE_TECH, RESOURCE_MODIFY = 63, 102, 1
 SIZE = 48
 
@@ -339,19 +345,26 @@ def ported_ids() -> dict[int, int]:
 
 
 def exclusive_tech_ids() -> tuple[int, ...]:
+    """Every exclusive tech the data mod adds: the EXCLUSIVE set, then the EXCLUSIVE_33 set."""
     from genieutils.datfile import DatFile
     first = len(DatFile.parse(str(_source_dat() / "empires2_x2_p1.dat")).techs)
-    return tuple(range(first, first + len(EXCLUSIVE)))
+    return tuple(range(first, first + len(EXCLUSIVE) + len(EXCLUSIVE_33)))
 
 
 def _exclusive_techs(d) -> tuple[int, ...]:
-    """Three techs at the Barracks; researching any one disables all three (Chronicles' pattern: each choice's
-    effect has a "disable tech" command for every tech in the set, itself included). Returns their ids."""
+    """Mutually exclusive tech sets (Chronicles' pattern: each choice's effect has a "disable tech" command for every
+    tech in the set, itself included): EXCLUSIVE at the Barracks with type 0, EXCLUSIVE_33 at the Town Center with
+    type 33. Returns all their ids."""
+    return (_exclusive_set(d, EXCLUSIVE, BARRACKS[0], EXCLUSIVE_TYPE, "Crucible exclusive")
+            + _exclusive_set(d, EXCLUSIVE_33, TOWN_CENTER, 33, "Crucible exclusive type 33"))
+
+
+def _exclusive_set(d, spec, location: int, tech_type: int, label: str) -> tuple[int, ...]:
     first = len(d.techs)
-    ids = tuple(range(first, first + len(EXCLUSIVE)))
+    ids = tuple(range(first, first + len(spec)))
     template = d.techs[AXE_TECH]
     disable = next(c for e in d.effects for c in e.effect_commands if c.type == DISABLE_TECH)
-    for k, (name, resource, button) in enumerate(EXCLUSIVE):
+    for k, (name, resource, button) in enumerate(spec):
         effect = copy.deepcopy(d.effects[template.effect_id])
         pay = copy.deepcopy(disable)
         pay.type, pay.a, pay.b, pay.c, pay.d = RESOURCE_MODIFY, resource, 1, -1, float(EXCLUSIVE_PAY)
@@ -361,10 +374,10 @@ def _exclusive_techs(d) -> tuple[int, ...]:
             c.d = float(tid)
             commands.append(c)
         effect.effect_commands = commands
-        effect.name = f"Crucible exclusive {k + 1}"
+        effect.name = f"{label} {k + 1}"
         d.effects.append(effect)
         tech = copy.deepcopy(template)
-        tech.name = f"Crucible exclusive {k + 1}"
+        tech.name, tech.type = f"{label} {k + 1}", tech_type
         tech.language_dll_name, tech.language_dll_description = name, name + 1000
         tech.language_dll_help, tech.language_dll_tech_tree = name + 100000, name + 150000
         tech.effect_id, tech.civ, tech.repeatable = len(d.effects) - 1, -1, 0
@@ -375,7 +388,7 @@ def _exclusive_techs(d) -> tuple[int, ...]:
             c.type, c.amount, c.flag = -1, 0, 0
         tech.resource_costs = tuple(costs)
         loc = tech.research_locations
-        loc[0].location_id, loc[0].button_id, loc[0].research_time = BARRACKS[0], button, EXCLUSIVE_TIME
+        loc[0].location_id, loc[0].button_id, loc[0].research_time = location, button, EXCLUSIVE_TIME
         tech.research_locations = loc[:1]
         d.techs.append(tech)
     return ids

@@ -6,10 +6,12 @@ A standalone scenario, `crucible_port_test`, played with the Crucible Test Data 
    so its projectiles come too) and the Chronicles Hoplite and Immortal. The data mod copies their data and every
    graphic, sound and linked unit they need (`port.py`); the sprites come from the player's own install. One of
    each stands ready, and the Barracks trains them.
-2. Three Chronicles-style exclusive techs at the Barracks: researching one disables all three. They pay 200 gold,
-   wood or food so the pick shows. Costs are paid at queue time, so the data alone let two be queued and both
-   researched (round 1), and a cost in a spare resource is ignored (round 2): a script (`xs_code`) disables the
-   others the moment one is queued. Two Barracks let you try two at once.
+2. Chronicles-style exclusive techs: each one's effect disables every tech in its set. Rounds 1-3 (type 9 techs,
+   copied from RoR's Axe): two could be queued and both researched; a cost in a spare resource was ignored; a script
+   disabling the others didn't hold. In Chronicles, hovering one draws a red cross over the other and the other
+   can't be started while one researches. Round 4 compares the tech type: a type 0 set at the Barracks (Chronicles'
+   unique techs) and a type 33 pair at the Town Center (RoR's own Market trade techs, also present, are 33). A
+   read-only script reports each tech's state in chat whenever it changes.
 
 Passive enemies (RoR units) stand to the right to fight.
 """
@@ -21,67 +23,42 @@ from aoe2ed import blocks, games, tables
 from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
-from .testmod import EXCLUSIVE, EXCLUSIVE_COST, EXCLUSIVE_PAY, PORTED, exclusive_tech_ids, ported_ids
+from .testmod import EXCLUSIVE, PORTED, exclusive_tech_ids, ported_ids
 
 NAME = "crucible_port_test"
 SIZE = 48
 REVEAL_MAP = 203
 
-INSTRUCTIONS = """Crucible ported units and exclusive techs test, round 3. Pick "Crucible Test Data" as the Data Mod.
+INSTRUCTIONS = """Crucible ported units and exclusive techs test, round 4. Pick "Crucible Test Data" as the Data Mod.
 
-UNITS (round 2: the Immortal switches to ranged and back). Portraits, left to right, should be RoR's Heavy \
-Cavalry, Improved Bowman, Hoplite and Centurion: are they?
+UNITS: portraits, left to right, should be RoR's Heavy Cavalry, Improved Bowman, Hoplite and Centurion: are they?
 
-EXCLUSIVE TECHS (rounds 1-2: you could queue two and get both; a hidden token cost was ignored). Now a script \
-watches the three Barracks techs: the moment one is queued, the other two should vanish from both Barracks, with a \
-chat message. Cancel it: all three should come back. Try hard to queue two: click two quickly, or one in each \
-Barracks at the same moment. If a second one still finishes, chat says it was refunded (50 food back, its 200 \
-payout taken away). Nothing ends the game."""
+EXCLUSIVE TECHS. Which buildings act like Chronicles (hover one: red cross over the others; while one researches \
+the others can't be started; they vanish when it finishes)? \
+1) BARRACKS: three new techs (Oligarchy, Democracy, Tyranny names), now the type Chronicles' unique techs use. \
+2) TOWN CENTER: two new techs, the type RoR's Market trade techs use. \
+3) MARKET: RoR's own Trade 0% / 50% / 100% wood techs, for reference. \
+Chat reports each new tech's state when it changes: 1 ready, 4 queued, 2 researching, 3 done, -1 disabled. \
+Nothing ends the game."""
 
 
 def xs_code(techs: tuple[int, ...]) -> str:
-    """Keep player 1's exclusive techs exclusive while queueing. The data mod's techs disable each other only when
-    one finishes, and costs are paid at queue time, so two could be queued and both researched (round 1). This rule
-    polls `xsGetTechState`: the moment one is queued or researching, the others are disabled; if it's cancelled
-    (back to ready), they're enabled again. If a second one finishes anyway (queued in the same instant), its cost is
-    refunded and its payout taken back."""
-    def others(t: int, attr: str) -> str:
-        return "".join(f"            xsEffectAmount(cModifyTech, {o}, {attr}, 0, 1);\n" for o in techs if o != t)
-
-    pick = "".join(f"""        if ((crucibleChoice < 0) && ((xsGetTechState({t}, 1) == cTechStateQueued) ||
-                (xsGetTechState({t}, 1) == cTechStateResearching) || (xsGetTechState({t}, 1) == cTechStateDone))) {{
-            crucibleChoice = {t};
-{others(t, "cAttributeDisable")}            xsChatData("Exclusive tech picked: %d (others disabled)", {k + 1});
-        }}
-""" for k, t in enumerate(techs))
-    cancel = "".join(f"""        if (crucibleChoice == {t}) {{
-{others(t, "cAttributeEnable")}        }}
-""" for t in techs)
-    done = "".join(f"""    if ((crucibleDone{k} == 0) && (xsGetTechState({t}, 1) == cTechStateDone)) {{
-        crucibleDone{k} = 1;
-        crucibleDoneCount = crucibleDoneCount + 1;
-        if (crucibleDoneCount > 1) {{
-            xsSetPlayerAttribute(1, 0, xsPlayerAttribute(1, 0) + {EXCLUSIVE_COST});
-            xsSetPlayerAttribute(1, {res}, xsPlayerAttribute(1, {res}) - {EXCLUSIVE_PAY});
-            xsChatData("A second exclusive tech finished (%d): refunded, payout taken back", {k + 1});
-        }}
+    """Report each tech's state (`xsGetTechState`) in chat whenever it changes. Read-only."""
+    names = [f"Barracks tech {k + 1}" for k in range(len(EXCLUSIVE))]
+    names += [f"Town Center tech {k + 1}" for k in range(len(techs) - len(EXCLUSIVE))]
+    decls = "".join(f"int crucibleTechState{k} = -9;\n" for k in range(len(techs)))
+    body = "".join(f"""    if (xsGetTechState({t}, 1) != crucibleTechState{k}) {{
+        crucibleTechState{k} = xsGetTechState({t}, 1);
+        xsChatData("{name} state: %d", crucibleTechState{k});
     }}
-""" for k, (t, (_, res, _)) in enumerate(zip(techs, EXCLUSIVE)))
-    flags = "".join(f"int crucibleDone{k} = 0;\n" for k in range(len(techs)))
-    return f"""// ---- crucible exclusive techs: one at a time, even while queueing ----
-int crucibleChoice = -1;
-int crucibleDoneCount = 0;
-{flags}
-rule crucibleExclusive
+""" for k, (t, name) in enumerate(zip(techs, names)))
+    return f"""// ---- crucible exclusive techs: report state changes ----
+{decls}
+rule crucibleTechStates
     active
     highFrequency
 {{
-    if (crucibleChoice < 0) {{
-{pick}    }} else if (xsGetTechState(crucibleChoice, 1) == cTechStateReady) {{
-{cancel}        xsChatData("Exclusive tech cancelled: all three available again", 0);
-        crucibleChoice = -1;
-    }}
-{done}}}
+{body}}}
 """
 
 
@@ -109,6 +86,7 @@ def build(out: Path) -> Path:
                 _add(s, 1, "VILLAGER_MALE", 12, 18 + i * 2)
             _add(s, 1, "BARRACKS", 16, 12)
             _add(s, 1, "BARRACKS", 16, 30)
+            _add(s, 1, "MARKET", 6, 32)
             for k, uid in enumerate(PORTED):
                 _add(s, 1, ids[uid], 20 + k * 2, 22)
             enemies = [_add(s, 2, "HOPLITE", 34 + dx, 16 + dy) for dx in (0, 2) for dy in (0, 3, 6, 9)]
