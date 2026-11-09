@@ -37,6 +37,21 @@ or **unverified**. Verified engine facts also go into aoe-agent-editor's `src/ao
   - So Slingers already work as mild skirmishers. (AoE2's Elite Skirmisher: +4 vs archers, more vs spearmen, 4 pierce armour.)
 - **Bonuses can be changed:** triggers (Modify Attribute Attack/Armor with an armour class, per unit type) or the
   data mod (permanent; can also add new classes). Unverified in game.
+- **A bonus only lands if the target has that armour class.** So who counts as what is decided by armour classes,
+  not unit type.
+- **Hoplites vs cavalry:** give Hoplites an attack against class 8 (cavalry). Today only Camel Riders have one (+8).
+  Cavalry and Scouts have class 8 armour 0 (full bonus); Chariots have 4, which blunts it.
+- **Cavalry archers count only as archers:** they carry both archer (15) and cavalry (8) armour:
+  - Horse Archer 0/0;
+  - Elephant Archer 0/0, plus elephant class 5;
+  - Chariot Archer −2/4.
+
+  Remove their class 8 entry, and cavalry bonuses (camels, a Hoplite bonus) skip them while archer bonuses
+  (Slingers) still apply. Data mod: delete the entry. Triggers: probably, via the Remove Armor Type attribute (164;
+  Add Armor Type is 160), unverified.
+  - Caveat: armour only. Their unit class stays cavalry archer (36), which AI scripts, class-wide civ bonuses
+    (Assyrian archer fire rate covers classes 0 and 36) and garrison rules use. The data mod can change the class
+    too, with wider knock-on effects.
 
 ## Garrisons
 
