@@ -68,7 +68,7 @@ AOE2_DAT = Path("resources") / "_common" / "dat"
 PORTED = {38: 5, 24: 8, 2110: 9, 2101: 10}       # AoE2 unit id: Barracks button
 # RoR portraits for the ports (their AoE2 icon ids index RoR's set: the Knight showed a priest, Chronicles ones were
 # black): Heavy Cavalry, Improved Bowman, Hoplite, Centurion; 2174 is the Immortal's ranged form.
-PORTED_ICONS = {38: 13, 24: 7, 2110: 16, 2101: 50, 2174: 50}
+PORTED_ICONS = {38: 13, 24: 7, 2110: 16, 2101: 50, 2174: 50, 2327: 57, 1790: 50}
 PORTED_TRAIN_TIME = 10
 # Mutually exclusive techs, Chronicles-style: each one's effect disables all three. Names use Chronicles'
 # Oligarchy / Democracy / Tyranny strings (does RoR have them?); each pays a different resource so the pick shows.
@@ -88,6 +88,14 @@ WONDER, WONDER_BUTTON, WONDER_PAY, WONDER_TIME = 276, 1, 500, 10
 # AoE2 mechanics, part 2 (data only; docs/aoe2-mechanics.md). Unit tasks copied from AoE2 units onto RoR ones:
 MULE_CART, MULE_BUTTON = 1808, 4                 # AoE2's Mule Cart (movable drop site), trained at the Town Center
 CAMEL_RAIDER, JIAN, BLACKWOOD, CENTURION = 2327, 1974, 2579, 1790   # loot, HP transform, extra spawn, aura templates
+# Round 2: the copied aura and loot tasks did nothing on RoR units. Port the AoE2 units whole to tell "copied wrong"
+# from "RoR doesn't run these tasks": the Camel Raider (loot) and the Centurion, whose aura targets swordsman ids
+# 74/75/77/473, which are swordsmen in RoR too. Placed in the scenario, not trained.
+PORTED_WHOLE = (CAMEL_RAIDER, CENTURION)
+# Half a pop slot, the data way: AoE2's Karambit stores -0.5 population headroom (4), 0.5 population (11) and 0.5
+# of resource 19 where a normal unit has -1, 1, 1. Applied to the Scout. (RoR's own Logistics sets attribute 110 to
+# -0.5 instead; the scenario tests that and a trigger route.)
+SCOUT, HALF_POP_STORAGES = 448, {4: -0.5, 11: 0.5, 19: 0.5}
 HOPLITE, AXEMAN, SHORT_SWORDSMAN, LONG_SWORDSMAN, CLUBMAN, WAR_ELEPHANT = 93, 531, 74, 77, 281, 1132
 AURA, LOOT, HP_TRANSFORM, EXTRA_SPAWN = 155, 154, 158, 156
 PHALANX = (116, 117)                             # the Chronicles Hoplite's per-hoplite aura stats (armour)
@@ -336,7 +344,8 @@ def _ported_units(d, src=None) -> dict[int, int]:
     from .port import Porter
     porter = Porter(src or _aoe2_dat(), d)
     for uid, (location, button) in [*((u, (BARRACKS[0], b)) for u, b in PORTED.items()),
-                                    (MULE_CART, (TOWN_CENTER, MULE_BUTTON))]:
+                                    (MULE_CART, (TOWN_CENTER, MULE_BUTTON)),
+                                    *((u, (None, None)) for u in PORTED_WHOLE)]:
         new = porter.unit(uid)
         for src_id, icon in PORTED_ICONS.items():
             if src_id in porter.units:
@@ -348,7 +357,7 @@ def _ported_units(d, src=None) -> dict[int, int]:
             if unit is None:
                 continue
             unit.enabled = 1
-            if unit.creatable:
+            if unit.creatable and location is not None:
                 loc = unit.creatable.train_locations
                 loc[0].unit_id, loc[0].button_id, loc[0].train_time = location, button, PORTED_TRAIN_TIME
                 unit.creatable.train_locations = loc[:1]
@@ -491,8 +500,14 @@ def _mechanics(d, src) -> None:
             _copy_tasks(u[AXEMAN], loot)
         if u[SHORT_SWORDSMAN] and u[SHORT_SWORDSMAN].bird:
             _copy_tasks(u[SHORT_SWORDSMAN], transform, work_value_1=float(LONG_SWORDSMAN), work_value_2=TRANSFORM_AT)
-        if u[CLUBMAN] and u[CLUBMAN].bird:
-            _copy_tasks(u[CLUBMAN], spawn, work_value_1=float(CLUBMAN), work_value_2=1.0)
+        for uid in (CLUBMAN, AXEMAN):            # an Iron Age start upgrades Clubmen to Axemen (round 1)
+            if u[uid] and u[uid].bird:
+                _copy_tasks(u[uid], spawn, work_value_1=float(uid), work_value_2=1.0)
+    for civ in d.civs:
+        scout = civ.units[SCOUT] if len(civ.units) > SCOUT else None
+        for storage in (scout.resource_storages if scout else []):
+            if storage.type in HALF_POP_STORAGES:
+                storage.amount = HALF_POP_STORAGES[storage.type]
     template = d.techs[AXE_TECH]
     command = next(c for e in d.effects for c in e.effect_commands if c.type == DISABLE_TECH)
     name = d.civs[1].units[WONDER].language_dll_name

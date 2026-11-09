@@ -137,6 +137,10 @@ class Porter:
                     setattr(t, f, self.graphic(getattr(t, f)))
                 for f in TASK_SOUNDS:
                     setattr(t, f, self.sound(getattr(t, f)))
+                # A task aimed at a unit ported already (itself included: the Chronicles Hoplite's phalanx aura
+                # names Hoplites) follows it to its RoR id. Other targets keep AoE2's id.
+                if t.unit_id in self.units:
+                    t.unit_id = self.units[t.unit_id]
         if u.type_50:
             for f in ATTACK_GRAPHICS:
                 setattr(u.type_50, f, self.graphic(getattr(u.type_50, f)))
