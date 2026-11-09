@@ -234,6 +234,33 @@ Plan as written before the test:
 | Captured ruins trickle every resource | Ruins are Artifact Ruins (52), which change owner when captured. No native trickle is tied to them (and the trickles tested did nothing in RoR). XS: each second, count each player's ruins and pay resources, as the verified wood-to-gold conversion does; or a looping trigger with fixed amounts | Functions verified elsewhere; untested |
 | An artifact cart garrisoned in a Barracks makes every Barracks train in 1 second | The moving artifact carts (159, 944, 1304) already have a "garrison into a building" task. Barracks hold 10 but admit garrison type 0 (as do the Temple and AoE2's relic-holding Monastery, so artifacts may follow a special rule); fallback: raise the Barracks' garrison type by trigger. XS checks each Barracks for a garrisoned cart (`xsGetGarrisonedUnitIds`) and sets every Barracks unit's Train Time (101) to 1 for that player, or raises the Barracks' work rate; it restores them when the cart leaves | Untested |
 
+## Units from AoE2 and Chronicles, and exclusive techs
+
+**How it works** (data checked 2026-11-09):
+- The Chronicles civs (Achaemenids, Athenians, Spartans, plus Macedonians and Thracians) live in AoE2's main data
+  file, and their unit ids start at 2101. Their sprites are in the shared graphics folder that RoR also reads (RoR's
+  own Coustillier entry already uses an AoE2 sprite).
+- RoR's data file keeps AoE2's unit ids but reuses some slots (38 is AoE2's Knight and RoR's Cavalry), and about a
+  third of its graphic ids point at different sprites. So a ported unit needs its graphics, sounds and linked units
+  (corpse, projectiles, alternate form) copied and renumbered where RoR's ids differ: `port.py`. No sprite files are
+  copied; the mod refers to the player's own install.
+- Chronicles' "pick one" techs are plain techs whose effect disables every tech in the set, itself included (command
+  102), e.g. Dekate / Taxiarchs, Oligarchy / Democracy / Tyranny. RoR's data has the same fields and uses 102 itself.
+
+**Round 1** (`crucible port-test`, 2026-11-09): Knight, Crossbowman, Chronicles Hoplite and Immortal ported to the
+Barracks; three exclusive Barracks techs.
+- **Ported units work**: standing, walking, attacking, dying, projectiles, training. Porting the four took 20 new
+  graphics; the rest already matched.
+- **Portraits are wrong**: `icon_id` indexes RoR's own icon set and RoR doesn't fall back to AoE2's icon files. The
+  Knight (icon 1) showed RoR's priest; the Chronicles units (icons 621, 625, past RoR's set) were black. Fix: point
+  each at a fitting RoR portrait. (Copying Chronicles icon art into a mod is not an option.)
+- **The Immortal's ranged switch turned it into a fishing ship**: its alternate form is a unit link (genieutils calls
+  the field `nothing`), 2174, which is RoR's Oystering Ship. The port has to follow that link too.
+- **Exclusive techs are exclusive, but queueing beats it**: you could queue two (in one or two Barracks) and get both,
+  since the cost is paid at queue time and the disable only lands when one finishes; cancelling a queued one after
+  another finished put them back in the UI. Chronicles has nothing extra in its data against this (Dekate's other
+  resources are aura flags). Next: a "token" cost, 1 of a spare resource the player has exactly 1 of.
+
 ## Resources
 
 Resource test scenario (`crucible resource-test`, 2026-11-09; 6.5 minutes logged). Each stone mine started at 350.
