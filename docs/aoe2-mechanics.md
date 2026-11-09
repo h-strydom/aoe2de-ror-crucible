@@ -71,3 +71,20 @@ lanes 5 and 10 after the first 30 s.
 | 8 Add attack type (161), then +50 vs buildings | **Works by trigger**: that House fell in ~15 s; the one only "set" +50 vs buildings (a class the Axeman lacks) took ~80 s. So a trigger *can* add an attack class: set 161 to the class first, then set the amount |
 | 9 Dead unit | **Horse Archer → Bowman works** (your Bowmen went 3 → 4 when it died). The Camel Rider → Broad Swordsman made no Broad Swordsman (count stayed 0) |
 | 10 Charge | **Type 1 works**: the first hit took 41 against the plain elephant's 11 (+30, the charge). Type 3 hit for 23 (+12, its charge) but splashed nothing, even with splash width 1 |
+
+## Results, part 2 (`crucible mech-data-test`, 2026-11-09, data mod)
+
+| Test | Result |
+|---|---|
+| Phalanx: the Chronicles Hoplite's count aura (+2 armour per Hoplite within 3, up to 8) copied onto RoR Hoplites | **Didn't work** (no armour change); the ported Chronicles Hoplites showed none either (their aura still names AoE2 unit ids 2110/2111, which the port doesn't remap) |
+| Building aura: the Centurion's speed aura (mode 3) on the Town Center, retargeted to infantry (class 6), x1.5 | **Didn't work** |
+| Loot: the Camel Raider's loot tasks on Axemen | **Didn't work** (gold never rose from kills) |
+| HP transform: Short Swordsman becomes Long Swordsman below 50% (the Jian's task) | **Works** |
+| Extra spawn on Clubmen | Not testable: an Iron Age start upgrades Clubmen to Axemen (the Axe tech), so no Clubmen to train |
+| Mule Cart, ported, with a dropsites.json entry and listed by every villager job unit | **Works**: villagers dropped wood at it (wood climbed steadily), and it moves |
+| Wonder techs | **All work**: 500 of everything; spawn 3 War Elephants at the Town Center (effect 7); curse, enemy infantry HP x0.5 (effect 25: the enemy Hoplite went 999 → 500); team gift +500 food (effect 11: both you and your ally got it) |
+
+Ruled out for the auras and loot: unit upgrades (an Iron Age start doesn't upgrade Hoplites or Axemen) and the unit's
+combat level (the same on RoR's units as on AoE2's aura units). Next: port the AoE2 units whole (Camel Raider,
+Centurion, Chronicles Hoplite, with their task target ids remapped) to tell "copied wrong" from "RoR doesn't run
+these tasks".
