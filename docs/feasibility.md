@@ -206,8 +206,21 @@ infantry copy, priest copy; what had turned to player 1 at the start:
 | 3 Never (Gaia aggressive) | grey | grey | grey |
 
 So setting the copies' flag to Never, Multiple Times or Never (Gaia aggressive) keeps them grey at the start.
-Still to check: which of those can then be captured on contact (Never presumably not; Multiple Times is the
-likely one).
+Then a hoplite walked past the grey ones:
+
+| Capture flag | Real artifact | Infantry copy | Priest copy |
+|---|---|---|---|
+| 0 Never | captured anyway | stayed grey | stayed grey |
+| 2 Multiple Times | **captured** | **captured** | **captured** |
+| 3 Never (Gaia aggressive) | captured anyway | turned hostile: walked up, attacked, was killed | was attacked down to 0 HP but never died |
+
+- **Answer: place garrisonable artifact copies as Gaia with capture flag 2 (Multiple Times).** They then act like
+  real artifacts: grey until a unit reaches them, captured on contact, and they garrison. No swap needed.
+- The real artifact (class 1) ignores the flag for contact capture (Never and Gaia aggressive didn't stop it); only
+  Once changed it (joined at the start).
+- In a military class, flag 3 makes the copy a hostile Gaia unit. An artifact copy has hit points and can be
+  attacked; the priest-class one sat at 0 HP without dying (no dying behaviour), so it's best kept out of fights.
+  Whether enemies attack an owned copy in a real game is still untested.
 
 **Round 4 results** (2026-11-09): **a stacking work rate bonus per garrisoned artifact works.** XS sets the
 Barracks' work rate (13) to 1 + 0.5 × artifacts garrisoned, on each Barracks look (12, 20, 132, 498): one artifact
