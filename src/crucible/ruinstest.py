@@ -1,4 +1,4 @@
-"""The ruins and artifacts test, round 3: ruins that trickle resources, artifacts that garrison and speed up every Barracks.
+"""The ruins and artifacts test, round 4: ruins that trickle, artifacts that garrison and add 50% to every Barracks.
 
 A standalone scenario, `crucible_ruins_test`, played with the Crucible Test Data mod picked (it adds the Ruin
 Monument, a copy of King of the Hill's Monument dressed as Artifact Ruins).
@@ -18,12 +18,13 @@ Ruins trickle, one allied player each (they own their objects from the start):
 
 You (player 1) have the monument trickles, a Gaia Ruin Monument and a Gaia Artifact Ruins to capture, two Barracks
 and three artifacts, all given a garrison task by the data mod: the AoE1 artifact (25, artifact class), a copy in the
-infantry class and a copy in the priest class (round 3: which class lets an artifact garrison?). The data mod opens
-every Barracks to every garrison category. While any artifact is garrisoned in, or stands within 4 tiles of, one of
-your Barracks, a script sets every Barracks' work rate to 30 (units train in about a second); it goes back to 1 when
-none is.
+infantry class and a copy in the priest class. The data mod opens every Barracks to every garrison category. Each
+artifact garrisoned in one of your Barracks adds 50% to every Barracks' work rate (round 4: does it stack, and does
+it speed up research as well as training?). The script still logs artifacts within 4 tiles, but they don't boost.
 
 Round 2 (2026-11-09): the Ruin Monument and script pay both trickle; the AoE1 artifact has no garrison button.
+Round 3: the infantry- and priest-class copies garrison, the AoE1 artifact (class 1) doesn't; work rate 30 while one
+was inside trained units in seconds.
 
 A script logs every player's stockpile and objects every 10 seconds to `<profile>/profile/crucible_ruins_test.xsdat`;
 `crucible ruins-report` prints it.
@@ -46,7 +47,7 @@ PLAYERS = range(1, 6)
 MONUMENT_TRICKLES = (221, 222, 223, 224)        # Monument Food/Wood/Stone/Gold Trickle
 RUINS, MONUMENT, ARTIFACT = 52, 826, 25        # Artifact Ruins, KotH Monument, the AoE1 Artifact
 BARRACKS = (12, 20, 132, 498)                   # the Barracks and its age looks
-WORK_RATE, FAST_WORK_RATE, DELIVER_DISTANCE = 13, 30, 4.0
+WORK_RATE, BONUS_PER_ARTIFACT, DELIVER_DISTANCE = 13, 0.5, 4.0   # +50% work rate per garrisoned artifact
 SCRIPT_PAY, SCRIPT_PLAYER = 1, 4                # per ruin every 10 s
 REVEAL_MAP = 203
 LANE_Y = {p: 6 + (p - 2) * 8 for p in (2, 3, 4, 5)}
@@ -59,12 +60,11 @@ like ruins) with KotH's trickle | P3 the KotH Monument, same trickle | P4 ruins,
 10 s | P5 ruins, nothing (control). You have KotH's trickle too: capture the Gaia Ruin Monument (left of your \
 hoplites) and the Gaia ruins (right). Do your resources start rising after the Ruin Monument?
 
-ARTIFACTS: your three artifacts, left to right: the AoE1 artifact, a copy in the infantry class, a copy in the \
-priest class. The data mod gives all three a garrison command and opens your Barracks to every category. Try to \
-garrison each one in a Barracks: which go in? A chat message counts artifacts garrisoned in your Barracks. While \
-any artifact is in, or within 4 tiles of, a Barracks, every Barracks should train in about a second. Then check \
-the copies still act like artifacts: walk a hoplite to the three Gaia artifacts (same order, top right). Which \
-turn yours?"""
+ARTIFACTS: each artifact garrisoned in one of your Barracks makes EVERY Barracks work 50% faster: 0 = normal, 1 = \
+150%, 2 = 200% (twice as fast). Only the two right-hand artifacts (infantry and priest class copies) can garrison; a \
+chat message gives the count and the rate. Use the Barracks WITHOUT artifacts in it: the time should go about \
+26 s -> 17 s -> 13 s for a Clubman, and 40 s -> 27 s -> 20 s for the Axe research. Do training and research both \
+get faster, and by about that much? Also: walk a hoplite to the three Gaia artifacts (top right). Which turn yours?"""
 
 
 def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
@@ -157,16 +157,10 @@ rule crucibleArtifactDelivery
     int artifacts = -1;
     vector ap = cInvalidVector;
 {near}{garrisoned}    if (held != crucibleArtifactsHeld) {{
-        xsChatData("Artifacts garrisoned in your Barracks: %d", held);
-    }}
-    if ((found + held > 0) != (crucibleArtifactsNear + crucibleArtifactsHeld > 0)) {{
-        float rate = 1.0;
-        if (found + held > 0) {{
-            rate = {FAST_WORK_RATE}.0;
-            xsChatData("Artifact at or in a Barracks: every Barracks trains fast", 0);
-        }} else {{
-            xsChatData("No artifact at a Barracks: normal training", 0);
-        }}
+        // Each garrisoned artifact adds {BONUS_PER_ARTIFACT:.0%} to every Barracks' work rate (training and research).
+        float rate = 1.0 + {BONUS_PER_ARTIFACT} * held;
+        xsChatData("Artifacts garrisoned: %d", held);
+        xsChatData("Every Barracks now works at %d percent", 100 + {round(BONUS_PER_ARTIFACT * 100)} * held);
 {set_rate}    }}
     crucibleArtifactsNear = found;
     crucibleArtifactsHeld = held;
