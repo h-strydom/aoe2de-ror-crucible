@@ -128,9 +128,10 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
     method (Modify Attribute Add/Set, Modify Object Attribute, Change Object Attack, `xsEffectAmount` Add/Set).
   - **What works:** setting the tower's existing pierce attack to 50. Stones then hit for 50, as pierce damage
     (targets' pierce armour applies), with no bonus against buildings.
-- **The proper version** is the data mod: a tower with the Stone Thrower's attack classes (50 melee, +140 vs
-  buildings) written in, unlocked by a technology. Not yet seen in game (round 3's Guard Tower read no melee
-  attack, likely because the data mod wasn't picked).
+- **The proper version is the data mod: verified.** A Guard Tower with the Stone Thrower's attack classes (50 melee,
+  +140 vs buildings) written in read 0/50/140 in game, and its stones hit an elephant for about 46. Combined with the
+  trigger settings above (projectile, reload, range, splash), that's a real catapult tower. In the final mod it would
+  be its own unit, unlocked by a technology.
 
 ## Resources
 
