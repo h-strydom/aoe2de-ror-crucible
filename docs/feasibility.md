@@ -186,7 +186,12 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
 - So "an artifact in a Barracks speeds up every Barracks" is doable: a data mod artifact copy in the infantry or
   priest class with a garrison task, plus XS. The class change has side effects to watch: class 6 takes infantry
   bonus damage and counts as infantry for targeting; priest class may draw anti-priest behaviour.
-- Capture-on-contact for the class copies: not confirmed yet.
+- Capture for the class copies (checked after round 4): Gaia copies in the infantry and priest class **join player
+  1 as soon as the game starts**, wherever they stand. Only the real artifact (25) waits grey for a unit to reach
+  it. Once owned, the copies still pick up artifacts: walking them next to the grey real one captured it. (The map
+  was revealed; whether that's what hands them over is untested.)
+  - So a class copy can't sit on the map as an artifact to find. The route: place the real artifact, and when a
+    player captures it, swap it for the garrisonable copy (Replace Object, or XS). Untested.
 
 **Round 4 results** (2026-11-09): **a stacking work rate bonus per garrisoned artifact works.** XS sets the
 Barracks' work rate (13) to 1 + 0.5 × artifacts garrisoned, on each Barracks look (12, 20, 132, 498): one artifact
