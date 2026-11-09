@@ -191,3 +191,13 @@ Next ideas:
 - **Safe zones**: nothing inside either square was attacked this run (player's report; the script's log wasn't
   rewritten, so its numbers are from round 1). Open: does splash from a Stone Thrower's attack-ground (aimed at the
   ground, not a unit) still hurt units inside?
+
+## Results, map tricks round 3 (2026-11-09): splash gets into the safe zone
+
+- **Splash from attack-ground damages units in the safe zone**, unattackable or not (enemy Stone Throwers and the
+  player's own Heavy Catapult aimed at the ground in the square).
+- **Safe zone design**: the XS rule (`cUnitAttackable` 0 inside, 1 outside) stops targeted attacks. For splash, give
+  units inside fast regeneration (`xsEffectAmount(cSetUnitAttribute, unit, 109, rate, p)`, proven per unit) and high
+  armour while inside (the same per-unit setter on armour), reverted on leaving, so nothing gets one-shot.
+  Alternative: the rule tops up HP directly (`xsSetUnitProperty(id, cUnitHitpoints, ...)`; settable per the game's
+  constants, untested).
