@@ -34,6 +34,10 @@ def main(argv: list[str] | None = None) -> int:
                                                  "transform, extra spawn, Mule Cart, Wonder techs)")
     p_md.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     sub.add_parser("mech-data-report", help="print what the mechanics test, part 2, recorded")
+    p_unit = sub.add_parser("unit-test", help="build the unit test (Chu Ko Nu, Kipchak, Mangonel, fire modes, "
+                                              "Khmer farmers, no drop-off, mercenaries)")
+    p_unit.add_argument("--install", action="store_true", help="install the data mod and the scenario")
+    sub.add_parser("unit-report", help="print what the unit test recorded")
     p_fire = sub.add_parser("fire-test", help="build the friendly fire test scenario")
     p_fire.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("fire-report", help="print what the friendly fire test recorded")
@@ -111,6 +115,20 @@ def main(argv: list[str] | None = None) -> int:
             from aoe2ed import game
             print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
             print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "unit-test":
+        from . import testmod, unitfiretest
+        path, _ = unitfiretest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "unit-report":
+        from aoe2ed import game
+        from . import unitfiretest
+        print(unitfiretest.report(Path(game.read_xsdat(unitfiretest.NAME)["path"]), unitfiretest.labels()))
         return 0
     if args.command == "mech-data-report":
         from aoe2ed import game

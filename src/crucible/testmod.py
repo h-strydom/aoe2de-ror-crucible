@@ -69,7 +69,7 @@ AOE2_DAT = Path("resources") / "_common" / "dat"
 PORTED = {38: 5, 24: 8, 2110: 9, 2101: 10}       # AoE2 unit id: Barracks button
 # RoR portraits for the ports (their AoE2 icon ids index RoR's set: the Knight showed a priest, Chronicles ones were
 # black): Heavy Cavalry, Improved Bowman, Hoplite, Centurion; 2174 is the Immortal's ranged form.
-PORTED_ICONS = {38: 13, 24: 7, 2110: 16, 2101: 50, 2174: 50, 2327: 57, 1790: 50}
+PORTED_ICONS = {38: 13, 24: 7, 2110: 16, 2101: 50, 2174: 50, 2327: 57, 1790: 50, 1968: 7, 2705: 16}
 PORTED_TRAIN_TIME = 10
 # Mutually exclusive techs, Chronicles-style: each one's effect disables all three. Names use Chronicles'
 # Oligarchy / Democracy / Tyranny strings (does RoR have them?); each pays a different resource so the pick shows.
@@ -92,11 +92,23 @@ CAMEL_RAIDER, JIAN, BLACKWOOD, CENTURION = 2327, 1974, 2579, 1790   # loot, HP t
 # Round 2: the copied aura and loot tasks did nothing on RoR units. Port the AoE2 units whole to tell "copied wrong"
 # from "RoR doesn't run these tasks": the Camel Raider (loot) and the Centurion, whose aura targets swordsman ids
 # 74/75/77/473, which are swordsmen in RoR too. Placed in the scenario, not trained.
-PORTED_WHOLE = (CAMEL_RAIDER, CENTURION)
+# Automatic attack switch (unit test): AoE2's Fire Archer (target-dependent fire projectile, charge type 6) and
+# the Danes' Hearth Troop (throws its charge projectile).
+FIRE_ARCHER, HEARTH_TROOP = 1968, 2705
+PORTED_WHOLE = (CAMEL_RAIDER, CENTURION, FIRE_ARCHER, HEARTH_TROOP)
 # Half a pop slot, the data way: AoE2's Karambit stores -0.5 population headroom (4), 0.5 population (11) and 0.5
 # of resource 19 where a normal unit has -1, 1, 1. Applied to the Scout. (RoR's own Logistics sets attribute 110 to
 # -0.5 instead; the scenario tests that and a trigger route.)
 SCOUT, HALF_POP_STORAGES = 448, {4: -0.5, 11: 0.5, 19: 0.5}
+# Unit fire modes (unit test): AoE2's Kipchak fires 3 arrows (total and max total projectiles 3, the Chu Ko Nu's
+# secondary arrow 510) spread over a spawn area of 1 x 1; given to RoR's Horse Archer. Two fire modes, the Ratha's and
+# the Immortal's way: trait 8 plus the alternate unit in `nothing`, both ways; the Bowman's other mode is a copy
+# firing a catapult stone with +40 vs buildings. Limited training, Cuman Mercenaries' way: a unit costing 1 of
+# resource 214 ("Mercenary Kipchak Count"), and a Wonder tech giving your team 5 of it.
+HORSE_ARCHER, BOWMAN, CAVALRY = 39, 4, 38
+KIPCHAK_SPREAD, KIPCHAK_ARROWS, CKN_ARROW = (1.0, 1.0, 1.0), 3, 510
+SWITCH_TRAIT, CATAPULT_SHOT, SIEGE_BONUS, BUILDING_ARMOUR = 8, 656, 40, 11   # 11: the buildings armour class
+MERC_TOKEN, MERC_BUTTON, MERC_GIFT, MERC_TECH_BUTTON = 214, 5, 5, 5
 HOPLITE, AXEMAN, SHORT_SWORDSMAN, LONG_SWORDSMAN, CLUBMAN, WAR_ELEPHANT = 93, 531, 74, 77, 281, 1132
 AURA, LOOT, HP_TRANSFORM, EXTRA_SPAWN = 155, 154, 158, 156
 PHALANX = (116, 117)                             # the Chronicles Hoplite's per-hoplite aura stats (armour)
@@ -170,6 +182,7 @@ def build_data_mod(root: Path) -> Path:
             sites = unit.bird.drop_sites if unit and unit.class_ == CIVILIAN and unit.bird else None
             if sites and mule not in sites:
                 sites.append(mule)
+    _unit_modes(d)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -533,6 +546,72 @@ def _mechanics(d, src) -> None:
         loc[0].location_id, loc[0].button_id, loc[0].research_time = WONDER, button, WONDER_TIME
         tech.research_locations = loc[:1]
         d.techs.append(tech)
+
+
+def unit_mode_ids() -> tuple[int, int]:
+    """(the Bowman's siege mode, the Mercenary Cavalry): added right after the ported units."""
+    first = max(ported_ids().values()) + 1
+    return first, first + 1
+
+
+def mercenary_tech_id() -> int:
+    """The Wonder tech that gives your team mercenary tokens: after the other Wonder techs."""
+    return wonder_extra_tech_ids()[-1] + 1
+
+
+def _unit_modes(d) -> None:
+    """Kipchak-style Horse Archers, a switchable siege mode for Bowmen, and mercenaries limited by a token resource
+    (unit test)."""
+    siege_id, merc_id = len(d.civs[0].units), len(d.civs[0].units) + 1
+    for civ in d.civs:
+        u = civ.units
+        ha = u[HORSE_ARCHER] if len(u) > HORSE_ARCHER else None
+        if ha and ha.creatable:
+            ha.creatable.projectile_spawning_area = KIPCHAK_SPREAD
+            ha.creatable.total_projectiles = float(KIPCHAK_ARROWS)
+            ha.creatable.max_total_projectiles = KIPCHAK_ARROWS
+            ha.creatable.secondary_projectile_unit = CKN_ARROW
+        bow, cav = (u[BOWMAN] if len(u) > BOWMAN else None), (u[CAVALRY] if len(u) > CAVALRY else None)
+        if not (bow and cav):
+            u += [None, None]
+            continue
+        siege = copy.deepcopy(bow)
+        siege.id = siege.copy_id = siege.base_id = siege_id
+        siege.name = "Bowman (siege mode)"
+        siege.type_50.projectile_unit_id = CATAPULT_SHOT
+        bonus = copy.deepcopy(siege.type_50.attacks[0])
+        bonus.class_, bonus.amount = BUILDING_ARMOUR, SIEGE_BONUS
+        siege.type_50.attacks.append(bonus)
+        siege.trait, siege.nothing = SWITCH_TRAIT, BOWMAN
+        bow.trait, bow.nothing = SWITCH_TRAIT, siege_id
+        merc = copy.deepcopy(cav)
+        merc.id = merc.copy_id = merc.base_id = merc_id
+        merc.name, merc.enabled = "Mercenary Cavalry", 1
+        costs = list(merc.creatable.resource_costs)
+        costs[0].type, costs[0].amount, costs[0].flag = MERC_TOKEN, 1, 1
+        costs[1].type, costs[1].amount, costs[1].flag = -1, 0, 0
+        merc.creatable.resource_costs = tuple(costs)
+        loc = merc.creatable.train_locations
+        loc[0].unit_id, loc[0].button_id = TOWN_CENTER, MERC_BUTTON
+        merc.creatable.train_locations = loc[:1]
+        u += [siege, merc]
+    # The Wonder tech: +5 mercenary tokens for your team (effect 11: a team resource change).
+    template = d.techs[AXE_TECH]
+    command = copy.deepcopy(next(c for e in d.effects for c in e.effect_commands if c.type == DISABLE_TECH))
+    command.type, command.a, command.b, command.c, command.d = 11, MERC_TOKEN, 1, -1, float(MERC_GIFT)
+    effect = copy.deepcopy(d.effects[template.effect_id])
+    effect.effect_commands, effect.name = [command], "Crucible Wonder mercenaries"
+    d.effects.append(effect)
+    tech = copy.deepcopy(template)
+    tech.name, tech.type, tech.civ, tech.repeatable = "Crucible Wonder mercenaries", 0, -1, 0
+    tech.language_dll_name, tech.effect_id = d.civs[1].units[WONDER].language_dll_name, len(d.effects) - 1
+    tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
+    for rc in tech.resource_costs:
+        rc.type, rc.amount, rc.flag = -1, 0, 0
+    loc = tech.research_locations
+    loc[0].location_id, loc[0].button_id, loc[0].research_time = WONDER, MERC_TECH_BUTTON, WONDER_TIME
+    tech.research_locations = loc[:1]
+    d.techs.append(tech)
 
 
 def _mule_cart_drop_site(data: dict) -> None:
