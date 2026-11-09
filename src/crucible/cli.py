@@ -29,6 +29,9 @@ def main(argv: list[str] | None = None) -> int:
     p_fire = sub.add_parser("fire-test", help="build the friendly fire test scenario")
     p_fire.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("fire-report", help="print what the friendly fire test recorded")
+    p_cat = sub.add_parser("catapult-tower", help="build the catapult tower demo: every tower fires a Stone "
+                                                  "Thrower's stone")
+    p_cat.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     args = parser.parse_args(argv)
 
     if args.command == "test-map":
@@ -94,6 +97,14 @@ def main(argv: list[str] | None = None) -> int:
         from . import firetest
         record = Path(game.read_xsdat(firetest.NAME)["path"])
         print(firetest.report(record, firetest.labels()))
+        return 0
+    if args.command == "catapult-tower":
+        from . import catapulttower
+        path = catapulttower.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
         return 0
     parser.print_help()
     return 0
