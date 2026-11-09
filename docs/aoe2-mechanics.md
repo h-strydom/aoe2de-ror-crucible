@@ -104,3 +104,25 @@ these tasks".
   and +150 headroom.
 - Loot: still no gold, but it's unclear the Camel Raiders got kills before the crash.
 - The data mod's old HP overrides (Hoplite 999, Axeman 400) are retired.
+
+## Results, part 2 round 2b (2026-11-09)
+
+- **No crash**: skipping units at 0 HP fixed it (the game crashed when `cSetUnitAttribute` touched a dying unit).
+- **Half a pop slot**:
+  | Route | Result |
+  |---|---|
+  | RoR's Logistics (forced by trigger) on Slingers | **Works** for units trained after it (existing ones kept their full slot) |
+  | Trigger Modify Attribute 110 = -0.5, as AoE2ScenarioParser writes it (integer field, -1) on Bowmen | **No** |
+  | The same trigger with -0.5 forced into the float field, on Horse Archers | **No**: the game truncates it too, as aoe-editor's guard says |
+  | XS `xsEffectAmount(cSetAttribute, Camel Rider, 110, -0.5, 1)` | **Works** |
+  | Data: Karambit-style storages on Scouts (4 = -0.5, 11 = 0.5, 19 = 0.5) | **Works** |
+
+  So for a campaign: half-pop by **XS** (or a data mod), never by a trigger. (Horse Archers and Camel Riders can't be
+  trained by Greeks; checked by deleting them and watching the population.)
+- **Loot doesn't work in RoR**, even on AoE2's own ported Camel Raider (gold never moved). Neither do **auras**: not
+  the ported Centurion's, not the Chronicles Hoplite's phalanx pointed at itself. RoR's game mode doesn't seem to run
+  tasks 154 and 155.
+- **Extra spawn works**: an Axeman trained at the Barracks brings a second (the Blackwood archer's task 156).
+
+Summary of AoE2 tasks in RoR: HP transform (158), extra spawn (156) and movable drop site (153) work; aura (155) and
+loot (154) don't.
