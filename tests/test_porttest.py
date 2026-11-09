@@ -18,10 +18,16 @@ def test_data_mod_ports_and_exclusive_techs(tmp_path):
         assert u.enabled == 1 and (u.creatable.train_locations[0].unit_id, u.creatable.train_locations[0].button_id) \
             == (testmod.BARRACKS[0], button)
         assert d.graphics[u.standing_graphic[0]].file_name                   # its sprite reference came across
+    for src, icon in testmod.PORTED_ICONS.items():
+        assert d.civs[2].units[ids[src]].icon_id == icon                      # a RoR portrait, not AoE2's id
+    assert d.civs[2].units[ids[2101]].nothing == ids[2174]                    # the Immortal's ranged form came too
+    assert 0 not in ids                                                       # `nothing` = 0 isn't a link
+    assert all(c.resources[testmod.TOKEN] == 1 for c in d.civs)
     techs = testmod.exclusive_tech_ids()
     for tid in techs:
         disabled = {int(c.d) for c in d.effects[d.techs[tid].effect_id].effect_commands if c.type == 102}
         assert disabled == set(techs)                                         # each disables all three
+        assert (testmod.TOKEN, 1) in {(c.type, c.amount) for c in d.techs[tid].resource_costs}
 
 
 def test_scenario_places_ported_units(tmp_path):

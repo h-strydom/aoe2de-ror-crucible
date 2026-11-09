@@ -7,7 +7,8 @@ A standalone scenario, `crucible_port_test`, played with the Crucible Test Data 
    graphic, sound and linked unit they need (`port.py`); the sprites come from the player's own install. One of
    each stands ready, and the Barracks trains them.
 2. Three Chronicles-style exclusive techs at the Barracks: researching one disables all three. They pay 200 gold,
-   wood or food so the pick shows. Two Barracks let you try starting two of them at once.
+   wood or food so the pick shows. Each also costs 1 token (resource 30, which every civ starts with 1 of), so only
+   one can be queued at a time (round 1: queueing two got both). Two Barracks let you try two at once.
 
 Passive enemies (RoR units) stand to the right to fight.
 """
@@ -25,16 +26,17 @@ NAME = "crucible_port_test"
 SIZE = 48
 REVEAL_MAP = 203
 
-INSTRUCTIONS = """Crucible ported units and exclusive techs test. Pick "Crucible Test Data" as the Data Mod.
+INSTRUCTIONS = """Crucible ported units and exclusive techs test, round 2. Pick "Crucible Test Data" as the Data Mod.
 
-UNITS: four units from AoE2 stand by your Barracks, left to right: Knight, Crossbowman (AoE2), Hoplite, Immortal \
-(Chronicles). For each: does it look right standing, walking, attacking and dying (and leave a corpse)? Does the \
-Crossbowman's bolt fly? Name, icon and sounds right? Fight the passive enemies on the right. The Barracks should \
-also train all four (buttons on its page).
+UNITS (round 1: they work; portraits were wrong, the Immortal's ranged switch made a fishing ship). Four units \
+from AoE2 stand by your Barracks, left to right: Knight, Crossbowman (AoE2), Hoplite, Immortal (Chronicles). \
+Portraits should now be RoR's Heavy Cavalry, Improved Bowman, Hoplite and Centurion. Switch the Immortal to ranged \
+and back: does it stay an Immortal, and can it shoot?
 
-EXCLUSIVE TECHS: the Barracks has three new techs (named after Chronicles' Oligarchy, Democracy, Tyranny, if RoR \
-has those strings). Each pays 200 (gold, wood, food). Research one: do the other two disappear? First, start two \
-of them at the same time, one in each Barracks: what happens when the first finishes? Nothing ends the game."""
+EXCLUSIVE TECHS (round 1: exclusive, but you could queue two and get both). Each of the three Barracks techs now \
+also costs 1 "token" (a hidden resource you have exactly 1 of). Queue one: can you still queue another, in the \
+same Barracks or the other? What does the cost show? Cancel it: can you pick another? Let one finish: the others \
+should disappear and stay gone. Nothing ends the game."""
 
 
 def _add(s, player: int, unit: str | int, x: float, y: float) -> int:

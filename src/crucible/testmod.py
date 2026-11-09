@@ -65,11 +65,17 @@ AOE2_DAT = Path("resources") / "_common" / "dat"
 # Ported from AoE2's data file: Knight (a slot RoR reuses for its Cavalry), Crossbowman (ranged: brings its
 # projectiles), and the Chronicles Hoplite and Immortal. Trained at the Barracks on free buttons.
 PORTED = {38: 5, 24: 8, 2110: 9, 2101: 10}       # AoE2 unit id: Barracks button
+# RoR portraits for the ports (their AoE2 icon ids index RoR's set: the Knight showed a priest, Chronicles ones were
+# black): Heavy Cavalry, Improved Bowman, Hoplite, Centurion; 2174 is the Immortal's ranged form.
+PORTED_ICONS = {38: 13, 24: 7, 2110: 16, 2101: 50, 2174: 50}
 PORTED_TRAIN_TIME = 10
 # Mutually exclusive techs, Chronicles-style: each one's effect disables all three. Names use Chronicles'
 # Oligarchy / Democracy / Tyranny strings (does RoR have them?); each pays a different resource so the pick shows.
 EXCLUSIVE = ((407051, 3, 11), (407052, 1, 12), (407053, 0, 13))   # name string, resource paid, Barracks button
 EXCLUSIVE_PAY, EXCLUSIVE_COST, EXCLUSIVE_TIME = 200, 50, 20
+# Round 1: costs are paid at queue time, so two could be queued and both researched. Each now also costs 1 token, a
+# spare resource every civ starts with exactly 1 of: one queued, the others are unaffordable; cancelling refunds it.
+TOKEN = 30                                        # "Unused Resource 030": no tech, unit or effect uses it in RoR
 AXE_TECH, DISABLE_TECH, RESOURCE_MODIFY = 63, 102, 1
 SIZE = 48
 
@@ -299,6 +305,11 @@ def _ported_units(d, src=None) -> dict[int, int]:
     porter = Porter(src or _aoe2_dat(), d)
     for uid, button in PORTED.items():
         new = porter.unit(uid)
+        for src_id, icon in PORTED_ICONS.items():
+            if src_id in porter.units:
+                for civ in d.civs:
+                    if civ.units[porter.units[src_id]]:
+                        civ.units[porter.units[src_id]].icon_id = icon
         for civ in d.civs:
             unit = civ.units[new]
             if unit is None:
@@ -361,13 +372,15 @@ def _exclusive_techs(d) -> tuple[int, ...]:
         tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
         costs = list(tech.resource_costs)
         costs[0].type, costs[0].amount, costs[0].flag = 0, EXCLUSIVE_COST, 1
-        for c in costs[1:]:
-            c.type, c.amount, c.flag = -1, 0, 0
+        costs[1].type, costs[1].amount, costs[1].flag = TOKEN, 1, 1
+        costs[2].type, costs[2].amount, costs[2].flag = -1, 0, 0
         tech.resource_costs = tuple(costs)
         loc = tech.research_locations
         loc[0].location_id, loc[0].button_id, loc[0].research_time = BARRACKS[0], button, EXCLUSIVE_TIME
         tech.research_locations = loc[:1]
         d.techs.append(tech)
+    for civ in d.civs:
+        civ.resources[TOKEN] = 1
     return ids
 
 

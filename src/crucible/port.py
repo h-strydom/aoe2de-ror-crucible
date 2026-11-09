@@ -9,9 +9,11 @@ file: only its data, with every graphic, sound and linked unit (corpse, projecti
   graphics table (with its deltas, recursively) and the unit points at the new id.
 - A sound is reused when RoR's entry at that id plays the same files; otherwise it's appended. (DE mostly plays
   the wwise ids, which are hashes and are copied as they are.)
-- A linked unit is ported the same way and appended to every civ.
+- A linked unit (dead unit, blood, projectiles, the alternate form) is ported the same way and appended to every
+  civ.
 
-Strings and icons keep AoE2's ids; whether RoR shows the right name and icon is part of the test.
+Strings keep AoE2's ids. Icons can't: `icon_id` indexes RoR's own icon set (no fallback to AoE2's icon files),
+so the caller sets a RoR portrait.
 Nothing here copies game files: the data mod refers to sprites the player's own install already has.
 """
 from __future__ import annotations
@@ -27,7 +29,7 @@ TASK_GRAPHICS = ("carrying_graphic_id", "moving_graphic_id", "proceeding_graphic
 UNIT_SOUNDS = ("damage_sound", "dying_sound", "selection_sound", "train_sound")
 BIRD_SOUNDS = ("attack_sound", "move_sound")
 TASK_SOUNDS = ("resource_deposit_sound_id", "resource_gathering_sound_id")
-UNIT_LINKS = ("dead_unit_id", "blood_unit_id")
+UNIT_LINKS = ("dead_unit_id", "blood_unit_id", "nothing")     # `nothing`: the alternate form (Immortal -> ranged)
 MOVE_LINKS = ("tracking_unit",)
 ATTACK_LINKS = ("projectile_unit_id",)
 CREATABLE_LINKS = ("charge_projectile_unit", "secondary_projectile_unit")
@@ -146,5 +148,6 @@ class Porter:
             links += [(u.creatable, f) for f in CREATABLE_LINKS]
         for obj, f in links:
             value = getattr(obj, f)
-            if value is not None and value >= 0:
+            lowest = 1 if f == "nothing" else 0      # `nothing` is 0 on units without an alternate form
+            if value is not None and lowest <= value < len(self.src.civs[self.src_civ].units):
                 setattr(obj, f, self.unit(value))      # a link back to a unit already ported reuses its id
