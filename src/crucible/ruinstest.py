@@ -1,4 +1,4 @@
-"""The ruins and artifacts test, round 4: ruins that trickle, artifacts that garrison and add 50% to every Barracks.
+"""The ruins and artifacts test, round 5: ruins that trickle, artifacts that garrison, and the per-unit capture flag.
 
 A standalone scenario, `crucible_ruins_test`, played with the Crucible Test Data mod picked (it adds the Ruin
 Monument, a copy of King of the Hill's Monument dressed as Artifact Ruins).
@@ -52,7 +52,10 @@ SCRIPT_PAY, SCRIPT_PLAYER = 1, 4                # per ruin every 10 s
 REVEAL_MAP = 203
 LANE_Y = {p: 6 + (p - 2) * 8 for p in (2, 3, 4, 5)}
 
-INSTRUCTIONS = """Crucible ruins and artifacts test, round 3. Pick "Crucible Test Data" as the Data Mod. The map is \
+CAPTURE_FLAGS = ((-1, "default"), (0, "never"), (1, "once"), (2, "multiple times"), (3, "never, Gaia aggressive"))
+GAIA_X, GAIA_Y, GAIA_STEP = 46, 4, 4             # the Gaia artifact grid: columns = artifact, rows = capture flag
+
+INSTRUCTIONS = """Crucible ruins and artifacts test, round 5. Pick "Crucible Test Data" as the Data Mod. The map is \
 revealed; nothing ends the game. Run it 3 minutes or more.
 
 RUINS: allied players along the left own an object from the start. P2 a Ruin Monument (a KotH Monument that looks \
@@ -64,12 +67,18 @@ ARTIFACTS: each artifact garrisoned in one of your Barracks makes EVERY Barracks
 150%, 2 = 200% (twice as fast). Only the two right-hand artifacts (infantry and priest class copies) can garrison; a \
 chat message gives the count and the rate. Use the Barracks WITHOUT artifacts in it: the time should go about \
 26 s -> 17 s -> 13 s for a Clubman, and 40 s -> 27 s -> 20 s for the Axe research. Do training and research both \
-get faster, and by about that much? Also: walk a hoplite to the three Gaia artifacts (top right). Which turn yours?"""
+get faster, and by about that much?
+
+CAPTURE FLAGS (round 5, the new part): top right is a grid of Gaia artifacts. Columns, left to right: the real \
+artifact, the infantry-class copy, the priest-class copy. Rows, top to bottom, the editor's Capture setting: \
+Default, Never, Once, Multiple Times, Never (Gaia aggressive). At the start, which ones turn blue on their own? \
+Then walk a hoplite past each grey one: which turn blue on contact, and which never do?"""
 
 
-def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
+def _add(s, player: int, unit: str | int, x: float, y: float, capture_flag: int = -1) -> int:
     oid = unit if isinstance(unit, int) else tables.object_id(unit, "ror")
-    return s.unit_manager.add_unit(player=player, unit_const=oid, x=x + 0.5, y=y + 0.5).reference_id
+    return s.unit_manager.add_unit(player=player, unit_const=oid, x=x + 0.5, y=y + 0.5,
+                                   capture_flag=capture_flag).reference_id
 
 
 def xs_code(ruin_monument: int, artifacts: tuple[int, ...] = (ARTIFACT,)) -> str:
@@ -202,7 +211,9 @@ def build(out: Path) -> Path:
                 _add(s, 1, "HOPLITE", 28 + k, 16)
             for k, unit in enumerate((ARTIFACT, infantry_artifact, priest_artifact)):
                 _add(s, 1, unit, 32 + k * 3, 28)
-                _add(s, 0, unit, 46 + k * 3, 20)                 # Gaia ones: does capture-on-contact survive?
+                # Gaia grid: does the per-unit capture flag stop the class copies joining player 1 at the start?
+                for row, (flag, _) in enumerate(CAPTURE_FLAGS):
+                    _add(s, 0, unit, GAIA_X + k * GAIA_STEP, GAIA_Y + row * GAIA_STEP, capture_flag=flag)
             _add(s, 1, "BARRACKS", 28, 38)
             _add(s, 1, "BARRACKS", 44, 38)
             _add(s, 1, "TOWN_CENTER", 50, 54)

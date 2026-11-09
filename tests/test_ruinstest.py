@@ -24,5 +24,8 @@ def test_build(tmp_path):
         assert rm in owned[0] and rt.RUINS in owned[0]                # Gaia objects for player 1 to capture
         mine = [u.unit_const for u in s.unit_manager.units[1]]
         assert all(a in mine for a in (rt.ARTIFACT, *artifact_ids()))  # the AoE1 artifact and both class copies
+        # The Gaia grid: each artifact once per capture flag, and the flag survives the save.
+        grid = {(u.unit_const, u.capture_flag) for u in s.unit_manager.units[0]}
+        assert all((a, f) in grid for a in (rt.ARTIFACT, *artifact_ids()) for f, _ in rt.CAPTURE_FLAGS)
     finally:
         SESSIONS.close(o.handle)
