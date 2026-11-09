@@ -7,16 +7,17 @@ Ballista Tower) gets, for the whole type, so towers already placed and any you b
 - splash width 0.8 at Blast Attack Level 6 (splash hits enemies only: the friendly fire fix);
 - the arrow's pierce attack set to 0.
 
-The Stone Thrower's attack (50 melee, +140 vs buildings) is what didn't land in the first two looks (stones splashed
-but did minimum damage, with Set and then with Add for the whole type). So each tower now gets it a different way,
-and a script logs every tower's real attack values and its target's hit points:
+The Stone Thrower's attack (50 melee, +140 vs buildings) is the hard part. Round 2's log (2026-11-09): no trigger
+method gives a tower an attack class it doesn't have (Modify Attribute Add or Set for the type, Modify Object
+Attribute Add, Change Object Attack); the towers' melee and building attacks read −1 and each stone did 1 damage.
+Triggers only change attack classes a unit already has. Round 3 tries the other routes, with the same log:
 
-| Tower | How it gets 50 melee and 140 vs buildings |
+| Tower | Route |
 |---|---|
-| Watch | Modify Attribute, Add, for the whole type |
-| Sentry | Modify Attribute, Set, for the whole type |
-| Guard | Modify Object Attribute, Add, on that tower only |
-| Ballista | Change Object Attack (its own effect), Add, on that tower only |
+| Watch | Trigger: set its existing pierce attack to 50 (pierce, not melee) |
+| Sentry | XS `xsEffectAmount` Add (the path tech effects take): melee 50, +140 vs buildings |
+| Guard | Data mod (Crucible Test Data): melee 50 and +140 vs buildings written into the Guard Tower |
+| Ballista | XS `xsEffectAmount` Set: melee 50, +140 vs buildings |
 """
 from __future__ import annotations
 
@@ -30,8 +31,10 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 NAME = "crucible_catapult_tower"
 SIZE = 48
 TOWERS = ("WATCH_TOWER", "SENTRY_TOWER", "GUARD_TOWER", "BALLISTA_TOWER")
-METHODS = {"WATCH_TOWER": "type add", "SENTRY_TOWER": "type set", "GUARD_TOWER": "object add",
-           "BALLISTA_TOWER": "change attack"}
+METHODS = {"WATCH_TOWER": "pierce 50", "SENTRY_TOWER": "xs add", "GUARD_TOWER": "data mod",
+           "BALLISTA_TOWER": "xs set"}
+TOWER_IDS = {"WATCH_TOWER": 79, "SENTRY_TOWER": 234, "GUARD_TOWER": 235, "BALLISTA_TOWER": 236}
+XS_SET, XS_ADD = 0, 4                  # xsEffectAmount effect types (cSetAttribute, cAddAttribute)
 ATTACK, RELOAD, MAX_RANGE, SHOWN_RANGE, PROJECTILE_UNIT, BLAST_WIDTH, BLAST_LEVEL = 9, 10, 12, 47, 16, 22, 44
 CATAPULT_STONE = 656
 PIERCE, MELEE, BUILDINGS = 3, 4, 11                # attack classes
@@ -39,11 +42,11 @@ STONE_THROWER = {"melee": 50, "buildings": 140, "reload": 5.375, "range": 10, "b
 REVEAL_MAP, SET, ADD = 203, 1, 2
 MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412321111, 1, 1, 5
 
-INSTRUCTIONS = """Crucible catapult tower. Every tower you own fires a Stone Thrower's stone with its reload, range \
-and splash (splash only hurts enemies). Each tower gets the Stone Thrower's damage (50 melee, +140 vs buildings) a \
-different way, from the left: Watch (Add, whole type), Sentry (Set, whole type), Guard (Add, that tower), Ballista \
-(Change Object Attack, that tower). Which ones hit hard? Each tower's real attack values are logged. Enemies don't \
-fight back. Nothing ends the game; a minute is enough."""
+INSTRUCTIONS = """Crucible catapult tower, round 3. Pick "Crucible Test Data" as the Data Mod. Every tower you own \
+fires a Stone Thrower's stone with its reload, range and splash (splash only hurts enemies). Each tower gets damage \
+a different way, from the left: Watch (its pierce attack set to 50), Sentry (script, Add: 50 melee, +140 vs \
+buildings), Guard (the data mod: 50 melee, +140 vs buildings), Ballista (script, Set). Which ones hit hard? Each \
+tower's real attack values are logged. Enemies don't fight back. Nothing ends the game; a minute is enough."""
 
 
 def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
@@ -69,21 +72,25 @@ def tower_effects(player: int = 1, towers=TOWERS) -> list[dict]:
     return out
 
 
-def attack_effects(tower: str, method: str, ref: int, player: int = 1) -> list[dict]:
-    """The Stone Thrower's melee and building attack, given to a tower by one method."""
-    out = []
-    for cls, amount in ((MELEE, STONE_THROWER["melee"]), (BUILDINGS, STONE_THROWER["buildings"])):
-        aa = {"armour_attack_class": cls, "armour_attack_quantity": amount}
-        if method in ("type add", "type set"):
-            out.append({"type": "modify_attribute", "source_player": player, "object_list_unit_id": tower,
-                        "object_attributes": ATTACK, "operation": ADD if method == "type add" else SET, **aa})
-        elif method == "object add":
-            out.append({"type": "modify_object_attribute", "source_player": player, "selected_object_ids": [ref],
-                        "object_attributes": ATTACK, "operation": ADD, **aa})
-        else:
-            out.append({"type": "change_object_attack", "source_player": player, "selected_object_ids": [ref],
-                        "operation": ADD, **aa})
-    return out
+def attack_effects(tower: str, method: str, player: int = 1) -> list[dict]:
+    """Trigger effects for the methods that use triggers (the XS and data mod ones are elsewhere)."""
+    if method == "pierce 50":
+        return [{"type": "modify_attribute", "source_player": player, "object_list_unit_id": tower,
+                 "object_attributes": ATTACK, "operation": SET, "armour_attack_class": PIERCE,
+                 "armour_attack_quantity": STONE_THROWER["melee"]}]
+    return []
+
+
+def xs_attack_code(player: int = 1) -> str:
+    """xsEffectAmount calls for the XS methods. Attack values are encoded class * 256 + amount, as in tech effects."""
+    calls = []
+    for tower, method in METHODS.items():
+        if method in ("xs add", "xs set"):
+            kind = XS_ADD if method == "xs add" else XS_SET
+            for cls, amount in ((MELEE, STONE_THROWER["melee"]), (BUILDINGS, STONE_THROWER["buildings"])):
+                calls.append(f"    xsEffectAmount({kind}, {TOWER_IDS[tower]}, {ATTACK}, {cls * 256 + amount}, {player});")
+    return "rule crucibleTowerAttack\n    active\n    highFrequency\n{\n" + "\n".join(calls) \
+        + "\n    xsDisableSelf();\n}\n"
 
 
 def xs_code(towers: list[int], targets: list[int]) -> str:
@@ -149,7 +156,7 @@ def build(out: Path) -> Path:
                 ref = _add(s, 1, tower, 6 + k * 11, 14)
                 towers.append(ref)
                 targets.append(_add(s, 2, "WAR_ELEPHANT", 6 + k * 11, 20))
-                attacks += attack_effects(tower, METHODS[tower], ref)
+                attacks += attack_effects(tower, METHODS[tower])
             for i in range(5):
                 _add(s, 1, "VILLAGER_MALE", 8 + i * 2, 6)
             _add(s, 1, "TOWN_CENTER", 2, 2)
@@ -161,7 +168,7 @@ def build(out: Path) -> Path:
                  "attack_stance": "NO_ATTACK_STANCE"},
                 {"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": 1, "quantity": 2,
                  "operation": "SET"}])
-            ctx.xs(xs_code(towers, targets))
+            ctx.xs(xs_code(towers, targets) + "\n" + xs_attack_code(1))
             ctx.flush_xs()
             s.message_manager.instructions = INSTRUCTIONS
             player_set(o.handle, 1, {"initial_player_view_x": 22, "initial_player_view_y": 16})
