@@ -166,3 +166,5 @@ Useful XS for this: `xsGetPlayerUnitIds`, `xsGetGarrisonedUnitIds`, `xsGetUnitPo
 | One object's resources (200 food on a bush) | Modify Object Attribute: Amount of 1st Resource Storage (21), over an area or chosen objects | Unverified |
 | March in formation | Task Object Line/Box/Staggered/Flank Formation, then Move with a group command; AI `up-target-point` | Unverified |
 | More than two choices | The decision popup has exactly 2; use walk-on pads, buttons on a building (custom techs), or chained popups | Popup verified |
+
+

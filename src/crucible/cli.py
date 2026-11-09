@@ -26,6 +26,9 @@ def main(argv: list[str] | None = None) -> int:
                                                   "projectiles, minimum and maximum range, trade shares)")
     p_combat.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("combat-report", help="print what the combat test recorded")
+    p_fire = sub.add_parser("fire-test", help="build the friendly fire test scenario")
+    p_fire.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
+    sub.add_parser("fire-report", help="print what the friendly fire test recorded")
     args = parser.parse_args(argv)
 
     if args.command == "test-map":
@@ -76,6 +79,21 @@ def main(argv: list[str] | None = None) -> int:
         from . import combattest
         record = Path(game.read_xsdat(combattest.NAME)["path"])
         print(combattest.report(record, combattest.labels()))
+        return 0
+    if args.command == "fire-test":
+        from . import firetest
+        path, _ = firetest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "fire-report":
+        from aoe2ed import game
+
+        from . import firetest
+        record = Path(game.read_xsdat(firetest.NAME)["path"])
+        print(firetest.report(record, firetest.labels()))
         return 0
     parser.print_help()
     return 0
