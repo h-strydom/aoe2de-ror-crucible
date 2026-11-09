@@ -26,7 +26,7 @@ from aoe2ed import blocks, games, tables
 from aoe2ed.campaign import Campaign, CampaignScenario
 from aoe2ed.config import find_game_dir
 from aoe2ed.session import SESSIONS
-from aoe2ed.tools.world import options_set, player_set
+from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
 DATA_MOD, JSON_MOD, CAMPAIGN = "Crucible Test Data", "Crucible Test Dropsites", "crucible_mod_test"
 ROR_DAT = Path("modes") / "Pompeii" / "resources" / "_common" / "dat"
@@ -39,6 +39,8 @@ STORAGE_PIT = 562
 LUMBERJACKS = (123, 218)                   # male and female lumberjack units (a villager's unit while chopping)
 TRAIN_LOCATION, TRAIN_BUTTON, SET = 42, 43, 1
 SCOUT_BUTTON = 9
+MAX_MISSILES = 107                         # object attribute: Maximum Total Missiles (towers ship with 1)
+GARRISON = 5                               # RoR towers' garrison capacity
 SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
@@ -155,11 +157,70 @@ def build_mission(out: Path, number: int) -> Path:
         SESSIONS.close(o.handle)
 
 
+TOWER_INSTRUCTIONS = """Mission 3: garrisoned towers.
+
+Two Sentry Towers, 5 garrison spots each. The LEFT tower's arrow limit is raised from 1 to 6 by a trigger (on that \
+tower only); the RIGHT tower is unchanged, as the control. Enemy elephants stand in range and don't fight back.
+
+Beside each tower: 5 villagers, 5 bowmen and 5 hoplites. Garrison them in turn and count the arrows per volley:
+1. Empty: both towers should fire 1 arrow.
+2. Villagers: does each one add an arrow to the left tower? To the right one?
+3. Bowmen: the same?
+4. Hoplites: the same?
+
+Walk any unit onto the flag in the far corner to finish."""
+
+
+def build_tower_mission(out: Path, number: int = 3) -> Path:
+    """Do garrisoned units add arrows to a tower whose arrow limit is raised? One raised tower, one control."""
+    o = SESSIONS.new(SIZE, game="ror")
+    s = o.scenario
+    try:
+        with games.use("ror"):
+            s.player_manager.active_players = 2
+            player_set(o.handle, 1, {"civilization": "GREEK", "starting_age": "CASTLE", "human": True,
+                                     "food": 1000, "wood": 1000, "gold": 1000, "stone": 1000,
+                                     "population_cap": 200})
+            player_set(o.handle, 2, {"civilization": "PERSIAN", "starting_age": "CASTLE", "ai": "none"})
+            diplomacy_set(o.handle, 1, [2], "ENEMY")
+            options_set(o.handle, {"victory_condition": "CUSTOM"})
+            towers = {}
+            for name, x in (("raised", 14), ("control", 32)):
+                towers[name] = _add(s, 1, "SENTRY_TOWER", x, 20)
+                for i in range(5):
+                    _add(s, 1, "VILLAGER_MALE", x - 4 + i * 2, 15)
+                    _add(s, 1, "BOWMAN", x - 4 + i * 2, 13)
+                    _add(s, 1, "HOPLITE", x - 4 + i * 2, 11)
+            targets = [_add(s, 2, "WAR_ELEPHANT", x, 25) for x in (12, 14, 16, 30, 32, 34)]
+            blocks.anchor(blocks.Ctx(s), player=2, at=(1, 46))
+            _add(s, 1, "TOWN_CENTER", 40, 5)                 # keeps player 1 in the game
+            _add(s, 0, "FLAG_A", 44, 44)
+            ctx = blocks.Ctx(s)
+            ctx.trigger("Raise the left tower's arrow limit", [], [
+                {"type": "modify_object_attribute", "source_player": 1, "selected_object_ids": [towers["raised"]],
+                 "object_attributes": MAX_MISSILES, "operation": SET, "quantity": 1 + GARRISON}])
+            ctx.trigger("Passive targets", [], [
+                {"type": "change_object_stance", "source_player": 2, "selected_object_ids": targets,
+                 "attack_stance": "NO_ATTACK_STANCE"}])
+            ctx.trigger("Finish", [{"type": "objects_in_area", "source_player": 1, "area": [42, 42, 47, 47],
+                                    "quantity": 1}], [{"type": "declare_victory", "source_player": 1, "enabled": 1}])
+            s.message_manager.instructions = TOWER_INSTRUCTIONS
+            player_set(o.handle, 1, {"initial_player_view_x": 23, "initial_player_view_y": 18})
+        out.mkdir(parents=True, exist_ok=True)
+        path = out / f"{CAMPAIGN}_{number}.aoe2scenario"
+        SESSIONS.save(o.handle, path, overwrite=True)
+        return path
+    finally:
+        SESSIONS.close(o.handle)
+
+
 def build_campaign(out: Path) -> Path:
     camp = Campaign(CAMPAIGN)
     for n in (1, 2):
         p = build_mission(out, n)
         camp.scenarios.append(CampaignScenario(f"Mod test {n}", p.name, p.read_bytes()))
+    p = build_tower_mission(out, 3)
+    camp.scenarios.append(CampaignScenario("Garrisoned towers", p.name, p.read_bytes()))
     return camp.write(out / f"{CAMPAIGN}.aoe2campaign")
 
 

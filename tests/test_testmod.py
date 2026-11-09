@@ -1,4 +1,4 @@
-"""The data mod test builds: the data file carries exactly its changes, the dropsites mod adds Houses, the campaign
+﻿"""The data mod test builds: the data file carries exactly its changes, the dropsites mod adds Houses, the campaign
 holds two missions."""
 from __future__ import annotations
 
@@ -35,4 +35,4 @@ def test_build(tmp_path):
         assert testmod.HOUSE_IDS[0] not in original.civs[1].units[uid].bird.drop_sites
 
     camp = Campaign.read(res["campaign"])
-    assert camp.name == testmod.CAMPAIGN and len(camp.scenarios) == 2
+    assert camp.name == testmod.CAMPAIGN and len(camp.scenarios) == 3

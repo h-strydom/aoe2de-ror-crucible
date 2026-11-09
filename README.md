@@ -1,4 +1,4 @@
-# AoE2 DE Return of Rome: Crucible
+﻿# AoE2 DE Return of Rome: Crucible
 
 A roguelite campaign for **Age of Empires II: DE - Return of Rome**, in the spirit of Age of Empires IV's Crucible
 mode: survive a run on a battle map, earn currency, spend it in a hub on upgrades that carry into the next run.
@@ -48,8 +48,9 @@ Can the campaign depend on a mod for what triggers can't do? This builds and ins
 - **Crucible Test Data**, a data mod: Return of Rome's own data file and `dropsites.json`, with Hoplites at 999
   hit points, Axemen at 400, the Greeks stripped of their bonuses (a "civ with no bonuses") and Houses
   accepting wood.
-- **crucible_mod_test**, a two-mission campaign. A trigger also makes Scouts trainable at the Barracks, to test
-  buildings that train new units with triggers alone.
+- **crucible_mod_test**, a three-mission campaign. A trigger makes Scouts trainable at the Barracks, to test
+  buildings that train new units with triggers alone. Mission 3 has two Sentry Towers: one with its arrow limit
+  raised from 1 to 6 by trigger, one unchanged, to see whether each garrisoned unit adds an arrow.
 
 Enable the mod in Mods > Installed Mods, restart, then pick "Crucible Test Data" in the campaign's Data Mod
 dropdown. The briefing lists the checks.
