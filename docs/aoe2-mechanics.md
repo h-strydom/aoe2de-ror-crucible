@@ -152,3 +152,15 @@ loot (154) don't.
 - Next idea for "a boulder when enemies are close", and for the ballista mode too: swap the tower by trigger. A looping trigger watches an area
   around the tower; while enemies are inside, Replace Object turns it into a boulder variant (minimum range 0, range
   2, stone), and back to the arrow variant when the area is clear.
+
+## Results, tower modes round 2 (2026-11-09): the over-the-top tower works natively
+
+- **Boulder as the normal attack (range 2, no minimum) + arrows as a charge-type-6 projectile with its own range
+  2-6 gives exactly the effect**: each of the three towers killed the close Clubmen with boulders (the neighbour took
+  the splash: 44 → 13 → 0), then shot the far ones (5 tiles) with arrows. The Fire Lancer's (event 4, target 127),
+  the Hearth Troop's (event 6, target 127) and the Fire Archer's (event -4, target 191, always full) charge settings
+  all behaved the same; recharge 10/s (or the Fire Archer's huge rate) keeps the charge always ready.
+- So **a charge projectile's own max range extends what the unit engages**, past its normal attack range. Its own
+  min range doesn't hold it back the other way: the inverted tower (arrows normal 2-6, a boulder charge with range
+  0-2) threw boulders at the far Clubmen and never touched the close ones (the arrows' minimum range blocks them).
+- Ballista mode by repeatable techs (effect type 3, "Ballista mode" / "Arrow mode") on the tower.
