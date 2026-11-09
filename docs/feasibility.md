@@ -140,6 +140,15 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
   - Left to do: its own text. The build button read "Guard Tower" (copied), and the built tower showed "Ballista
     Tower", the text behind string 7079. A new unit needs strings of its own.
 
+## Ruins and artifacts
+
+From RoR's data, 2026-11-09; untested in game.
+
+| Idea | How | Status |
+|---|---|---|
+| Captured ruins trickle every resource | Ruins are Artifact Ruins (52), which change owner when captured. No native trickle is tied to them (and the trickles tested did nothing in RoR). XS: each second, count each player's ruins and pay resources, as the verified wood-to-gold conversion does; or a looping trigger with fixed amounts | Functions verified elsewhere; untested |
+| An artifact cart garrisoned in a Barracks makes every Barracks train in 1 second | The moving artifact carts (159, 944, 1304) already have a "garrison into a building" task. Barracks hold 10 but admit garrison type 0 (as do the Temple and AoE2's relic-holding Monastery, so artifacts may follow a special rule); fallback: raise the Barracks' garrison type by trigger. XS checks each Barracks for a garrisoned cart (`xsGetGarrisonedUnitIds`) and sets every Barracks unit's Train Time (101) to 1 for that player, or raises the Barracks' work rate; it restores them when the cart leaves | Untested |
+
 ## Resources
 
 Resource test scenario (`crucible resource-test`, 2026-11-09; 6.5 minutes logged). Each stone mine started at 350.
