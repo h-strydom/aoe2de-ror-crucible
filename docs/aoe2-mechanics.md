@@ -142,13 +142,13 @@ loot (154) don't.
 
 ## Results, tower modes (`crucible tower-modes`, 2026-11-09)
 
-- **Mode switch on a building works**: trait 8 + alternate unit swaps the tower to its ballista twin and back, like
-  the Immortal.
+- **No mode switch on buildings**: the towers got trait 8 and an alternate unit (the Immortal's way) but showed no
+  switch button. Unit-only, apparently.
 - **A charge-type-6 projectile is not a separate close-range weapon.** Both data towers (the Hearth Troop's charge
   settings, event 0 / target 127, and the Fire Archer's, event -4 / target 191) fired boulders and arrows at the far
   Clubmen and nothing at the close ones: the charge projectile goes at the current target and obeys the tower's
   minimum range. The control Sentry Tower (minimum range 2 by trigger) fired arrows at the far ones only, so
   **minimum range works on towers**.
-- Next idea for "a boulder when enemies are close": swap the tower automatically. A looping trigger watches an area
+- Next idea for "a boulder when enemies are close", and for the ballista mode too: swap the tower by trigger. A looping trigger watches an area
   around the tower; while enemies are inside, Replace Object turns it into a boulder variant (minimum range 0, range
   2, stone), and back to the arrow variant when the area is clear.
