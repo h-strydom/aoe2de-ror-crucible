@@ -73,7 +73,21 @@ Limits:
 ## Combat tuning
 
 All trigger attributes (Modify Attribute, per unit type for a player) or data mod. Values read from RoR's data,
-2026-11-09; none tested in game yet.
+2026-11-09.
+
+**Combat test results** (`crucible combat-test`, 2026-11-09). Changes were made per unit (Modify Object Attribute).
+Some units attacked outside their lane, so the lanes aren't perfectly clean:
+- **Friendly fire 0: no effect.** Your hoplites among the targets lost the same hit points in the changed lane as in
+  the control (120 → 75 and 120 → 76). Untried: changing it for the whole unit type, or the projectile.
+- **Splash width 3: works.** All four outer targets, 2 tiles from the centre, were hit and died within 25 s.
+- **Minimum range 0: works.** The changed Ballista hit the enemy beside it (600 → 0); the control's target stayed
+  at 600.
+- **Projectile swaps: work.** The Catapult firing a ballista bolt and the one firing the fast, flat projectile both
+  kept doing catapult damage (about 58 per 5 s). How they looked is from the user's view.
+- **Hoplite with range 3: inconclusive.** Both its target and the control's took damage, likely from units
+  attacking outside their lane.
+- **Trade shares: work.** At 25% each, a 24-gold trade paid 13 gold plus 3 food, 3 wood and 3 stone. Each share
+  came out at about half the setting.
 
 | Idea | Setting | RoR today |
 |---|---|---|
