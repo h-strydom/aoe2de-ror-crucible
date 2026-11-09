@@ -57,6 +57,7 @@ BALLISTA_TOWER, CATAPULT_STONE = 236, 656
 # Towers, 5 only by AoE2 buildings RoR doesn't have.
 BALLISTA_BUTTON, CATAPULT_BUTTON = 10, 5
 CATAPULT_TOWER_NAME = 7079                       # the string RoR's own "Catapult Tower" technology is named with
+MONUMENT, RUINS = 826, 52                        # King of the Hill's Monument, Artifact Ruins
 SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
@@ -106,6 +107,7 @@ def build_data_mod(root: Path) -> Path:
                 if t.action_type == GATHER_ACTION and t.resource_in == FISH:
                     t.resource_in = WOOD
     _buildable_towers(d)
+    _ruin_monument(d)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -201,6 +203,35 @@ def _buildable_towers(d) -> int:
         for t in tower.creatable.train_locations:
             t.button_id = CATAPULT_BUTTON
         civ.units.append(tower)
+    return new_id
+
+
+def ruin_monument_id() -> int:
+    """The unit id the data mod gives the ruin-looking Monument (added right after the Catapult Tower)."""
+    from genieutils.datfile import DatFile
+    return len(DatFile.parse(str(_source_dat() / "empires2_x2_p1.dat")).civs[0].units) + 1
+
+
+def _ruin_monument(d) -> int:
+    """A copy of King of the Hill's Monument dressed as Artifact Ruins (graphic, icon, name, size). The KotH monument
+    trickle pays for the Monument but not for ruins (ruins test, 2026-11-09), so a ruin that is really a Monument
+    should trickle. Returns its unit id."""
+    new_id = len(d.civs[0].units)
+    for civ in d.civs:
+        monument = civ.units[MONUMENT] if len(civ.units) > MONUMENT else None
+        ruins = civ.units[RUINS] if len(civ.units) > RUINS else None
+        if not (monument and ruins):
+            civ.units.append(None)
+            continue
+        unit = copy.deepcopy(monument)
+        unit.id = unit.copy_id = unit.base_id = new_id
+        unit.name = "Ruin Monument"
+        unit.standing_graphic = tuple(ruins.standing_graphic)
+        unit.icon_id = ruins.icon_id
+        unit.language_dll_name = ruins.language_dll_name
+        unit.collision_size_x = unit.collision_size_y = ruins.collision_size_x
+        unit.outline_size_x = unit.outline_size_y = ruins.outline_size_x
+        civ.units.append(unit)
     return new_id
 
 

@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     p_tb = sub.add_parser("tower-build", help="build the tower build test (villagers build Ballista and Catapult "
                                               "Towers; also rebuilds and installs the data mod)")
     p_tb.add_argument("--install", action="store_true", help="install the data mod and the scenario")
-    p_ru = sub.add_parser("ruins-test", help="build the ruins and artifacts test (ruins trickle, artifact carts "
+    p_ru = sub.add_parser("ruins-test", help="build the ruins and artifacts test (ruins trickle, AoE1 artifacts "
                                              "speed up every Barracks)")
     p_ru.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("ruins-report", help="print what the ruins and artifacts test recorded")

@@ -1,25 +1,28 @@
-"""The ruins and artifacts test: ruins that trickle resources, artifact carts that speed up every Barracks.
+"""The ruins and artifacts test, round 2: ruins that trickle resources, artifacts that speed up every Barracks.
 
-A standalone scenario, `crucible_ruins_test`. No data mod needed.
+A standalone scenario, `crucible_ruins_test`, played with the Crucible Test Data mod picked (it adds the Ruin
+Monument, a copy of King of the Hill's Monument dressed as Artifact Ruins).
+
+Round 1 (2026-11-09): KotH's monument trickle pays for the Monument but not for Artifact Ruins; Relic Carts can't
+garrison (artifacts match no garrison category), and the carts used were AoE2-looking relic carts, not the AoE1
+artifact (unit 25).
 
 Ruins trickle, one allied player each (they own their objects from the start):
 
 | Player | Test |
 |---|---|
-| 2 | Owns Artifact Ruins, with King of the Hill's monument trickles (221-224) at 1, as the KotH tech sets them |
+| 2 | Owns a **Ruin Monument** (data mod), with KotH's monument trickles at 1 |
 | 3 | Owns the KotH Monument, same trickles: the reference |
-| 4 | Owns Artifact Ruins; a script pays 5 food, wood, stone and gold a minute per ruin owned |
+| 4 | Owns Artifact Ruins; a **script** pays 1 food, wood, stone and gold every 10 s per ruin owned |
 | 5 | Owns Artifact Ruins, nothing else: the control |
 
-Ruins and the Monument both carry resource storage 14 (counted while owned), so KotH's trickle may pay for ruins too.
+You (player 1) have the monument trickles, a Gaia Ruin Monument and a Gaia Artifact Ruins to capture, two AoE1
+artifacts and two Barracks. Artifacts can't garrison, so they're **delivered** instead: while any of your artifacts
+stands within 4 tiles of one of your Barracks, a script sets every Barracks' work rate to 30 (units train in about a
+second); it goes back to 1 when none is near.
 
-You (player 1) have the same monument trickles, a Gaia ruin to capture, two artifact carts and two Barracks. The left
-Barracks is unchanged; the right one's garrison type is opened up (127) on that Barracks. While any artifact is
-garrisoned in any of your Barracks, a script sets every Barracks' work rate to 30, so units train in about a second;
-it goes back to 1 when the artifacts leave.
-
-A script logs every player's stockpile, and your Barracks' state, every 10 seconds to
-`<profile>/profile/crucible_ruins_test.xsdat`; `crucible ruins-report` prints it.
+A script logs every player's stockpile and objects every 10 seconds to `<profile>/profile/crucible_ruins_test.xsdat`;
+`crucible ruins-report` prints it.
 """
 from __future__ import annotations
 
@@ -30,30 +33,31 @@ from aoe2ed import blocks, games, tables
 from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
+from .testmod import ruin_monument_id
+
 NAME = "crucible_ruins_test"
 SIZE = 64
-MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412321222, 1, 1, 10
+MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412321222, 2, 1, 10
 PLAYERS = range(1, 6)
 MONUMENT_TRICKLES = (221, 222, 223, 224)        # Monument Food/Wood/Stone/Gold Trickle
-RUINS, MONUMENT, ARTIFACT_CART = 52, 826, 159
-ARTIFACTS = (25, 44, 159, 944, 1304)
+RUINS, MONUMENT, ARTIFACT = 52, 826, 25        # Artifact Ruins, KotH Monument, the AoE1 Artifact
 BARRACKS = (12, 20, 132, 498)                   # the Barracks and its age looks
-GARRISON_TYPE, WORK_RATE, SET = 30, 13, 1
-FAST_WORK_RATE = 30                             # Clubman 26 s / 30 is under a second
-SCRIPT_PAY, SCRIPT_PLAYER = 5, 4                # per ruin per minute
+WORK_RATE, FAST_WORK_RATE, DELIVER_DISTANCE = 13, 30, 4.0
+SCRIPT_PAY, SCRIPT_PLAYER = 1, 4                # per ruin every 10 s
 REVEAL_MAP = 203
 LANE_Y = {p: 6 + (p - 2) * 8 for p in (2, 3, 4, 5)}
 
-INSTRUCTIONS = """Crucible ruins and artifacts test. The map is revealed; nothing ends the game. Run it 3-4 minutes.
+INSTRUCTIONS = """Crucible ruins and artifacts test, round 2. Pick "Crucible Test Data" as the Data Mod. The map is \
+revealed; nothing ends the game. Run it 3 minutes or more.
 
-RUINS: allied players along the left own a ruin or the Monument from the start. P2 ruin with King of the Hill's \
-monument trickle | P3 the KotH Monument, same trickle | P4 ruin, a script pays 5 of everything a minute | P5 ruin, \
-nothing (control). Their resources are logged. You have the same monument trickle: capture the Gaia ruin near \
-your units (walk a unit to it) and watch your resources.
+RUINS: allied players along the left own an object from the start. P2 a Ruin Monument (a KotH Monument that looks \
+like ruins) with KotH's trickle | P3 the KotH Monument, same trickle | P4 ruins, a script pays 1 of everything every \
+10 s | P5 ruins, nothing (control). You have KotH's trickle too: capture the Gaia Ruin Monument (left of your \
+hoplites) and the Gaia ruins (right). Do your resources start rising after the Ruin Monument?
 
-ARTIFACTS: send an artifact cart into a Barracks (the right one admits more than the left). While any artifact is \
-inside any of your Barracks, every Barracks should train in about a second. Can carts enter? Does training speed up \
-in BOTH Barracks? Take the cart out: does it slow down again?"""
+ARTIFACTS: walk an artifact next to a Barracks (within 4 tiles). While any artifact stands near any of your \
+Barracks, every Barracks should train in about a second; a chat message announces it. Move it away: does training \
+slow down again?"""
 
 
 def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
@@ -61,25 +65,24 @@ def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
     return s.unit_manager.add_unit(player=player, unit_const=oid, x=x + 0.5, y=y + 0.5).reference_id
 
 
-def xs_code() -> str:
+def xs_code(ruin_monument: int) -> str:
     header = "".join(f"    xsWriteInt({v});\n" for v in [MAGIC, VERSION, len(PLAYERS)])
-    stock = "".join(f"        xsWriteInt(xsPlayerAttribute(p, {a}));\n" for a in (0, 1, 2, 3, 14))
-    is_artifact = " || ".join(f"o == {a}" for a in ARTIFACTS)
-    barracks_loop = "".join(f"""    list = xsGetPlayerUnitIds(1, {b});
-    for (i = 0; < xsArrayGetSize(list)) {{
-        inside = xsGetGarrisonedUnitIds(xsArrayGetInt(list, i));
-        for (k = 0; < xsArrayGetSize(inside)) {{
-            o = xsGetUnitObjectId(xsArrayGetInt(inside, k));
-            if ({is_artifact}) {{
+    stock = "".join(f"        xsWriteInt(xsPlayerAttribute(p, {a}));\n" for a in (0, 1, 2, 3)) \
+        + f"        xsWriteInt(xsGetObjectCount(p, {RUINS}));\n" \
+        + f"        xsWriteInt(xsGetObjectCount(p, {ruin_monument}));\n"
+    barracks = "".join(f"""        list = xsGetPlayerUnitIds(1, {b});
+        for (k = 0; < xsArrayGetSize(list)) {{
+            bp = xsGetUnitPosition(xsArrayGetInt(list, k));
+            dx = xsVectorGetX(ap) - xsVectorGetX(bp);
+            dy = xsVectorGetY(ap) - xsVectorGetY(bp);
+            if (dx * dx + dy * dy <= {DELIVER_DISTANCE * DELIVER_DISTANCE}) {{
                 found = found + 1;
             }}
         }}
-    }}
 """ for b in BARRACKS)
     set_rate = "".join(f"        xsEffectAmount(0, {b}, {WORK_RATE}, rate, 1);\n" for b in BARRACKS)
-    return f"""// ---- crucible ruins and artifacts test ----
-int crucibleArtifactsIn = 0;
-int crucibleRuinsPaid = 0;
+    return f"""// ---- crucible ruins and artifacts test, round 2 ----
+int crucibleArtifactsNear = 0;
 
 rule crucibleRuinsInit
     active
@@ -99,13 +102,13 @@ rule crucibleRuinsSample
     xsWriteInt(xsGetGameTime());
     for (p = 1; < {len(PLAYERS) + 1}) {{
 {stock}    }}
-    xsWriteInt(crucibleArtifactsIn);
+    xsWriteInt(crucibleArtifactsNear);
     xsCloseFile();
 }}
 
 rule crucibleRuinsScriptPay
     active
-    minInterval 60
+    minInterval 10
 {{
     int ruins = xsGetObjectCount({SCRIPT_PLAYER}, {RUINS});
     for (r = 0; < 4) {{
@@ -113,29 +116,35 @@ rule crucibleRuinsScriptPay
     }}
 }}
 
-rule crucibleArtifactBarracks
+rule crucibleArtifactDelivery
     active
     minInterval 1
 {{
     int found = 0;
     int list = -1;
-    int inside = -1;
-    int o = -1;
-{barracks_loop}    if ((found > 0) != (crucibleArtifactsIn > 0)) {{
+    vector bp = cInvalidVector;
+    float dx = 0.0;
+    float dy = 0.0;
+    int artifacts = xsGetPlayerUnitIds(1, {ARTIFACT});
+    for (i = 0; < xsArrayGetSize(artifacts)) {{
+        vector ap = xsGetUnitPosition(xsArrayGetInt(artifacts, i));
+{barracks}    }}
+    if ((found > 0) != (crucibleArtifactsNear > 0)) {{
         float rate = 1.0;
         if (found > 0) {{
             rate = {FAST_WORK_RATE}.0;
-            xsChatData("Artifact in a Barracks: every Barracks trains fast (%d)", found);
+            xsChatData("Artifact at a Barracks: every Barracks trains fast (%d)", found);
         }} else {{
-            xsChatData("No artifact in a Barracks: normal training", 0);
+            xsChatData("No artifact at a Barracks: normal training", 0);
         }}
 {set_rate}    }}
-    crucibleArtifactsIn = found;
+    crucibleArtifactsNear = found;
 }}
 """
 
 
 def build(out: Path) -> Path:
+    ruin_monument = ruin_monument_id()
     o = SESSIONS.new(SIZE, game="ror")
     s = o.scenario
     try:
@@ -153,30 +162,29 @@ def build(out: Path) -> Path:
             options_set(o.handle, {"victory_condition": "CUSTOM"})
             ctx = blocks.Ctx(s)
             settings = []
-            for p, obj in ((2, RUINS), (3, MONUMENT), (4, RUINS), (5, RUINS)):
+            for p, obj in ((2, ruin_monument), (3, MONUMENT), (4, RUINS), (5, RUINS)):
                 _add(s, p, obj, 8, LANE_Y[p])
                 blocks.anchor(ctx, player=p, at=(1, LANE_Y[p]))
             for p in (1, 2, 3):
                 settings += [{"type": "modify_resource", "source_player": p, "tribute_list": a, "operation": "SET",
                               "quantity": 1} for a in MONUMENT_TRICKLES]
 
-            # Player 1: a Gaia ruin to capture, two artifact carts, two Barracks.
-            _add(s, 0, RUINS, 30, 12)
+            # Player 1: Gaia objects to capture, two AoE1 artifacts, two Barracks.
+            _add(s, 0, ruin_monument, 22, 12)
+            _add(s, 0, RUINS, 36, 12)
             for k in range(3):
-                _add(s, 1, "HOPLITE", 26 + k, 16)
+                _add(s, 1, "HOPLITE", 28 + k, 16)
             for k in range(2):
-                _add(s, 1, ARTIFACT_CART, 34 + k * 2, 30)
-            _add(s, 1, "BARRACKS", 30, 36)                    # left: unchanged
-            right = _add(s, 1, "BARRACKS", 42, 36)
-            settings.append({"type": "modify_object_attribute", "source_player": 1, "selected_object_ids": [right],
-                             "object_attributes": GARRISON_TYPE, "operation": SET, "quantity": 127})
+                _add(s, 1, ARTIFACT, 34 + k * 2, 28)
+            _add(s, 1, "BARRACKS", 28, 38)
+            _add(s, 1, "BARRACKS", 44, 38)
             _add(s, 1, "TOWN_CENTER", 50, 54)
             for i in range(4):
                 _add(s, 1, "VILLAGER_MALE", 46 + i, 50)
             settings.append({"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": 1,
                              "quantity": 2, "operation": "SET"})
             ctx.trigger("Setup", [], settings)
-            ctx.xs(xs_code())
+            ctx.xs(xs_code(ruin_monument))
             ctx.flush_xs()
             s.message_manager.instructions = INSTRUCTIONS
             player_set(o.handle, 1, {"initial_player_view_x": 34, "initial_player_view_y": 26})
@@ -192,13 +200,15 @@ def report(record: Path) -> str:
     vals = list(struct.unpack_from(f"<{record.stat().st_size // 4}i", record.read_bytes()))
     if vals[0] != MAGIC:
         raise ValueError("not a crucible ruins test record")
-    n = vals[2]
-    i, width = 3, n * 5 + 1
-    lines = ["food/wood/stone/gold and resource 14 per player; artifacts in your Barracks"]
+    version, n = vals[1], vals[2]
+    per = 6 if version >= 2 else 5
+    i, width = 3, n * per + 1
+    lines = ["food/wood/stone/gold per player, ruins and Ruin Monuments owned; artifacts at your Barracks"]
     while i + 2 + width <= len(vals) and vals[i] == TAG_SAMPLE:
         t, row = vals[i + 1], vals[i + 2:i + 2 + width]
-        players = "  ".join(f"P{p + 1} {'/'.join(map(str, row[p * 5:p * 5 + 4]))} r14={row[p * 5 + 4]}"
+        players = "  ".join(f"P{p + 1} {'/'.join(map(str, row[p * per:p * per + 4]))} "
+                            f"ruins={row[p * per + 4]} rm={row[p * per + 5] if per == 6 else '-'}"
                             for p in range(n))
-        lines.append(f"{t // 60}:{t % 60:02}  {players}  artifacts in barracks {row[-1]}")
+        lines.append(f"{t // 60}:{t % 60:02}  {players}  artifacts near barracks {row[-1]}")
         i += 2 + width
     return "\n".join(lines)
