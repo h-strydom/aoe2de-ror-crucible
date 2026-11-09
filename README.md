@@ -58,6 +58,10 @@ dropdown. The briefing lists the checks.
 Found so far: a mod holding only `dropsites.json` counts as a data mod of its own, so everything goes in one data
 mod. Scouts trained at the Barracks by trigger alone.
 
+## What's possible
+
+[docs/feasibility.md](docs/feasibility.md) collects every idea tried so far, what the engine allows, and how sure we are.
+
 ## License
 
 MIT
