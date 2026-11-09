@@ -51,6 +51,9 @@ GARRISON_ACTION, BUILDINGS, TRANSPORTS = 3, 3, 20     # task action type, and th
 FOOT = (0, 6)                              # archer and infantry classes
 FISHING_BOATS, GATHER_ACTION, FISH, WOOD = (13, 82), 5, 17, 1   # gather tasks name the resource they take
 GUARD_TOWER, CATAPULT_ATTACKS = 235, ((4, 50), (11, 140))       # melee 50, +140 vs buildings (the Stone Thrower's)
+BALLISTA_TOWER, CATAPULT_STONE = 236, 656
+BALLISTA_BUTTON, CATAPULT_BUTTON = 14, 15        # free slots on the villager's military build page (towers use 9)
+CATAPULT_TOWER_NAME = 7079                       # the string RoR's own "Catapult Tower" technology is named with
 SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
@@ -99,6 +102,7 @@ def build_data_mod(root: Path) -> Path:
             for t in (unit.bird.tasks if unit and unit.bird else []):
                 if t.action_type == GATHER_ACTION and t.resource_in == FISH:
                     t.resource_in = WOOD
+    _buildable_towers(d)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -156,6 +160,45 @@ def _catapult_attack(civ) -> bool:
             new.class_, new.amount = cls, amount
             tower.type_50.attacks.append(new)
     return True
+
+
+def _buildable_towers(d) -> int:
+    """Two more towers in the villager's build menu: the Ballista Tower as a building of its own (RoR only reaches
+    it by upgrading the other towers) and a new Catapult Tower, a copy of the Guard Tower that fires the Stone
+    Thrower's stone with its attack. Returns the new tower's unit id."""
+    new_id = len(d.civs[0].units)
+    for civ in d.civs:
+        guard = civ.units[GUARD_TOWER] if len(civ.units) > GUARD_TOWER else None
+        ballista = civ.units[BALLISTA_TOWER] if len(civ.units) > BALLISTA_TOWER else None
+        if ballista and ballista.creatable:
+            ballista.enabled = 1
+            for t in ballista.creatable.train_locations:
+                t.button_id = BALLISTA_BUTTON
+        if not (guard and guard.type_50 and guard.creatable):
+            civ.units.append(None)
+            continue
+        tower = copy.deepcopy(guard)
+        tower.id = tower.copy_id = tower.base_id = new_id
+        tower.enabled = 1
+        tower.name = "Catapult Tower"
+        tower.language_dll_name = CATAPULT_TOWER_NAME
+        t50 = tower.type_50
+        t50.projectile_unit_id = CATAPULT_STONE
+        t50.reload_time = 5.375
+        t50.max_range = t50.displayed_range = 10
+        t50.min_range = 3
+        t50.blast_width = 0.8
+        t50.blast_attack_level = 6                     # splash hits enemies only
+        template = t50.attacks[0]
+        t50.attacks = []
+        for cls, amount in CATAPULT_ATTACKS:
+            a = copy.deepcopy(template)
+            a.class_, a.amount = cls, amount
+            t50.attacks.append(a)
+        for t in tower.creatable.train_locations:
+            t.button_id = CATAPULT_BUTTON
+        civ.units.append(tower)
+    return new_id
 
 
 def _info(folder: Path, title: str, description: str) -> None:

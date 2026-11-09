@@ -40,5 +40,11 @@ def test_build(tmp_path):
     for uid in (4, 93):                                                  # bowman, hoplite
         assert garrisons_in_buildings(modded, uid) and not garrisons_in_buildings(original, uid)
 
+    new = modded.civs[1].units[len(original.civs[1].units)]                 # the added Catapult Tower
+    assert new.name == "Catapult Tower" and new.enabled
+    assert sorted((a.class_, a.amount) for a in new.type_50.attacks) == sorted(testmod.CATAPULT_ATTACKS)
+    assert [t.button_id for t in new.creatable.train_locations] == [testmod.CATAPULT_BUTTON]
+    assert modded.civs[1].units[testmod.BALLISTA_TOWER].enabled
+
     camp = Campaign.read(res["campaign"])
     assert camp.name == testmod.CAMPAIGN and len(camp.scenarios) == 3

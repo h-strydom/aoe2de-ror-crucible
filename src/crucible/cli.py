@@ -33,6 +33,9 @@ def main(argv: list[str] | None = None) -> int:
                                                   "Thrower's stone")
     p_cat.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("catapult-report", help="print the catapult tower demo's logged attack values")
+    p_tb = sub.add_parser("tower-build", help="build the tower build test (villagers build Ballista and Catapult "
+                                              "Towers; also rebuilds and installs the data mod)")
+    p_tb.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     args = parser.parse_args(argv)
 
     if args.command == "test-map":
@@ -112,6 +115,15 @@ def main(argv: list[str] | None = None) -> int:
 
         from . import catapulttower
         print(catapulttower.report(Path(game.read_xsdat(catapulttower.NAME)["path"])))
+        return 0
+    if args.command == "tower-build":
+        from . import testmod, towerbuild
+        path = towerbuild.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
         return 0
     parser.print_help()
     return 0
