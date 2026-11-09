@@ -36,6 +36,10 @@ def main(argv: list[str] | None = None) -> int:
     p_tb = sub.add_parser("tower-build", help="build the tower build test (villagers build Ballista and Catapult "
                                               "Towers; also rebuilds and installs the data mod)")
     p_tb.add_argument("--install", action="store_true", help="install the data mod and the scenario")
+    p_ru = sub.add_parser("ruins-test", help="build the ruins and artifacts test (ruins trickle, artifact carts "
+                                             "speed up every Barracks)")
+    p_ru.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
+    sub.add_parser("ruins-report", help="print what the ruins and artifacts test recorded")
     args = parser.parse_args(argv)
 
     if args.command == "test-map":
@@ -124,6 +128,20 @@ def main(argv: list[str] | None = None) -> int:
             from aoe2ed import game
             print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
             print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "ruins-test":
+        from . import ruinstest
+        path = ruinstest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "ruins-report":
+        from aoe2ed import game
+
+        from . import ruinstest
+        print(ruinstest.report(Path(game.read_xsdat(ruinstest.NAME)["path"])))
         return 0
     parser.print_help()
     return 0
