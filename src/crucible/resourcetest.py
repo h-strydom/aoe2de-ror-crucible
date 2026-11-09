@@ -1,23 +1,22 @@
-"""The resource test: extreme gather values, a mismatched gather swap, trickles and generation.
+"""The resource test, round 2: resources that hold a different resource, and conversion by script.
 
-A standalone scenario, `crucible_resource_test`, played from the Scenario lobby with the Crucible Test Data mod
-picked as the Data Mod (it makes fishing boats take wood from fish). Each idea gets its own allied computer player, because the
-multipliers are per player. Their villagers start working on their own; you watch.
+A standalone scenario, `crucible_resource_test`, played from the Scenario lobby with the Crucible Test Data mod as
+the Data Mod. Each idea gets its own allied computer player; every gatherer starts working on its own.
 
 | Player | Test |
 |---|---|
-| 1 (you) | A fishing boat beside fish. The data mod tells boats to take **wood** from fish: does it gather at all? |
-| 2 | Stone miners, normal: the control |
-| 3 | Stone miners with Stone Bonus 0 |
-| 4 | Stone miners with Stone Bonus 10 (the game's own "resources last longer" multiplier) |
-| 5 | Stone miners with work rate 0 |
-| 6 | Generation: food 60, wood 1 (per second or per minute?) |
-| 7 | Military Food Trickle 3, with 5 hoplites standing around |
-| 8 | Lumberjacks with Chopping Gold Productivity 33 (chopping wood also gives gold) |
+| 1 (you) | A fishing boat on a fish switched to hold **gold** (one object) |
+| 2 | Lumberjacks on trees switched to hold **gold** (per tree) |
+| 3 | Foragers on berry bushes switched to hold **stone** (per bush) |
+| 4 | Lumberjacks on a tree type switched to **stone** for the whole type (does it reach trees already placed?) |
+| 5 | Normal lumberjacks; a script pays **10% of their wood as gold** |
+| 6 | Normal lumberjacks: the control |
 
-A script writes every player's stockpile and each pile's remaining amount every 10 seconds to
-`<profile>/profile/crucible_resource_test.xsdat`; `crucible resource-report` prints it. It also posts a short
-summary in chat every minute.
+Round 1 (work rate 0, gather multipliers, generation, trickles, chopping gold, boats told to take wood) is settled;
+its results are in docs/feasibility.md.
+
+A script writes every player's stockpile, and each tracked pile's remaining amount and stored resource type, every
+10 seconds to `<profile>/profile/crucible_resource_test.xsdat`; `crucible resource-report` prints it.
 """
 from __future__ import annotations
 
@@ -30,29 +29,30 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
 CAMPAIGN = "crucible_resource_test"
 SIZE = 64
-MAGIC, VERSION, TAG_SAMPLE = 412320777, 1, 1
+MAGIC, VERSION, TAG_SAMPLE = 412320777, 2, 1
 INTERVAL = 10
-STONE_BONUS, WORK_RATE, CHOPPING_GOLD, MILITARY_FOOD = 79, 13, 266, 287
-FOOD_GEN, WOOD_GEN = 230, 231
+STORAGE_TYPE = 168                     # object attribute: the resource a pile holds (first storage)
+FOOD, WOOD, STONE, GOLD = 0, 1, 2, 3
+WOOD_TOTAL = 167                       # player attribute: wood gathered so far
+CONVERT_PLAYER, CONVERT_SHARE = 5, 0.1
 REVEAL_MAP, SET = 203, 1
-STONE_MINERS = (124, 220)
 UNIT_ATTRIBUTE_HELD = 4                # xsGetUnitProperty: what a unit (or a resource pile) holds
-PLAYERS = range(1, 9)
-LANES = {p: 6 + (p - 2) * 7 for p in range(2, 9)}           # each computer player's row (y)
+PLAYERS = range(1, 7)
+LANES = {p: 6 + (p - 2) * 8 for p in range(2, 7)}           # each computer player's row (y)
+PILE_LABELS = ["P2 gold tree", "P3 stone bush", "P4 stone tree", "P5 tree", "P6 tree", "P1 gold fish"]
 
-INSTRUCTIONS = """Crucible resource test. Pick "Crucible Test Data" as the Data Mod in the lobby. The map is revealed; \
-nothing ends the game. Let it run about 5 minutes (speed it up if you like), then quit.
+INSTRUCTIONS = """Crucible resource test, round 2. The map is revealed; nothing ends the game. Let it run about 5 \
+minutes (speed it up if you like), then quit. Everyone starts working on their own.
 
 Rows from the left corner, one allied player each:
-P2 stone miners, normal (control) | P3 Stone Bonus 0 | P4 Stone Bonus 10 | P5 miners' work rate 0 | \
-P6 generation: food 60, wood 1 | P7 military food trickle 3 (5 hoplites) | P8 lumberjacks, chopping gives gold 33.
+P2 lumberjacks on trees switched to hold GOLD | P3 foragers on berry bushes switched to hold STONE | P4 lumberjacks \
+on a tree type switched to STONE for the whole type | P5 normal lumberjacks, a script pays 10% of their wood as gold | \
+P6 normal lumberjacks (control).
 
-Watch: do P3's and P5's miners gather anything? Does P4's mine last longer than P2's? How fast do P6's food and wood \
-and P7's food grow? Does P8 get gold?
+YOUR fishing boat works a fish switched to hold GOLD.
 
-YOUR fishing boat: the data mod tells boats to take wood from fish. Click the boat on the fish: does it fish?
-
-A summary is posted in chat every minute, and everything is logged for the report."""
+Watch: what do the gatherers carry, where do they drop it off, and what does each player receive? Select a tree, \
+bush or fish to see what it holds. Everything is logged for the report."""
 
 
 def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
@@ -68,22 +68,23 @@ def _paint(s, terrain: int, area: tuple[int, int, int, int]) -> None:
 
 
 def xs_code(tracked: list[int]) -> str:
-    """Record every player's food, wood, stone and gold and each tracked pile's amount every INTERVAL seconds."""
+    """Record stockpiles and tracked piles every INTERVAL seconds, and pay player 5 a share of its wood as gold."""
     header = "".join(f"    xsWriteInt({v});\n" for v in [MAGIC, VERSION, len(PLAYERS), len(tracked), *tracked])
     stock = "".join(f"        xsWriteInt(xsPlayerAttribute(p, {a}));\n" for a in range(4))
     piles = "".join(f"    crucibleWritePile({u});\n" for u in tracked)
-    chat = "".join(f'    xsChatData("{label}: %d", xsPlayerAttribute({p}, {a}));\n' for label, p, a in (
-        ("P2 control stone", 2, 2), ("P3 bonus 0 stone", 3, 2), ("P4 bonus 10 stone", 4, 2),
-        ("P5 rate 0 stone", 5, 2), ("P6 generation food", 6, 0), ("P6 generation wood", 6, 1),
-        ("P7 military trickle food", 7, 0), ("P8 chopping gold", 8, 3), ("P8 wood", 8, 1), ("P1 food", 1, 0),
-        ("P1 wood", 1, 1)))
-    return f"""// ---- crucible resource test ----
+    return f"""// ---- crucible resource test, round 2 ----
+float crucibleLastWood = 0.0;
+float crucibleGoldOwed = 0.0;
+
 void crucibleWritePile(int id = -1) {{
-    int v = -1;
+    int held = -1;
+    int kind = -1;
     if (xsDoesUnitExist(id)) {{
-        v = xsGetUnitProperty(id, {UNIT_ATTRIBUTE_HELD});
+        held = xsGetUnitProperty(id, {UNIT_ATTRIBUTE_HELD});
+        kind = xsGetUnitAttribute(id, {STORAGE_TYPE});
     }}
-    xsWriteInt(v);
+    xsWriteInt(held);
+    xsWriteInt(kind);
 }}
 
 rule crucibleResourceInit
@@ -107,21 +108,39 @@ rule crucibleResourceSample
 {piles}    xsCloseFile();
 }}
 
-rule crucibleResourceChat
+rule crucibleConvertWoodToGold
     active
-    minInterval 60
+    minInterval 1
 {{
-{chat}}}
+    float wood = xsPlayerAttribute({CONVERT_PLAYER}, {WOOD_TOTAL});
+    crucibleGoldOwed = crucibleGoldOwed + (wood - crucibleLastWood) * {CONVERT_SHARE};
+    crucibleLastWood = wood;
+    if (crucibleGoldOwed >= 1.0) {{
+        int whole = crucibleGoldOwed;
+        xsSetPlayerAttribute({CONVERT_PLAYER}, {GOLD}, xsPlayerAttribute({CONVERT_PLAYER}, {GOLD}) + whole);
+        crucibleGoldOwed = crucibleGoldOwed - whole;
+    }}
+}}
 """
+
+
+def _lumber_lane(s, p: int, tree: str) -> tuple[list[int], dict]:
+    """A storage pit, a block of trees and three lumberjacks sent to them; returns the trees and the task."""
+    y = LANES[p]
+    _add(s, p, "STORAGE_PIT", 16, y)
+    trees = [_add(s, 0, tree, 21 + i, y + j) for i in range(4) for j in (-1, 0, 1)]
+    jacks = [_add(s, p, "VILLAGER_MALE", 19, y - 1 + i) for i in range(3)]
+    return trees, {"type": "task_object", "source_player": p, "selected_object_ids": jacks,
+                   "location_object_reference": trees[4]}
 
 
 def build_mission(out: Path) -> tuple[Path, list[int], list[str]]:
     o = SESSIONS.new(SIZE, game="ror")
     s = o.scenario
-    tracked, labels = [], []
+    tracked = []
     try:
         with games.use("ror"):
-            s.player_manager.active_players = 8
+            s.player_manager.active_players = len(PLAYERS)
             for p in PLAYERS:
                 fields = {"civilization": "GREEK", "starting_age": "CASTLE", "human": p == 1,
                           "food": 0, "wood": 0, "gold": 0, "stone": 0, "population_cap": 200}
@@ -132,57 +151,50 @@ def build_mission(out: Path) -> tuple[Path, list[int], list[str]]:
                 diplomacy_set(o.handle, p, [q for q in PLAYERS if q != p], "ALLY", mutual=False)
             options_set(o.handle, {"victory_condition": "CUSTOM"})
             ctx = blocks.Ctx(s)
-            tasks = []
+            tasks, settings = [], []
 
-            # Players 2-5: three stone miners each, a mine and a storage pit side by side.
-            for p in (2, 3, 4, 5):
-                y = LANES[p]
-                _add(s, p, "STORAGE_PIT", 16, y)
-                mine = _add(s, 0, "STONE_MINE", 22, y)
-                tracked.append(mine)
-                labels.append(f"P{p} mine")
-                miners = [_add(s, p, "VILLAGER_MALE", 19, y - 1 + i) for i in range(3)]
-                tasks.append({"type": "task_object", "source_player": p, "selected_object_ids": miners,
-                              "location_object_reference": mine})
-            # Player 6: nothing to gather; player 7: soldiers; player 8: lumberjacks by a storage pit.
-            for p in (6, 7):
-                blocks.anchor(ctx, player=p, at=(2, LANES[p]))
-            for i in range(5):
-                _add(s, 7, "HOPLITE", 16 + i * 2, LANES[7])
-            y = LANES[8]
-            _add(s, 8, "STORAGE_PIT", 16, y)
-            trees = [_add(s, 0, "TREE_A", 21 + i, y + j) for i in range(4) for j in (-1, 0, 1)]
-            jacks = [_add(s, 8, "VILLAGER_MALE", 19, y - 1 + i) for i in range(3)]
-            tasks.append({"type": "task_object", "source_player": 8, "selected_object_ids": jacks,
-                          "location_object_reference": trees[4]})
+            gold_trees, task = _lumber_lane(s, 2, "TREE_A")
+            tasks.append(task)
+            settings.append({"type": "modify_object_attribute", "source_player": 0, "selected_object_ids": gold_trees,
+                             "object_attributes": STORAGE_TYPE, "operation": SET, "quantity": GOLD})
+            tracked.append(gold_trees[4])
 
-            # Player 1: water with fish, a dock and a fishing boat.
+            y = LANES[3]
+            _add(s, 3, "GRANARY", 16, y)
+            bushes = [_add(s, 0, "FORAGE_BUSH", 21 + i * 2, y + j) for i in range(3) for j in (-1, 1)]
+            foragers = [_add(s, 3, "VILLAGER_MALE", 19, y - 1 + i) for i in range(3)]
+            tasks.append({"type": "task_object", "source_player": 3, "selected_object_ids": foragers,
+                          "location_object_reference": bushes[0]})
+            settings.append({"type": "modify_object_attribute", "source_player": 0, "selected_object_ids": bushes,
+                             "object_attributes": STORAGE_TYPE, "operation": SET, "quantity": STONE})
+            tracked.append(bushes[0])
+
+            stone_trees, task = _lumber_lane(s, 4, "TREE_B")             # only P4's lane uses TREE_B
+            tasks.append(task)
+            settings.append({"type": "modify_attribute", "source_player": 0, "object_list_unit_id": "TREE_B",
+                             "object_attributes": STORAGE_TYPE, "operation": SET, "quantity": STONE})
+            tracked.append(stone_trees[4])
+
+            for p in (5, 6):
+                trees, task = _lumber_lane(s, p, "TREE_A")
+                tasks.append(task)
+                tracked.append(trees[4])
+
+            # Player 1: water, a dock and a fishing boat on a gold fish.
             _paint(s, 23, (40, 36, SIZE - 1, SIZE - 1))                # WATER_DEEP
             _add(s, 1, "TOWN_CENTER", 10, 54)
             _add(s, 1, "DOCK", 38, 46)
             fish = _add(s, 0, "FISH5", 46, 46)
+            boat = _add(s, 1, "FISHING_BOAT", 43, 48)
+            tasks.append({"type": "task_object", "source_player": 1, "selected_object_ids": [boat],
+                          "location_object_reference": fish})
+            settings.append({"type": "modify_object_attribute", "source_player": 0, "selected_object_ids": [fish],
+                             "object_attributes": STORAGE_TYPE, "operation": SET, "quantity": GOLD})
             tracked.append(fish)
-            labels.append("P1 fish")
-            _add(s, 1, "FISHING_BOAT", 43, 48)
 
-            per_player = [
-                {"type": "modify_resource", "source_player": 3, "tribute_list": STONE_BONUS, "operation": SET,
-                 "quantity": 0},
-                {"type": "modify_resource", "source_player": 4, "tribute_list": STONE_BONUS, "operation": SET,
-                 "quantity": 10},
-                {"type": "modify_resource", "source_player": 6, "tribute_list": FOOD_GEN, "operation": SET,
-                 "quantity": 60},
-                {"type": "modify_resource", "source_player": 6, "tribute_list": WOOD_GEN, "operation": SET,
-                 "quantity": 1},
-                {"type": "modify_resource", "source_player": 7, "tribute_list": MILITARY_FOOD, "operation": SET,
-                 "quantity": 3},
-                {"type": "modify_resource", "source_player": 8, "tribute_list": CHOPPING_GOLD, "operation": SET,
-                 "quantity": 33},
-                *({"type": "modify_attribute", "source_player": 5, "object_list_unit_id": uid,
-                   "object_attributes": WORK_RATE, "operation": SET, "quantity": 0} for uid in STONE_MINERS),
-                {"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": 1, "quantity": 2,
-                 "operation": "SET"}]
-            ctx.trigger("Resource settings", [], per_player)
+            settings.append({"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": 1,
+                             "quantity": 2, "operation": "SET"})
+            ctx.trigger("Resource settings", [], settings)
             ctx.trigger("Start working", [{"type": "timer", "timer": 2}], tasks)
             ctx.xs(xs_code(tracked))
             ctx.flush_xs()
@@ -191,7 +203,7 @@ def build_mission(out: Path) -> tuple[Path, list[int], list[str]]:
         out.mkdir(parents=True, exist_ok=True)
         path = out / f"{CAMPAIGN}.aoe2scenario"
         SESSIONS.save(o.handle, path, overwrite=True)
-        return path, tracked, labels
+        return path, tracked, list(PILE_LABELS)
     finally:
         SESSIONS.close(o.handle)
 
@@ -200,31 +212,29 @@ def decode(data: bytes) -> dict:
     vals = list(struct.unpack_from(f"<{len(data) // 4}i", data))
     if len(vals) < 4 or vals[0] != MAGIC:
         raise ValueError("not a crucible resource test record")
-    players, ntracked = vals[2], vals[3]
+    version, players, ntracked = vals[1], vals[2], vals[3]
+    per_pile = 2 if version >= 2 else 1
     i = 4 + ntracked
-    width = players * 4 + ntracked
+    width = players * 4 + ntracked * per_pile
     samples = []
     while i + 2 + width <= len(vals) and vals[i] == TAG_SAMPLE:
         t, row = vals[i + 1], vals[i + 2:i + 2 + width]
         stock = {p + 1: dict(zip(("food", "wood", "stone", "gold"), row[p * 4:p * 4 + 4], strict=True))
                  for p in range(players)}
-        samples.append({"t": t, "stock": stock, "piles": row[players * 4:]})
+        rest = row[players * 4:]
+        piles = [tuple(rest[k:k + per_pile]) for k in range(0, len(rest), per_pile)]
+        samples.append({"t": t, "stock": stock, "piles": piles})
         i += 2 + width
-    return {"samples": samples}
-
-
-PILE_LABELS = ["P2 mine", "P3 mine", "P4 mine", "P5 mine", "P1 fish"]      # build_mission's tracked order
+    return {"version": version, "samples": samples}
 
 
 def report(record: Path) -> str:
+    """Each player's food/wood/stone/gold and each pile's amount (and resource type) per sample."""
     rec = decode(record.read_bytes())
-    labels = PILE_LABELS
-    lines = [" time | P2 st  P3 st  P4 st  P5 st | P6 food P6 wood | P7 food | P8 wood P8 gold | P1 food P1 wood"
-             " | " + " ".join(f"{label:>8}" for label in labels)]
+    lines = []
     for s in rec["samples"]:
-        st = s["stock"]
-        lines.append(f" {s['t'] // 60:2}:{s['t'] % 60:02} | {st[2]['stone']:5} {st[3]['stone']:6} {st[4]['stone']:6}"
-                     f" {st[5]['stone']:6} | {st[6]['food']:7} {st[6]['wood']:7} | {st[7]['food']:7} |"
-                     f" {st[8]['wood']:7} {st[8]['gold']:7} | {st[1]['food']:7} {st[1]['wood']:7} | "
-                     + " ".join(f"{v:8}" for v in s["piles"]))
-    return "\n".join(lines)
+        stock = "  ".join(f"P{p} {v['food']}/{v['wood']}/{v['stone']}/{v['gold']}" for p, v in s["stock"].items())
+        piles = "  ".join(f"{label} {'/'.join(map(str, pile))}" for label, pile in zip(PILE_LABELS, s["piles"], strict=False))
+        lines.append(f"{s['t'] // 60:2}:{s['t'] % 60:02}  {stock}  |  {piles}")
+    return "food/wood/stone/gold per player; piles: amount/resource type (0 food, 1 wood, 2 stone, 3 gold, 17 fish)\n" \
+        + "\n".join(lines)
