@@ -181,3 +181,13 @@ Next ideas:
   the look you want (grass, dirt, desert).
 - Safe zone: use the script version (B). Zone A's trigger toggling (Enable for an area, then Disable for the zone,
   every second) is what leaked, perhaps through the moment between the two effects.
+
+## Results, map tricks round 2 (2026-11-09)
+
+- **Unbuildable line over any terrain: solved.** A one-tile line whose base terrain is unbuildable (Rock 1,
+  Quicksand or Bogland) with the surrounding terrain (grass, dirt, desert, road) as the overlay layer can't be built
+  on, while looking like the ground around it. The base terrain decides building; the layer is only paint.
+- **Formations work**: Task Object with a line or box formation, then a group move, marched the groups in formation.
+- **Safe zones**: nothing inside either square was attacked this run (player's report; the script's log wasn't
+  rewritten, so its numbers are from round 1). Open: does splash from a Stone Thrower's attack-ground (aimed at the
+  ground, not a unit) still hurt units inside?
