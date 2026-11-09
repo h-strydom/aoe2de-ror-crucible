@@ -132,6 +132,13 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
   +140 vs buildings) written in read 0/50/140 in game, and its stones hit an elephant for about 46. Combined with the
   trigger settings above (projectile, reload, range, splash), that's a real catapult tower. In the final mod it would
   be its own unit, unlocked by a technology.
+- **Two towers in the build menu: verified** (`crucible tower-build`).
+  - The data mod adds a new Catapult Tower building (a Guard Tower copy with the Stone Thrower's attack, stone, range
+    3-10 and enemies-only splash) and makes the upgrade-only Ballista Tower buildable.
+  - Villagers built both, and both fired.
+  - Build slots: 5 and 10 on the military page work; 14 and 15 don't show.
+  - Left to do: its own text. The build button read "Guard Tower" (copied), and the built tower showed "Ballista
+    Tower", the text behind string 7079. A new unit needs strings of its own.
 
 ## Resources
 
