@@ -115,6 +115,23 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
 | Accuracy | Accuracy Percent (11), Attack Dispersion (64) | Siege and archers 100 |
 | Traders return some of every resource | Player attributes Trade Food/Wood/Stone Percent (251-253) | AoE2 civ bonuses use them; RoR may ignore them like the trickles. Fallback: XS reads trade income (101) each second and pays shares, as the verified wood-to-gold conversion does |
 
+### Catapult tower (towers that fire a Stone Thrower's stone)
+
+`crucible catapult-tower`, 2026-11-09:
+- **What works by trigger, for the whole tower type:**
+  - the catapult projectile (656, arced);
+  - reload and range;
+  - splash width;
+  - splash for enemies only (level 6).
+- **Damage:**
+  - **Triggers and XS can't add attack classes.** A tower's melee and building attacks stayed absent with every
+    method (Modify Attribute Add/Set, Modify Object Attribute, Change Object Attack, `xsEffectAmount` Add/Set).
+  - **What works:** setting the tower's existing pierce attack to 50. Stones then hit for 50, as pierce damage
+    (targets' pierce armour applies), with no bonus against buildings.
+- **The proper version** is the data mod: a tower with the Stone Thrower's attack classes (50 melee, +140 vs
+  buildings) written in, unlocked by a technology. Not yet seen in game (round 3's Guard Tower read no melee
+  attack, likely because the data mod wasn't picked).
+
 ## Resources
 
 Resource test scenario (`crucible resource-test`, 2026-11-09; 6.5 minutes logged). Each stone mine started at 350.
