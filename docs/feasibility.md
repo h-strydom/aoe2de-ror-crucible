@@ -53,6 +53,23 @@ or **unverified**. Verified engine facts also go into aoe-agent-editor's `src/ao
     (Assyrian archer fire rate covers classes 0 and 36) and garrison rules use. The data mod can change the class
     too, with wider knock-on effects.
 
+### "Counts as" buffs (emergent combos)
+
+The idea: a buff makes a unit also count as another type, e.g. Hoplites count as cavalry. They take cavalry upgrades
+and civ bonuses, and also take extra damage from camels. Removing an armour class makes a unit immune to the bonuses
+aimed at it. That splits into two engine pieces:
+
+| Piece | How | Status |
+|---|---|---|
+| Vulnerability: take (or stop taking) a class's bonus damage | Triggers: Add Armor Type (160) / Remove Armor Type (164), per unit type for a player, any time in a run | Trigger attributes exist; unverified |
+| Benefits: cavalry upgrades and cavalry civ bonuses | **Not by class:** a unit has one class, and triggers/XS can't change it (the data mod only permanently, and that's a swap, not an "also"). Instead **mirror** the effects: read from the data file which techs and civ bonuses touch cavalry (we already parse them for `aoe2ed.civs`). When the buff is picked, apply the ones already active to the Hoplite with `xsEffectAmount`, then each later one as it's researched | Possible; unverified |
+
+Limits:
+- **Still infantry underneath:** anything that checks the real class (AI targeting, garrison rules, class filters in
+  triggers) still sees infantry.
+- **Ability-like bonuses:** mirroring covers stat changes (cost, speed, HP, attack, armour, fire rate), which is
+  almost all RoR bonuses.
+
 ## Garrisons
 
 - **Garrison arrows:** verified with triggers alone. A tower needs three settings, and the units one:
