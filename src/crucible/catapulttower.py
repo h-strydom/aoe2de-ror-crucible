@@ -25,7 +25,7 @@ ATTACK, RELOAD, MAX_RANGE, SHOWN_RANGE, PROJECTILE_UNIT, BLAST_WIDTH, BLAST_LEVE
 CATAPULT_STONE = 656
 PIERCE, MELEE, BUILDINGS = 3, 4, 11                # attack classes
 STONE_THROWER = {"melee": 50, "buildings": 140, "reload": 5.375, "range": 10, "blast": 0.8, "level": 6}
-REVEAL_MAP, SET = 203, 1
+REVEAL_MAP, SET, ADD = 203, 1, 2
 
 INSTRUCTIONS = """Crucible catapult tower. Every tower you own now fires a Stone Thrower's stone, with its damage \
 (50 melee, +140 vs buildings), reload and range, and splash that only hurts enemies. Towers you build are catapult \
@@ -43,10 +43,13 @@ def tower_effects(player: int = 1, towers=TOWERS) -> list[dict]:
     v = STONE_THROWER
     for tower in towers:
         mod = {"type": "modify_attribute", "source_player": player, "object_list_unit_id": tower, "operation": SET}
+        # Towers have no melee or building attack, so Set had nothing to change (first look, 2026-11-09: stones
+        # did minimum damage). Add creates the attack class.
+        add = {**mod, "operation": ADD}
         out += [
             {**mod, "object_attributes": PROJECTILE_UNIT, "quantity": CATAPULT_STONE},
-            {**mod, "object_attributes": ATTACK, "armour_attack_class": MELEE, "armour_attack_quantity": v["melee"]},
-            {**mod, "object_attributes": ATTACK, "armour_attack_class": BUILDINGS,
+            {**add, "object_attributes": ATTACK, "armour_attack_class": MELEE, "armour_attack_quantity": v["melee"]},
+            {**add, "object_attributes": ATTACK, "armour_attack_class": BUILDINGS,
              "armour_attack_quantity": v["buildings"]},
             {**mod, "object_attributes": ATTACK, "armour_attack_class": PIERCE, "armour_attack_quantity": 0},
             {**mod, "object_attributes": RELOAD, "quantity": v["reload"]},
