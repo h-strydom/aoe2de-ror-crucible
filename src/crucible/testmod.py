@@ -58,6 +58,9 @@ BALLISTA_TOWER, CATAPULT_STONE = 236, 656
 BALLISTA_BUTTON, CATAPULT_BUTTON = 10, 5
 CATAPULT_TOWER_NAME = 7079                       # the string RoR's own "Catapult Tower" technology is named with
 MONUMENT, RUINS = 826, 52                        # King of the Hill's Monument, Artifact Ruins
+ARTIFACT, ARTIFACT_CLASS, PRIEST_CLASS, INFANTRY_CLASS = 25, 1, 18, 6
+BARRACKS = (12, 20, 132, 498)                    # the Barracks and its age looks
+EVERY_GARRISON = 127                             # garrison type: every category
 SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
@@ -108,6 +111,7 @@ def build_data_mod(root: Path) -> Path:
                     t.resource_in = WOOD
     _buildable_towers(d)
     _ruin_monument(d)
+    _garrisonable_artifacts(d)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -233,6 +237,42 @@ def _ruin_monument(d) -> int:
         unit.outline_size_x = unit.outline_size_y = ruins.outline_size_x
         civ.units.append(unit)
     return new_id
+
+
+def artifact_ids() -> tuple[int, int]:
+    """The unit ids the data mod gives its two artifact copies: (infantry class, priest class)."""
+    first = ruin_monument_id() + 1
+    return first, first + 1
+
+
+def _garrisonable_artifacts(d) -> tuple[int, int]:
+    """Can an artifact garrison? Artifacts are their own class (1), which no garrison type admits: a Relic Cart with
+    a garrison task stayed out of a Barracks open to every category (ruins test, 2026-11-09). Three tries, side by
+    side: the AoE1 artifact (25) gets the villager's "garrison into a building" task and keeps its class; two copies
+    get the task too, one in the infantry class and one in the priest class. Every Barracks admits every category.
+    Returns the copies' ids."""
+    new_id = len(d.civs[0].units)
+    for civ in d.civs:
+        for uid in BARRACKS:
+            if len(civ.units) > uid and civ.units[uid] and civ.units[uid].building:
+                civ.units[uid].building.garrison_type = EVERY_GARRISON
+        villager, artifact = civ.units[VILLAGER], civ.units[ARTIFACT] if len(civ.units) > ARTIFACT else None
+        task = next((t for t in villager.bird.tasks if t.action_type == GARRISON_ACTION and t.class_id == BUILDINGS),
+                    None) if villager and villager.bird else None
+        if not (artifact and artifact.bird and task):
+            civ.units += [None, None]
+            continue
+        if (GARRISON_ACTION, BUILDINGS) not in {(t.action_type, t.class_id) for t in artifact.bird.tasks}:
+            new = copy.deepcopy(task)
+            new.id = len(artifact.bird.tasks)
+            artifact.bird.tasks.append(new)
+        for k, (cls, name) in enumerate(((INFANTRY_CLASS, "Artifact (infantry class)"),
+                                         (PRIEST_CLASS, "Artifact (priest class)"))):
+            unit = copy.deepcopy(artifact)
+            unit.id = unit.copy_id = unit.base_id = new_id + k
+            unit.name, unit.class_ = name, cls
+            civ.units.append(unit)
+    return new_id, new_id + 1
 
 
 def _info(folder: Path, title: str, description: str) -> None:

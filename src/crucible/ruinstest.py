@@ -1,4 +1,4 @@
-"""The ruins and artifacts test, round 2: ruins that trickle resources, artifacts that speed up every Barracks.
+"""The ruins and artifacts test, round 3: ruins that trickle resources, artifacts that garrison and speed up every Barracks.
 
 A standalone scenario, `crucible_ruins_test`, played with the Crucible Test Data mod picked (it adds the Ruin
 Monument, a copy of King of the Hill's Monument dressed as Artifact Ruins).
@@ -16,10 +16,14 @@ Ruins trickle, one allied player each (they own their objects from the start):
 | 4 | Owns Artifact Ruins; a **script** pays 1 food, wood, stone and gold every 10 s per ruin owned |
 | 5 | Owns Artifact Ruins, nothing else: the control |
 
-You (player 1) have the monument trickles, a Gaia Ruin Monument and a Gaia Artifact Ruins to capture, two AoE1
-artifacts and two Barracks. Artifacts can't garrison, so they're **delivered** instead: while any of your artifacts
-stands within 4 tiles of one of your Barracks, a script sets every Barracks' work rate to 30 (units train in about a
-second); it goes back to 1 when none is near.
+You (player 1) have the monument trickles, a Gaia Ruin Monument and a Gaia Artifact Ruins to capture, two Barracks
+and three artifacts, all given a garrison task by the data mod: the AoE1 artifact (25, artifact class), a copy in the
+infantry class and a copy in the priest class (round 3: which class lets an artifact garrison?). The data mod opens
+every Barracks to every garrison category. While any artifact is garrisoned in, or stands within 4 tiles of, one of
+your Barracks, a script sets every Barracks' work rate to 30 (units train in about a second); it goes back to 1 when
+none is.
+
+Round 2 (2026-11-09): the Ruin Monument and script pay both trickle; the AoE1 artifact has no garrison button.
 
 A script logs every player's stockpile and objects every 10 seconds to `<profile>/profile/crucible_ruins_test.xsdat`;
 `crucible ruins-report` prints it.
@@ -33,11 +37,11 @@ from aoe2ed import blocks, games, tables
 from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
-from .testmod import ruin_monument_id
+from .testmod import artifact_ids, ruin_monument_id
 
 NAME = "crucible_ruins_test"
 SIZE = 64
-MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412321222, 2, 1, 10
+MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412321222, 3, 1, 10
 PLAYERS = range(1, 6)
 MONUMENT_TRICKLES = (221, 222, 223, 224)        # Monument Food/Wood/Stone/Gold Trickle
 RUINS, MONUMENT, ARTIFACT = 52, 826, 25        # Artifact Ruins, KotH Monument, the AoE1 Artifact
@@ -47,7 +51,7 @@ SCRIPT_PAY, SCRIPT_PLAYER = 1, 4                # per ruin every 10 s
 REVEAL_MAP = 203
 LANE_Y = {p: 6 + (p - 2) * 8 for p in (2, 3, 4, 5)}
 
-INSTRUCTIONS = """Crucible ruins and artifacts test, round 2. Pick "Crucible Test Data" as the Data Mod. The map is \
+INSTRUCTIONS = """Crucible ruins and artifacts test, round 3. Pick "Crucible Test Data" as the Data Mod. The map is \
 revealed; nothing ends the game. Run it 3 minutes or more.
 
 RUINS: allied players along the left own an object from the start. P2 a Ruin Monument (a KotH Monument that looks \
@@ -65,7 +69,7 @@ def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
     return s.unit_manager.add_unit(player=player, unit_const=oid, x=x + 0.5, y=y + 0.5).reference_id
 
 
-def xs_code(ruin_monument: int) -> str:
+def xs_code(ruin_monument: int, artifacts: tuple[int, ...] = (ARTIFACT,)) -> str:
     header = "".join(f"    xsWriteInt({v});\n" for v in [MAGIC, VERSION, len(PLAYERS)])
     stock = "".join(f"        xsWriteInt(xsPlayerAttribute(p, {a}));\n" for a in (0, 1, 2, 3)) \
         + f"        xsWriteInt(xsGetObjectCount(p, {RUINS}));\n" \
@@ -80,9 +84,27 @@ def xs_code(ruin_monument: int) -> str:
             }}
         }}
 """ for b in BARRACKS)
+    is_artifact = " || ".join(f"(o == {a})" for a in artifacts)
+    garrisoned = "".join(f"""    list = xsGetPlayerUnitIds(1, {b});
+    for (k = 0; < xsArrayGetSize(list)) {{
+        inside = xsGetGarrisonedUnitIds(xsArrayGetInt(list, k));
+        for (g = 0; < xsArrayGetSize(inside)) {{
+            o = xsGetUnitObjectId(xsArrayGetInt(inside, g));
+            if ({is_artifact}) {{
+                held = held + 1;
+            }}
+        }}
+    }}
+""" for b in BARRACKS)
+    near = "".join(f"""    artifacts = xsGetPlayerUnitIds(1, {a});
+    for (i = 0; < xsArrayGetSize(artifacts)) {{
+        ap = xsGetUnitPosition(xsArrayGetInt(artifacts, i));
+{barracks}    }}
+""" for a in artifacts)
     set_rate = "".join(f"        xsEffectAmount(0, {b}, {WORK_RATE}, rate, 1);\n" for b in BARRACKS)
-    return f"""// ---- crucible ruins and artifacts test, round 2 ----
+    return f"""// ---- crucible ruins and artifacts test, round 3 ----
 int crucibleArtifactsNear = 0;
+int crucibleArtifactsHeld = 0;
 
 rule crucibleRuinsInit
     active
@@ -103,6 +125,7 @@ rule crucibleRuinsSample
     for (p = 1; < {len(PLAYERS) + 1}) {{
 {stock}    }}
     xsWriteInt(crucibleArtifactsNear);
+    xsWriteInt(crucibleArtifactsHeld);
     xsCloseFile();
 }}
 
@@ -125,26 +148,32 @@ rule crucibleArtifactDelivery
     vector bp = cInvalidVector;
     float dx = 0.0;
     float dy = 0.0;
-    int artifacts = xsGetPlayerUnitIds(1, {ARTIFACT});
-    for (i = 0; < xsArrayGetSize(artifacts)) {{
-        vector ap = xsGetUnitPosition(xsArrayGetInt(artifacts, i));
-{barracks}    }}
-    if ((found > 0) != (crucibleArtifactsNear > 0)) {{
+    int held = 0;
+    int o = -1;
+    int inside = -1;
+    int artifacts = -1;
+    vector ap = cInvalidVector;
+{near}{garrisoned}    if (held != crucibleArtifactsHeld) {{
+        xsChatData("Artifacts garrisoned in your Barracks: %d", held);
+    }}
+    if ((found + held > 0) != (crucibleArtifactsNear + crucibleArtifactsHeld > 0)) {{
         float rate = 1.0;
-        if (found > 0) {{
+        if (found + held > 0) {{
             rate = {FAST_WORK_RATE}.0;
-            xsChatData("Artifact at a Barracks: every Barracks trains fast (%d)", found);
+            xsChatData("Artifact at or in a Barracks: every Barracks trains fast", 0);
         }} else {{
             xsChatData("No artifact at a Barracks: normal training", 0);
         }}
 {set_rate}    }}
     crucibleArtifactsNear = found;
+    crucibleArtifactsHeld = held;
 }}
 """
 
 
 def build(out: Path) -> Path:
     ruin_monument = ruin_monument_id()
+    infantry_artifact, priest_artifact = artifact_ids()
     o = SESSIONS.new(SIZE, game="ror")
     s = o.scenario
     try:
@@ -174,8 +203,8 @@ def build(out: Path) -> Path:
             _add(s, 0, RUINS, 36, 12)
             for k in range(3):
                 _add(s, 1, "HOPLITE", 28 + k, 16)
-            for k in range(2):
-                _add(s, 1, ARTIFACT, 34 + k * 2, 28)
+            for k, unit in enumerate((ARTIFACT, infantry_artifact, priest_artifact)):
+                _add(s, 1, unit, 32 + k * 3, 28)
             _add(s, 1, "BARRACKS", 28, 38)
             _add(s, 1, "BARRACKS", 44, 38)
             _add(s, 1, "TOWN_CENTER", 50, 54)
@@ -184,7 +213,7 @@ def build(out: Path) -> Path:
             settings.append({"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": 1,
                              "quantity": 2, "operation": "SET"})
             ctx.trigger("Setup", [], settings)
-            ctx.xs(xs_code(ruin_monument))
+            ctx.xs(xs_code(ruin_monument, (ARTIFACT, *artifact_ids())))
             ctx.flush_xs()
             s.message_manager.instructions = INSTRUCTIONS
             player_set(o.handle, 1, {"initial_player_view_x": 34, "initial_player_view_y": 26})
@@ -202,13 +231,15 @@ def report(record: Path) -> str:
         raise ValueError("not a crucible ruins test record")
     version, n = vals[1], vals[2]
     per = 6 if version >= 2 else 5
-    i, width = 3, n * per + 1
+    extra = 2 if version >= 3 else 1
+    i, width = 3, n * per + extra
     lines = ["food/wood/stone/gold per player, ruins and Ruin Monuments owned; artifacts at your Barracks"]
     while i + 2 + width <= len(vals) and vals[i] == TAG_SAMPLE:
         t, row = vals[i + 1], vals[i + 2:i + 2 + width]
         players = "  ".join(f"P{p + 1} {'/'.join(map(str, row[p * per:p * per + 4]))} "
                             f"ruins={row[p * per + 4]} rm={row[p * per + 5] if per == 6 else '-'}"
                             for p in range(n))
-        lines.append(f"{t // 60}:{t % 60:02}  {players}  artifacts near barracks {row[-1]}")
+        held = f", garrisoned {row[-1]}" if extra == 2 else ""
+        lines.append(f"{t // 60}:{t % 60:02}  {players}  artifacts near barracks {row[n * per]}{held}")
         i += 2 + width
     return "\n".join(lines)

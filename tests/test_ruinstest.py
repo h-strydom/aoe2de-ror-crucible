@@ -6,12 +6,12 @@ from aoe2ed import xs
 from aoe2ed.session import SESSIONS
 
 from crucible import ruinstest as rt
-from crucible.testmod import ruin_monument_id
+from crucible.testmod import artifact_ids, ruin_monument_id
 
 
 def test_build(tmp_path):
     rm = ruin_monument_id()
-    assert xs.check(rt.xs_code(rm))["ok"]
+    assert xs.check(rt.xs_code(rm, (rt.ARTIFACT, *artifact_ids())))["ok"]
     path = rt.build(tmp_path)
     o = SESSIONS.open(path)
     try:
@@ -22,6 +22,7 @@ def test_build(tmp_path):
         owned = {p: [u.unit_const for u in s.unit_manager.units[p]] for p in (0, 2, 3, 4, 5)}
         assert rm in owned[2] and rt.MONUMENT in owned[3] and rt.RUINS in owned[4] and rt.RUINS in owned[5]
         assert rm in owned[0] and rt.RUINS in owned[0]                # Gaia objects for player 1 to capture
-        assert sum(u.unit_const == rt.ARTIFACT for u in s.unit_manager.units[1]) == 2
+        mine = [u.unit_const for u in s.unit_manager.units[1]]
+        assert all(a in mine for a in (rt.ARTIFACT, *artifact_ids()))  # the AoE1 artifact and both class copies
     finally:
         SESSIONS.close(o.handle)
