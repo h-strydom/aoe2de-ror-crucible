@@ -70,6 +70,23 @@ Limits:
 - **Ability-like bonuses:** mirroring covers stat changes (cost, speed, HP, attack, armour, fire rate), which is
   almost all RoR bonuses.
 
+## Combat tuning
+
+All trigger attributes (Modify Attribute, per unit type for a player) or data mod. Values read from RoR's data,
+2026-11-09; none tested in game yet.
+
+| Idea | Setting | RoR today |
+|---|---|---|
+| Siege without friendly fire | Friendly Fire Damage (119) → 0 | 1.0 on every unit |
+| Bigger splash | Blast Width (22); Blast Attack Level (44) decides who splash hits | Stone Thrower 0.8, Catapult 1.25, Catapult Trireme 1.0 |
+| Trampling melee units | Blast Width plus a Blast Attack Level that splashes (Hoplites are at 3: none) | None in RoR |
+| Projectile speed and arc (cannon-galleon style) | The projectile is a unit: Movement Speed (5) on it, Projectile Arc (69) | Catapult projectile 656: speed 3.5, arc 0.5. Bolt 367: 4.1, arc 0.02. Stone Throwers and Catapults share 656, so changing it changes both unless the data mod gives one its own copy |
+| Minimum range | Minimum Range (20) | Ballista, Stone Thrower, Catapult 3 |
+| Range | Maximum Range (12) | Melee 0, Bowman 5, Catapults 10-12 |
+| "Melee ranged" units | A melee unit (no projectile) with Maximum Range above 0 should hit from that distance | Untested; the oddest one |
+| Accuracy | Accuracy Percent (11), Attack Dispersion (64) | Siege and archers 100 |
+| Traders return some of every resource | Player attributes Trade Food/Wood/Stone Percent (251-253) | AoE2 civ bonuses use them; RoR may ignore them like the trickles. Fallback: XS reads trade income (101) each second and pays shares, as the verified wood-to-gold conversion does |
+
 ## Resources
 
 Resource test scenario (`crucible resource-test`, 2026-11-09; 6.5 minutes logged). Each stone mine started at 350.
