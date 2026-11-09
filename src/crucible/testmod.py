@@ -37,6 +37,7 @@ HOPLITE = 93
 GREEK = 2                                  # civ index in RoR's data
 HOUSE_IDS = [70, 463, 464, 465]            # the House and its age looks
 STORAGE_PIT = 562
+GRANARY = 68
 LUMBERJACKS = (123, 218)                   # male and female lumberjack units (a villager's unit while chopping)
 TRAIN_LOCATION, TRAIN_BUTTON, SET = 42, 43, 1
 SCOUT_BUTTON = 9
@@ -84,6 +85,19 @@ TOWN_CENTER = 109
 # A tech at the Wonder: RoR's Wonder (276) has the Town Center's panel kind but no buttons at all. Named with the
 # Wonder's own name string; pays 500 of each resource so it shows.
 WONDER, WONDER_BUTTON, WONDER_PAY, WONDER_TIME = 276, 1, 500, 10
+# AoE2 mechanics, part 2 (data only; docs/aoe2-mechanics.md). Unit tasks copied from AoE2 units onto RoR ones:
+MULE_CART, MULE_BUTTON = 1808, 4                 # AoE2's Mule Cart (movable drop site), trained at the Town Center
+CAMEL_RAIDER, JIAN, BLACKWOOD, CENTURION = 2327, 1974, 2579, 1790   # loot, HP transform, extra spawn, aura templates
+HOPLITE, AXEMAN, SHORT_SWORDSMAN, LONG_SWORDSMAN, CLUBMAN, WAR_ELEPHANT = 93, 531, 74, 77, 281, 1132
+AURA, LOOT, HP_TRANSFORM, EXTRA_SPAWN = 155, 154, 158, 156
+PHALANX = (116, 117)                             # the Chronicles Hoplite's per-hoplite aura stats (armour)
+PHALANX_PER, PHALANX_MAX, PHALANX_RANGE = 2.0, 8.0, 3.0
+TC_AURA_SPEED, TC_AURA_RANGE, INFANTRY = 1.5, 10.0, 6
+TRANSFORM_AT = -50.0                             # below 50% HP (AoE2's Jian: -45)
+# Three more Wonder techs (buttons 2-4): spawn 3 War Elephants at the Town Center (effect 7); a curse, enemy infantry
+# HP x0.5 (effect 25: an attribute multiply on enemies); a team gift, +500 food for your team (effect 11).
+WONDER_EXTRA = (("spawn", 2), ("curse", 3), ("team", 4))
+SPAWN_UNIT, SPAWN_COUNT, CURSE_FACTOR, TEAM_GIFT = WAR_ELEPHANT, 3, 0.5, 500
 AXE_TECH, DISABLE_TECH, RESOURCE_MODIFY = 63, 102, 1
 SIZE = 48
 
@@ -136,9 +150,17 @@ def build_data_mod(root: Path) -> Path:
     _buildable_towers(d)
     _ruin_monument(d)
     _garrisonable_artifacts(d)
-    _ported_units(d)
+    aoe2 = _aoe2_dat()
+    _ported_units(d, aoe2)
     _exclusive_techs(d)
     _wonder_tech(d)
+    _mechanics(d, aoe2)
+    mule = ported_ids()[MULE_CART]
+    for civ in d.civs:                       # every villager job unit may drop at the Mule Cart
+        for unit in civ.units:
+            sites = unit.bird.drop_sites if unit and unit.class_ == CIVILIAN and unit.bird else None
+            if sites and mule not in sites:
+                sites.append(mule)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -155,6 +177,7 @@ def build_data_mod(root: Path) -> Path:
     for hid in HOUSE_IDS:
         data["drop_site_list"].append({"name": "House", "building_id": hid,
                                        "worker_object_group": pit["worker_object_group"], "target_list": trees})
+    _mule_cart_drop_site(data)
     (out.parent / "dropsites.json").write_text(json.dumps(data, indent=4), encoding="utf-8")
     _info(folder, DATA_MOD, "Crucible test: Hoplites 999 HP, Axemen 400 HP, Greeks without bonuses, Houses take "
                             "wood (Return of Rome).")
@@ -312,7 +335,8 @@ def _ported_units(d, src=None) -> dict[int, int]:
     Barracks. Returns {AoE2 id: RoR id} for every unit ported."""
     from .port import Porter
     porter = Porter(src or _aoe2_dat(), d)
-    for uid, button in PORTED.items():
+    for uid, (location, button) in [*((u, (BARRACKS[0], b)) for u, b in PORTED.items()),
+                                    (MULE_CART, (TOWN_CENTER, MULE_BUTTON))]:
         new = porter.unit(uid)
         for src_id, icon in PORTED_ICONS.items():
             if src_id in porter.units:
@@ -326,7 +350,7 @@ def _ported_units(d, src=None) -> dict[int, int]:
             unit.enabled = 1
             if unit.creatable:
                 loc = unit.creatable.train_locations
-                loc[0].unit_id, loc[0].button_id, loc[0].train_time = BARRACKS[0], button, PORTED_TRAIN_TIME
+                loc[0].unit_id, loc[0].button_id, loc[0].train_time = location, button, PORTED_TRAIN_TIME
                 unit.creatable.train_locations = loc[:1]
     return dict(porter.units)
 
@@ -428,6 +452,82 @@ def _wonder_tech(d) -> int:
     tech.research_locations = loc[:1]
     d.techs.append(tech)
     return len(d.techs) - 1
+
+
+def wonder_extra_tech_ids() -> tuple[int, ...]:
+    """The spawn, curse and team Wonder techs, added right after the first Wonder tech."""
+    first = wonder_tech_id() + 1
+    return tuple(range(first, first + len(WONDER_EXTRA)))
+
+
+def _copy_tasks(unit, tasks, **changes) -> None:
+    """Append copies of `tasks` to `unit`, with `changes` applied to each."""
+    for t in tasks:
+        new = copy.deepcopy(t)
+        for k, v in changes.items():
+            setattr(new, k, v)
+        new.id = len(unit.bird.tasks)
+        unit.bird.tasks.append(new)
+
+
+def _mechanics(d, src) -> None:
+    """AoE2 unit tasks on RoR units, and three more Wonder techs (mechanics test, part 2)."""
+    s0 = src.civs[0].units
+    phalanx = [next(t for t in s0[2110].bird.tasks if t.action_type == AURA and t.search_wait_time == stat)
+               for stat in PHALANX]
+    speed = next(t for t in s0[CENTURION].bird.tasks if t.action_type == AURA and t.search_wait_time == 5)
+    loot = [t for t in s0[CAMEL_RAIDER].bird.tasks if t.action_type == LOOT]
+    transform = [t for t in s0[JIAN].bird.tasks if t.action_type == HP_TRANSFORM]
+    spawn = [t for t in s0[BLACKWOOD].bird.tasks if t.action_type == EXTRA_SPAWN]
+    for civ in d.civs:
+        u = civ.units
+        if u[HOPLITE] and u[HOPLITE].bird:      # armour per nearby RoR Hoplite (the Chronicles phalanx)
+            _copy_tasks(u[HOPLITE], phalanx, unit_id=HOPLITE, class_id=-1, work_value_1=PHALANX_PER,
+                        work_value_2=PHALANX_MAX, work_range=PHALANX_RANGE)
+        if u[TOWN_CENTER] and u[TOWN_CENTER].bird:   # a building aura: infantry nearby move faster
+            _copy_tasks(u[TOWN_CENTER], [speed], unit_id=-1, class_id=INFANTRY, work_value_1=TC_AURA_SPEED,
+                        work_range=TC_AURA_RANGE)
+        if u[AXEMAN] and u[AXEMAN].bird:
+            _copy_tasks(u[AXEMAN], loot)
+        if u[SHORT_SWORDSMAN] and u[SHORT_SWORDSMAN].bird:
+            _copy_tasks(u[SHORT_SWORDSMAN], transform, work_value_1=float(LONG_SWORDSMAN), work_value_2=TRANSFORM_AT)
+        if u[CLUBMAN] and u[CLUBMAN].bird:
+            _copy_tasks(u[CLUBMAN], spawn, work_value_1=float(CLUBMAN), work_value_2=1.0)
+    template = d.techs[AXE_TECH]
+    command = next(c for e in d.effects for c in e.effect_commands if c.type == DISABLE_TECH)
+    name = d.civs[1].units[WONDER].language_dll_name
+    for label, button in WONDER_EXTRA:
+        c = copy.deepcopy(command)
+        if label == "spawn":
+            c.type, c.a, c.b, c.c, c.d = 7, SPAWN_UNIT, TOWN_CENTER, SPAWN_COUNT, 0.0
+        elif label == "curse":
+            c.type, c.a, c.b, c.c, c.d = 25, -1, INFANTRY, 0, CURSE_FACTOR
+        else:
+            c.type, c.a, c.b, c.c, c.d = 11, 0, 1, -1, float(TEAM_GIFT)
+        effect = copy.deepcopy(d.effects[template.effect_id])
+        effect.effect_commands, effect.name = [c], f"Crucible Wonder {label}"
+        d.effects.append(effect)
+        tech = copy.deepcopy(template)
+        tech.name, tech.type, tech.civ, tech.repeatable = f"Crucible Wonder {label}", 0, -1, 0
+        tech.language_dll_name, tech.effect_id = name, len(d.effects) - 1
+        tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
+        for rc in tech.resource_costs:
+            rc.type, rc.amount, rc.flag = -1, 0, 0
+        loc = tech.research_locations
+        loc[0].location_id, loc[0].button_id, loc[0].research_time = WONDER, button, WONDER_TIME
+        tech.research_locations = loc[:1]
+        d.techs.append(tech)
+
+
+def _mule_cart_drop_site(data: dict) -> None:
+    """dropsites.json: the ported Mule Cart takes what the Storage Pit and the Granary take. (Each villager job unit
+    also has to list it in its drop sites; build_data_mod does that.)"""
+    mule = ported_ids()[MULE_CART]
+    pit = next(e for e in data["drop_site_list"] if e["building_id"] == STORAGE_PIT)
+    granary = next(e for e in data["drop_site_list"] if e["building_id"] == GRANARY)
+    targets = pit["target_list"] + [t for t in granary["target_list"] if t not in pit["target_list"]]
+    data["drop_site_list"].append({"name": "Mule Cart", "building_id": mule,
+                                   "worker_object_group": pit["worker_object_group"], "target_list": targets})
 
 
 def _info(folder: Path, title: str, description: str) -> None:

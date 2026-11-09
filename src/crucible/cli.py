@@ -30,6 +30,10 @@ def main(argv: list[str] | None = None) -> int:
                                               "regeneration, reflection, area damage, charge...)")
     p_mech.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("mech-report", help="print what the mechanics test recorded")
+    p_md = sub.add_parser("mech-data-test", help="build the AoE2 mechanics test, part 2 (data mod: auras, loot, HP "
+                                                 "transform, extra spawn, Mule Cart, Wonder techs)")
+    p_md.add_argument("--install", action="store_true", help="install the data mod and the scenario")
+    sub.add_parser("mech-data-report", help="print what the mechanics test, part 2, recorded")
     p_fire = sub.add_parser("fire-test", help="build the friendly fire test scenario")
     p_fire.add_argument("--install", action="store_true", help="copy it into your Return of Rome scenario folder")
     sub.add_parser("fire-report", help="print what the friendly fire test recorded")
@@ -98,6 +102,20 @@ def main(argv: list[str] | None = None) -> int:
         if args.install:
             from aoe2ed import game
             print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "mech-data-test":
+        from . import mechdatatest, testmod
+        path = mechdatatest.build(ROOT / "out")
+        print(path)
+        if args.install:
+            from aoe2ed import game
+            print(f"  installed data mod: {testmod.install(testmod.build(ROOT / 'out'))['data_mod']}")
+            print(f"  installed: {game.install(path, game='ror')['installed']}")
+        return 0
+    if args.command == "mech-data-report":
+        from aoe2ed import game
+        from . import mechdatatest
+        print(mechdatatest.report(Path(game.read_xsdat(mechdatatest.NAME)["path"])))
         return 0
     if args.command == "mech-report":
         from aoe2ed import game
