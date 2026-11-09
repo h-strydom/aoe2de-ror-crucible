@@ -41,6 +41,10 @@ TRAIN_LOCATION, TRAIN_BUTTON, SET = 42, 43, 1
 SCOUT_BUTTON = 9
 MAX_MISSILES = 107                         # object attribute: Maximum Total Missiles (towers ship with 1)
 GARRISON = 5                               # RoR towers' garrison capacity
+SECONDARY_PROJECTILE, GARRISON_TYPE, GARRISON_FIREPOWER = 65, 30, 130      # object attributes
+TOWER_ARROW_2 = 505                        # the secondary arrow AoE2's towers fire extra arrows with (in RoR's data)
+VILLAGERS, INFANTRY = 1, 2                 # garrison type flags (RoR towers: 1, villagers only)
+CIVILIAN, ARCHER = 4, 0                    # unit classes
 SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
@@ -159,14 +163,16 @@ def build_mission(out: Path, number: int) -> Path:
 
 TOWER_INSTRUCTIONS = """Mission 3: garrisoned towers.
 
-Two Sentry Towers, 5 garrison spots each. The LEFT tower's arrow limit is raised from 1 to 6 by a trigger (on that \
-tower only); the RIGHT tower is unchanged, as the control. Enemy elephants stand in range and don't fight back.
+Two Sentry Towers, 5 garrison spots each. The LEFT tower gets what AoE2's towers have (by trigger, that tower \
+only): an arrow limit of 6, a secondary arrow, and room for infantry as well as villagers. The RIGHT tower is \
+unchanged, as the control. Villagers and bowmen get a garrison firepower of 1; hoplites keep 0. Enemy elephants \
+stand in range and don't fight back.
 
 Beside each tower: 5 villagers, 5 bowmen and 5 hoplites. Garrison them in turn and count the arrows per volley:
 1. Empty: both towers should fire 1 arrow.
-2. Villagers: does each one add an arrow to the left tower? To the right one?
-3. Bowmen: the same?
-4. Hoplites: the same?
+2. Villagers: each should add an arrow to the left tower. The right one?
+3. Bowmen: can they garrison in the left tower now? Do they add arrows?
+4. Hoplites: they should be able to garrison in the left tower but add no arrows.
 
 Walk any unit onto the flag in the far corner to finish."""
 
@@ -196,9 +202,19 @@ def build_tower_mission(out: Path, number: int = 3) -> Path:
             _add(s, 1, "TOWN_CENTER", 40, 5)                 # keeps player 1 in the game
             _add(s, 0, "FLAG_A", 44, 44)
             ctx = blocks.Ctx(s)
-            ctx.trigger("Raise the left tower's arrow limit", [], [
-                {"type": "modify_object_attribute", "source_player": 1, "selected_object_ids": [towers["raised"]],
-                 "object_attributes": MAX_MISSILES, "operation": SET, "quantity": 1 + GARRISON}])
+            raised = {"type": "modify_object_attribute", "source_player": 1, "selected_object_ids": [towers["raised"]],
+                      "operation": SET}
+            # What AoE2's towers have and RoR's lack (data compared 2026-11-09): an arrow limit above 1, a secondary
+            # projectile to fire the extra arrows with, and a garrison type that admits infantry (AoE2: 11).
+            ctx.trigger("Garrisoned arrows on the left tower", [], [
+                {**raised, "object_attributes": MAX_MISSILES, "quantity": 1 + GARRISON},
+                {**raised, "object_attributes": SECONDARY_PROJECTILE, "quantity": TOWER_ARROW_2},
+                {**raised, "object_attributes": GARRISON_TYPE, "quantity": VILLAGERS | INFANTRY}])
+            # And what each garrisoned unit contributes: RoR gives every unit 0 (AoE2's archers 1). Hoplites stay at 0.
+            ctx.trigger("Garrison firepower", [], [
+                {"type": "modify_attribute_for_class", "source_player": 1, "object_group2": cls,
+                 "object_attributes": GARRISON_FIREPOWER, "operation": SET, "quantity": 1, "quantity_float": 1.0}
+                for cls in (CIVILIAN, ARCHER)])
             ctx.trigger("Passive targets", [], [
                 {"type": "change_object_stance", "source_player": 2, "selected_object_ids": targets,
                  "attack_stance": "NO_ATTACK_STANCE"}])
