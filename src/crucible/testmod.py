@@ -81,6 +81,9 @@ EXCLUSIVE_PAY, EXCLUSIVE_COST, EXCLUSIVE_TIME = 200, 50, 20
 EXCLUSIVE_TYPE = 0
 EXCLUSIVE_33 = ((407051, 2, 8), (407052, 3, 9))   # a type 33 pair at the Town Center: pays stone, gold
 TOWN_CENTER = 109
+# A tech at the Wonder: RoR's Wonder (276) has the Town Center's panel kind but no buttons at all. Named with the
+# Wonder's own name string; pays 500 of each resource so it shows.
+WONDER, WONDER_BUTTON, WONDER_PAY, WONDER_TIME = 276, 1, 500, 10
 AXE_TECH, DISABLE_TECH, RESOURCE_MODIFY = 63, 102, 1
 SIZE = 48
 
@@ -135,6 +138,7 @@ def build_data_mod(root: Path) -> Path:
     _garrisonable_artifacts(d)
     _ported_units(d)
     _exclusive_techs(d)
+    _wonder_tech(d)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -392,6 +396,38 @@ def _exclusive_set(d, spec, location: int, tech_type: int, label: str) -> tuple[
         tech.research_locations = loc[:1]
         d.techs.append(tech)
     return ids
+
+
+def wonder_tech_id() -> int:
+    """The Wonder tech's id: added right after the exclusive techs."""
+    return exclusive_tech_ids()[-1] + 1
+
+
+def _wonder_tech(d) -> int:
+    """A free tech researched at the Wonder, paying WONDER_PAY of food, wood, gold and stone. Returns its id."""
+    template = d.techs[AXE_TECH]
+    command = next(c for e in d.effects for c in e.effect_commands if c.type == DISABLE_TECH)
+    effect = copy.deepcopy(d.effects[template.effect_id])
+    pays = []
+    for resource in (0, 1, 2, 3):
+        c = copy.deepcopy(command)
+        c.type, c.a, c.b, c.c, c.d = RESOURCE_MODIFY, resource, 1, -1, float(WONDER_PAY)
+        pays.append(c)
+    effect.effect_commands, effect.name = pays, "Crucible Wonder tech"
+    d.effects.append(effect)
+    tech = copy.deepcopy(template)
+    name = d.civs[1].units[WONDER].language_dll_name
+    tech.name, tech.type, tech.civ, tech.repeatable = "Crucible Wonder tech", 0, -1, 0
+    tech.language_dll_name = name
+    tech.effect_id = len(d.effects) - 1
+    tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
+    for c in tech.resource_costs:
+        c.type, c.amount, c.flag = -1, 0, 0
+    loc = tech.research_locations
+    loc[0].location_id, loc[0].button_id, loc[0].research_time = WONDER, WONDER_BUTTON, WONDER_TIME
+    tech.research_locations = loc[:1]
+    d.techs.append(tech)
+    return len(d.techs) - 1
 
 
 def _info(folder: Path, title: str, description: str) -> None:

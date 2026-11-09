@@ -30,7 +30,7 @@ NAME = "crucible_port_test"
 SIZE = 48
 REVEAL_MAP = 203
 
-INSTRUCTIONS = """Crucible ported units and exclusive techs test, round 4. Pick "Crucible Test Data" as the Data Mod.
+INSTRUCTIONS = """Crucible ported units and exclusive techs test, round 5. Pick "Crucible Test Data" as the Data Mod.
 
 UNITS: portraits, left to right, should be RoR's Heavy Cavalry, Improved Bowman, Hoplite and Centurion: are they?
 
@@ -39,7 +39,8 @@ the others can't be started; they vanish when it finishes)? \
 1) BARRACKS: three new techs (Oligarchy, Democracy, Tyranny names), now the type Chronicles' unique techs use. \
 2) TOWN CENTER: two new techs, the type AoE2 uses for switchable settings (Athenian governments). \
 Chat reports each new tech's state when it changes: 1 ready, 4 queued, 2 researching, 3 done, -1 disabled. \
-Nothing ends the game."""
+WONDER (new): select your Wonder (bottom left). Is there a tech button on it, named "Wonder"? Research it (free, \
+10 s): you should get 500 of each resource. Nothing ends the game."""
 
 
 def xs_code(techs: tuple[int, ...]) -> str:
@@ -86,6 +87,7 @@ def build(out: Path) -> Path:
                 _add(s, 1, "VILLAGER_MALE", 12, 18 + i * 2)
             _add(s, 1, "BARRACKS", 16, 12)
             _add(s, 1, "BARRACKS", 16, 30)
+            _add(s, 1, "WONDER", 8, 40)                    # round 5: a tech on the Wonder
             for k, uid in enumerate(PORTED):
                 _add(s, 1, ids[uid], 20 + k * 2, 22)
             enemies = [_add(s, 2, "HOPLITE", 34 + dx, 16 + dy) for dx in (0, 2) for dy in (0, 3, 6, 9)]

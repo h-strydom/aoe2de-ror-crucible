@@ -29,6 +29,8 @@ def test_data_mod_ports_and_exclusive_techs(tmp_path):
         for tid in group:
             disabled = {int(c.d) for c in d.effects[d.techs[tid].effect_id].effect_commands if c.type == 102}
             assert disabled == set(group) and d.techs[tid].type == tech_type  # each disables its whole set
+    wonder = d.techs[testmod.wonder_tech_id()]
+    assert wonder.research_locations[0].location_id == testmod.WONDER
 
 
 def test_exclusive_script_checks():
@@ -41,5 +43,6 @@ def test_scenario_places_ported_units(tmp_path):
     try:
         mine = {u.unit_const for u in o.scenario.unit_manager.units[1]}
         assert all(testmod.ported_ids()[src] in mine for src in testmod.PORTED)
+        assert testmod.WONDER in mine
     finally:
         SESSIONS.close(o.handle)
