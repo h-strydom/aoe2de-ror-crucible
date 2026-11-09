@@ -59,9 +59,12 @@ like ruins) with KotH's trickle | P3 the KotH Monument, same trickle | P4 ruins,
 10 s | P5 ruins, nothing (control). You have KotH's trickle too: capture the Gaia Ruin Monument (left of your \
 hoplites) and the Gaia ruins (right). Do your resources start rising after the Ruin Monument?
 
-ARTIFACTS: walk an artifact next to a Barracks (within 4 tiles). While any artifact stands near any of your \
-Barracks, every Barracks should train in about a second; a chat message announces it. Move it away: does training \
-slow down again?"""
+ARTIFACTS: your three artifacts, left to right: the AoE1 artifact, a copy in the infantry class, a copy in the \
+priest class. The data mod gives all three a garrison command and opens your Barracks to every category. Try to \
+garrison each one in a Barracks: which go in? A chat message counts artifacts garrisoned in your Barracks. While \
+any artifact is in, or within 4 tiles of, a Barracks, every Barracks should train in about a second. Then check \
+the copies still act like artifacts: walk a hoplite to the three Gaia artifacts (same order, top right). Which \
+turn yours?"""
 
 
 def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
@@ -198,13 +201,14 @@ def build(out: Path) -> Path:
                 settings += [{"type": "modify_resource", "source_player": p, "tribute_list": a, "operation": "SET",
                               "quantity": 1} for a in MONUMENT_TRICKLES]
 
-            # Player 1: Gaia objects to capture, two AoE1 artifacts, two Barracks.
+            # Player 1: Gaia objects to capture, three artifacts (plus Gaia ones to capture), two Barracks.
             _add(s, 0, ruin_monument, 22, 12)
             _add(s, 0, RUINS, 36, 12)
             for k in range(3):
                 _add(s, 1, "HOPLITE", 28 + k, 16)
             for k, unit in enumerate((ARTIFACT, infantry_artifact, priest_artifact)):
                 _add(s, 1, unit, 32 + k * 3, 28)
+                _add(s, 0, unit, 46 + k * 3, 20)                 # Gaia ones: does capture-on-contact survive?
             _add(s, 1, "BARRACKS", 28, 38)
             _add(s, 1, "BARRACKS", 44, 38)
             _add(s, 1, "TOWN_CENTER", 50, 54)
