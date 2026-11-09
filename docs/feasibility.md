@@ -70,6 +70,22 @@ Limits:
 - **Ability-like bonuses:** mirroring covers stat changes (cost, speed, HP, attack, armour, fire rate), which is
   almost all RoR bonuses.
 
+## Resources
+
+From RoR's data and XS constants, 2026-11-09. None of this is tested in game yet.
+
+| Idea | How | Status |
+|---|---|---|
+| Gather faster (villagers mine stone 500% faster) | Triggers: Modify Attribute work rate (13) on the job unit (stone miners 124/220, ×6). The pile empties faster too. Data: miner 0.52, lumberjack 0.55, fishing boat 0.40 | Mechanism in data (Babylonian miner bonus); unverified |
+| Get more per unit gathered | Triggers: Modify Resource on the player multiplier each gather task uses: Stone Bonus (79), Gold Bonus (47), Wood Bonus (189), Food Bonus (190), Fishing Productivity (219). Like AoE2's "resources last longer", it should add without emptying the pile faster | Unverified |
+| Depletion per resource | The bonus multipliers above (what you get vs what the pile loses) | Unverified |
+| Depletion per gatherer (ships don't deplete fish, villagers do) | No setting. XS: find each fishing boat's target (`xsGetUnitTargetUnitId`) and top it up, if `xsSetUnitProperty(cUnitAttributeHeld)` sets a pile's remaining amount | Riskiest; unverified |
+| Animal decay | Disable Animal Decay (292), decay rate (12) | Unverified |
+| Gather X, also get Y | Native player attributes: chopping gives gold (266), stone mining gives gold (241), farming gives gold (236), foraging gives wood (267), butchering gives gold (298). No wood → stone | Unverified |
+| Any ratio (chopping gives a bit of stone) | XS: each second, read total wood gathered (167), pay a share as stone (`xsSetPlayerAttribute`) | Functions exist; unverified |
+| Swap the resource entirely | Data mod: a gather task's `resource_in` (taken from the target) and `resource_out` (paid to the player); e.g. fishing boats take fish (17) and pay food (0) | Data |
+| Passive income (hub perks) | Generation (230-233), relic/workshop/military trickles: per player | Unverified |
+
 ## Garrisons
 
 - **Garrison arrows:** verified with triggers alone. A tower needs three settings, and the units one:
