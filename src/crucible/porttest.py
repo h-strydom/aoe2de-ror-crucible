@@ -7,8 +7,9 @@ A standalone scenario, `crucible_port_test`, played with the Crucible Test Data 
    graphic, sound and linked unit they need (`port.py`); the sprites come from the player's own install. One of
    each stands ready, and the Barracks trains them.
 2. Three Chronicles-style exclusive techs at the Barracks: researching one disables all three. They pay 200 gold,
-   wood or food so the pick shows. Each also costs 1 token (resource 30, which every civ starts with 1 of), so only
-   one can be queued at a time (round 1: queueing two got both). Two Barracks let you try two at once.
+   wood or food so the pick shows. Costs are paid at queue time, so the data alone let two be queued and both
+   researched (round 1), and a cost in a spare resource is ignored (round 2): a script (`xs_code`) disables the
+   others the moment one is queued. Two Barracks let you try two at once.
 
 Passive enemies (RoR units) stand to the right to fight.
 """
@@ -20,23 +21,68 @@ from aoe2ed import blocks, games, tables
 from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
-from .testmod import PORTED, ported_ids
+from .testmod import EXCLUSIVE, EXCLUSIVE_COST, EXCLUSIVE_PAY, PORTED, exclusive_tech_ids, ported_ids
 
 NAME = "crucible_port_test"
 SIZE = 48
 REVEAL_MAP = 203
 
-INSTRUCTIONS = """Crucible ported units and exclusive techs test, round 2. Pick "Crucible Test Data" as the Data Mod.
+INSTRUCTIONS = """Crucible ported units and exclusive techs test, round 3. Pick "Crucible Test Data" as the Data Mod.
 
-UNITS (round 1: they work; portraits were wrong, the Immortal's ranged switch made a fishing ship). Four units \
-from AoE2 stand by your Barracks, left to right: Knight, Crossbowman (AoE2), Hoplite, Immortal (Chronicles). \
-Portraits should now be RoR's Heavy Cavalry, Improved Bowman, Hoplite and Centurion. Switch the Immortal to ranged \
-and back: does it stay an Immortal, and can it shoot?
+UNITS (round 2: the Immortal switches to ranged and back). Portraits, left to right, should be RoR's Heavy \
+Cavalry, Improved Bowman, Hoplite and Centurion: are they?
 
-EXCLUSIVE TECHS (round 1: exclusive, but you could queue two and get both). Each of the three Barracks techs now \
-also costs 1 "token" (a hidden resource you have exactly 1 of). Queue one: can you still queue another, in the \
-same Barracks or the other? What does the cost show? Cancel it: can you pick another? Let one finish: the others \
-should disappear and stay gone. Nothing ends the game."""
+EXCLUSIVE TECHS (rounds 1-2: you could queue two and get both; a hidden token cost was ignored). Now a script \
+watches the three Barracks techs: the moment one is queued, the other two should vanish from both Barracks, with a \
+chat message. Cancel it: all three should come back. Try hard to queue two: click two quickly, or one in each \
+Barracks at the same moment. If a second one still finishes, chat says it was refunded (50 food back, its 200 \
+payout taken away). Nothing ends the game."""
+
+
+def xs_code(techs: tuple[int, ...]) -> str:
+    """Keep player 1's exclusive techs exclusive while queueing. The data mod's techs disable each other only when
+    one finishes, and costs are paid at queue time, so two could be queued and both researched (round 1). This rule
+    polls `xsGetTechState`: the moment one is queued or researching, the others are disabled; if it's cancelled
+    (back to ready), they're enabled again. If a second one finishes anyway (queued in the same instant), its cost is
+    refunded and its payout taken back."""
+    def others(t: int, attr: str) -> str:
+        return "".join(f"            xsEffectAmount(cModifyTech, {o}, {attr}, 0, 1);\n" for o in techs if o != t)
+
+    pick = "".join(f"""        if ((crucibleChoice < 0) && ((xsGetTechState({t}, 1) == cTechStateQueued) ||
+                (xsGetTechState({t}, 1) == cTechStateResearching) || (xsGetTechState({t}, 1) == cTechStateDone))) {{
+            crucibleChoice = {t};
+{others(t, "cAttributeDisable")}            xsChatData("Exclusive tech picked: %d (others disabled)", {k + 1});
+        }}
+""" for k, t in enumerate(techs))
+    cancel = "".join(f"""        if (crucibleChoice == {t}) {{
+{others(t, "cAttributeEnable")}        }}
+""" for t in techs)
+    done = "".join(f"""    if ((crucibleDone{k} == 0) && (xsGetTechState({t}, 1) == cTechStateDone)) {{
+        crucibleDone{k} = 1;
+        crucibleDoneCount = crucibleDoneCount + 1;
+        if (crucibleDoneCount > 1) {{
+            xsSetPlayerAttribute(1, 0, xsPlayerAttribute(1, 0) + {EXCLUSIVE_COST});
+            xsSetPlayerAttribute(1, {res}, xsPlayerAttribute(1, {res}) - {EXCLUSIVE_PAY});
+            xsChatData("A second exclusive tech finished (%d): refunded, payout taken back", {k + 1});
+        }}
+    }}
+""" for k, (t, (_, res, _)) in enumerate(zip(techs, EXCLUSIVE)))
+    flags = "".join(f"int crucibleDone{k} = 0;\n" for k in range(len(techs)))
+    return f"""// ---- crucible exclusive techs: one at a time, even while queueing ----
+int crucibleChoice = -1;
+int crucibleDoneCount = 0;
+{flags}
+rule crucibleExclusive
+    active
+    highFrequency
+{{
+    if (crucibleChoice < 0) {{
+{pick}    }} else if (xsGetTechState(crucibleChoice, 1) == cTechStateReady) {{
+{cancel}        xsChatData("Exclusive tech cancelled: all three available again", 0);
+        crucibleChoice = -1;
+    }}
+{done}}}
+"""
 
 
 def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
@@ -73,6 +119,8 @@ def build(out: Path) -> Path:
                  "attack_stance": "NO_ATTACK_STANCE"},
                 {"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": 1, "quantity": 2,
                  "operation": "SET"}])
+            ctx.xs(xs_code(exclusive_tech_ids()))
+            ctx.flush_xs()
             s.message_manager.instructions = INSTRUCTIONS
             player_set(o.handle, 1, {"initial_player_view_x": 20, "initial_player_view_y": 22})
         out.mkdir(parents=True, exist_ok=True)

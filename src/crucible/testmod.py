@@ -73,9 +73,8 @@ PORTED_TRAIN_TIME = 10
 # Oligarchy / Democracy / Tyranny strings (does RoR have them?); each pays a different resource so the pick shows.
 EXCLUSIVE = ((407051, 3, 11), (407052, 1, 12), (407053, 0, 13))   # name string, resource paid, Barracks button
 EXCLUSIVE_PAY, EXCLUSIVE_COST, EXCLUSIVE_TIME = 200, 50, 20
-# Round 1: costs are paid at queue time, so two could be queued and both researched. Each now also costs 1 token, a
-# spare resource every civ starts with exactly 1 of: one queued, the others are unaffordable; cancelling refunds it.
-TOKEN = 30                                        # "Unused Resource 030": no tech, unit or effect uses it in RoR
+# Costs are paid at queue time, so two could be queued and both researched (round 1); a cost in a spare resource is
+# ignored (round 2). The scenario's script handles queueing instead (porttest.py).
 AXE_TECH, DISABLE_TECH, RESOURCE_MODIFY = 63, 102, 1
 SIZE = 48
 
@@ -372,15 +371,13 @@ def _exclusive_techs(d) -> tuple[int, ...]:
         tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
         costs = list(tech.resource_costs)
         costs[0].type, costs[0].amount, costs[0].flag = 0, EXCLUSIVE_COST, 1
-        costs[1].type, costs[1].amount, costs[1].flag = TOKEN, 1, 1
-        costs[2].type, costs[2].amount, costs[2].flag = -1, 0, 0
+        for c in costs[1:]:
+            c.type, c.amount, c.flag = -1, 0, 0
         tech.resource_costs = tuple(costs)
         loc = tech.research_locations
         loc[0].location_id, loc[0].button_id, loc[0].research_time = BARRACKS[0], button, EXCLUSIVE_TIME
         tech.research_locations = loc[:1]
         d.techs.append(tech)
-    for civ in d.civs:
-        civ.resources[TOKEN] = 1
     return ids
 
 
