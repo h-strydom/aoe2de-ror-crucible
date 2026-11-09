@@ -57,7 +57,7 @@ terrain painted on top (grass, dirt, desert, road), then plain Rock 1. Do the to
 them? With your villagers: can you walk across each line, and can you place a House or a wall ON it anywhere?
 SAFE ZONES (right), round 3: from 0:12 an enemy Stone Thrower bombards the GROUND in the middle of each zone \
 (attack-ground: aimed at a spot, not a unit). Do your Hoplites inside lose HP from the splash? Leave them where they \
-are. At 1:30 the armies attack as before. Zone A (top) is the trigger version, zone B (below) the script version.
+are. At 1:30 the armies attack as before. Zone A (top) is the trigger version, zone B (below) the script version. \nYou also have a Heavy Catapult left of each zone: attack-ground into the zone yourself (your splash hits your own).
 DOUBLED RESOURCES (left): three gold mines; the report shows their amounts (A trigger, B script, C control).
 FORMATIONS (bottom): at 0:30 three groups march right: A in line formation, B in box, C plain. Do A and B keep a \
 formation and arrive together?
@@ -185,6 +185,7 @@ def build(out: Path) -> tuple[Path, list[tuple[str, int]]]:
                         + [_add(s, 2, "STONE_THROWER", 77, cy)])
                 armies.append((army, (cx, cy)))
                 bombards.append((_add(s, 2, "STONE_THROWER", x2 + 7, cy), (cx, cy)))
+                _add(s, 1, "HEAVY_CATAPULT", x1 - 6, cy)        # yours: attack-ground into the zone yourself
 
             # Gold mines: A doubled by trigger, B by script, C control.
             mines = tuple(_add(s, 0, "GOLD_MINE", 8 + k * 6, 32) for k in range(3))
