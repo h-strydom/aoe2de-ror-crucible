@@ -52,7 +52,10 @@ FOOT = (0, 6)                              # archer and infantry classes
 FISHING_BOATS, GATHER_ACTION, FISH, WOOD = (13, 82), 5, 17, 1   # gather tasks name the resource they take
 GUARD_TOWER, CATAPULT_ATTACKS = 235, ((4, 50), (11, 140))       # melee 50, +140 vs buildings (the Stone Thrower's)
 BALLISTA_TOWER, CATAPULT_STONE = 236, 656
-BALLISTA_BUTTON, CATAPULT_BUTTON = 14, 15        # free slots on the villager's military build page (towers use 9)
+# Build slots on the villager's military page (interface kind 10; towers use 9). 14 and 15 didn't show (first try,
+# 2026-11-09): AoE2's highest military slot is 13 (Castle). 10 is only used by the hero Zenobia's and Mirror
+# Towers, 5 only by AoE2 buildings RoR doesn't have.
+BALLISTA_BUTTON, CATAPULT_BUTTON = 10, 5
 CATAPULT_TOWER_NAME = 7079                       # the string RoR's own "Catapult Tower" technology is named with
 SIZE = 48
 
