@@ -1,10 +1,10 @@
 """Map tricks (`crucible_map_tricks`, with the Crucible Test Data mod): the engine test map's open questions, made
 measurable.
 
-- **An unbuildable line over any terrain.** Four one-tile lines cross bands of grass, dirt, desert and road: Flags
-  (can't be built on, tiny footprint); the data mod's build blocker (a grass tuft with "can be built on" off); the
-  invisible build blocker (the same, no graphic); and an overlay layer of Rock 1 (an unbuildable terrain) on the
-  tiles. Can villagers walk across each, and can anything be built on them?
+- **An unbuildable line over any terrain.** Round 1 (Flags, the data mod's build blockers, a Rock 1 overlay layer)
+  left every line buildable. Round 2: one-tile lines whose base terrain is unbuildable (Rock 1, Quicksand, Bogland)
+  with the band's own terrain (grass, dirt, desert, road) as the overlay layer, plus plain Rock 1. Can villagers walk
+  across, can anything be built on them, and do the layered ones look like the ground around them?
 - **Safe zones.** Inside a square your units can't be attacked; outside they can. Zone A: a looping trigger enables
   attackable around it, then disables it inside (area effects). Zone B: a script sets each Hoplite's
   `cUnitAttackable` by its position. At 0:20 an enemy army (swordsmen, bowmen, a Stone Thrower) attack-moves into
@@ -28,15 +28,19 @@ from aoe2ed import blocks, games, tables
 from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
-from .testmod import blocker_ids
 
 NAME = "crucible_map_tricks"
 SIZE = 80
-MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412322005, 1, 1, 5
+MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412322005, 2, 1, 5
 REVEAL_MAP, SET, STORAGE_1, HOPLITE = 203, 1, 21, 93
 BANDS = ((6, 15, 0), (16, 25, 6), (26, 35, 14), (36, 46, 24))     # x from, x to, terrain: grass, dirt, desert, road
-STRIP_X, STRIP_ROWS = (6, 46), {"flags": 6, "build blocker": 10, "invisible build blocker": 14, "Rock 1 layer": 18}
-FLAG, ROCK_1 = 162, 40
+# Round 1 (Flags, build blockers, a Rock 1 overlay layer): all buildable; the layer is visual only. Round 2: the base
+# terrain decides, so the lines are an unbuildable base terrain (RoR's data allows no buildings on Rock 1, Quicksand,
+# Bogland) with the band's terrain as the overlay layer, plus Rock 1 with no layer as the control.
+ROCK_1, QUICKSAND, BOGLAND = 40, 46, 101
+STRIPS = {"Rock 1 + layer": (ROCK_1, True), "Quicksand + layer": (QUICKSAND, True),
+          "Bogland + layer": (BOGLAND, True), "Rock 1, no layer": (ROCK_1, False)}
+STRIP_X, STRIP_YS = (6, 46), (6, 10, 14, 18)
 ZONE_A, ZONE_B = (52, 6, 62, 16), (52, 26, 62, 36)
 GOLD_MINE_AMOUNT = 500
 LINE_FORMATION, BOX_FORMATION, MOVE = 18, 19, 1
@@ -45,9 +49,9 @@ DECISIONS = ((1, "First choice", "A", "B"), (2, "Second choice", "C", "D"), (3, 
 INSTRUCTIONS = """Crucible map tricks. Pick "Crucible Test Data" as the Data Mod. The map is revealed; \
 Nothing ends the game.
 
-UNBUILDABLE LINES (top left), top to bottom: Flags; a grass-tuft build blocker; an invisible build blocker; a Rock 1 \
-overlay layer. Each crosses grass, dirt, desert and road. With your villagers: can you walk across each line, and \
-can you place a House or a wall ON it (anywhere along it)?
+UNBUILDABLE LINES (top left), round 2, top to bottom: Rock 1, Quicksand and Bogland underneath with the band's own \
+terrain painted on top (grass, dirt, desert, road), then plain Rock 1. Do the top three look like the ground around \
+them? With your villagers: can you walk across each line, and can you place a House or a wall ON it anywhere?
 SAFE ZONES (right): at 0:20 enemies attack each zone. Zone A (top, trigger) and zone B (below, script): do your \
 Hoplites inside take any damage, even from the Stone Thrower's splash? The one outside each zone should.
 DOUBLED RESOURCES (left): three gold mines; the report shows their amounts (A trigger, B script, C control).
@@ -130,7 +134,6 @@ rule crucibleMapSample
 
 
 def build(out: Path) -> tuple[Path, list[tuple[str, int]]]:
-    blockers = blocker_ids()
     o = SESSIONS.new(SIZE, game="ror")
     s = o.scenario
     tracked: list[tuple[str, int]] = []
@@ -149,14 +152,14 @@ def build(out: Path) -> tuple[Path, list[tuple[str, int]]]:
                 for x in range(x_from, x_to + 1):
                     for y in range(3, 22):
                         s.map_manager.get_tile(x=x, y=y).terrain_id = terrain
-            for name, y in STRIP_ROWS.items():
-                for x in range(STRIP_X[0], STRIP_X[1] + 1):
-                    if name == "flags":
-                        _add(s, 0, FLAG, x, y)
-                    elif name == "Rock 1 layer":
-                        s.map_manager.get_tile(x=x, y=y).layer = ROCK_1
-                    else:
-                        _add(s, 0, blockers[name], x, y)
+            # Round 2: the base terrain is an unbuildable one; the overlay layer shows the band's own terrain.
+            for (name, (base, layered)), y in zip(STRIPS.items(), STRIP_YS):
+                for x_from, x_to, terrain in BANDS:
+                    for x in range(x_from, x_to + 1):
+                        tile = s.map_manager.get_tile(x=x, y=y)
+                        tile.terrain_id = base
+                        if layered:
+                            tile.layer = terrain
             for k in range(6):
                 _add(s, 1, "VILLAGER_MALE", 8 + k * 3, 24)
 

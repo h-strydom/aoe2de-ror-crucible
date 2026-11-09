@@ -24,7 +24,10 @@ def test_scenario_and_report(tmp_path):
     o = SESSIONS.open(path)
     try:
         s = o.scenario
-        assert s.map_manager.get_tile(x=mt.STRIP_X[0], y=mt.STRIP_ROWS["Rock 1 layer"]).layer == mt.ROCK_1
+        top = s.map_manager.get_tile(x=mt.STRIP_X[0], y=mt.STRIP_YS[0])
+        assert (top.terrain_id, top.layer) == (mt.ROCK_1, mt.BANDS[0][2])           # unbuildable under, grass on top
+        control = s.map_manager.get_tile(x=mt.STRIP_X[0], y=mt.STRIP_YS[3])
+        assert control.terrain_id == mt.ROCK_1 and control.layer in (-1, 255)
         names = {t.name for t in s.trigger_manager.triggers}
         assert {"Safe zone A", "Enemy attack", "March", "Decisions", "Decision 3 option 2"} <= names
     finally:
