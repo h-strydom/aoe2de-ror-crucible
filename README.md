@@ -66,9 +66,18 @@ uv run crucible resource-report
 ```
 
 A standalone scenario (pick "Crucible Test Data" as the Data Mod in the Scenario lobby). Each allied computer
-player tests one thing: stone miners at Stone Bonus 0, normal and 10 and at work rate 0; food and wood generation;
-the military food trickle; chopping that also gives gold. Your fishing boat is told by the data mod to take wood from
-fish. A script logs every player's stockpile and each pile every 10 seconds; `resource-report` prints it.
+player tests one thing, and every gatherer starts working on its own. Round 2 tests resources that hold a different
+resource:
+- trees switched to gold, per tree;
+- berry bushes switched to stone;
+- a tree type switched to stone for the whole type;
+- a fish switched to gold, for your fishing boat;
+- a script paying 10% of chopped wood as gold;
+- normal lumberjacks as the control.
+
+A script logs every player's stockpile and each pile's amount and stored resource every 10 seconds;
+`resource-report` prints it. Round 1's results (work rate, gather multipliers, generation, trickles) are in
+[docs/feasibility.md](docs/feasibility.md).
 
 ## What's possible
 
