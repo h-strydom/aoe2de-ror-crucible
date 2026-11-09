@@ -109,14 +109,24 @@ HORSE_ARCHER, BOWMAN, CAVALRY = 39, 4, 38
 KIPCHAK_SPREAD, KIPCHAK_ARROWS, CKN_ARROW = (1.0, 1.0, 1.0), 3, 510
 SWITCH_TRAIT, CATAPULT_SHOT, SIEGE_BONUS, BUILDING_ARMOUR = 8, 656, 40, 11   # 11: the buildings armour class
 MERC_TOKEN, MERC_BUTTON, MERC_GIFT, MERC_TECH_BUTTON = 214, 5, 5, 5
-# The over-the-top tower (tower modes test): a Sentry Tower copy firing arrows with a 2-tile minimum range, plus a
-# charge-type-6 boulder (a catapult stone copy carrying its own 30 melee damage and splash, since a charge projectile
-# hits with its own attacks) for enemies inside that range; switchable (trait 8) to a Ballista Tower twin. Which charge
-# event and target mean "close enemies" isn't known, so two towers: the Hearth Troop's settings (event 0, target 127)
-# and the Fire Archer's (event -4, target 191).
-SENTRY_TOWER, BALLISTA_TOWER_UNIT, CATAPULT_STONE_UNIT = 234, 236, 656
-TOWER_MIN_RANGE, BOULDER_DAMAGE, BOULDER_SPLASH, BOULDER_RECHARGE = 2.0, 30, 1.0, 0.5
-TOWER_CHARGES = (("Hearth Troop charge", 0, 127), ("Fire Archer charge", -4, 191))
+# The over-the-top tower (tower modes test, round 2): arrows at range 2-6, a boulder (30 melee, splash) within 2, a
+# ballista mode. Natively: round 1 had arrows as the normal attack and the boulder as a charge-type-6 projectile, and
+# the boulder only went at the current target, inside the tower's range. But a charge projectile has its own min/max
+# range (AoE2's Fire Lancer, range 0, fires a projectile with range 1-25), so round 2 flips it: the boulder is the
+# normal attack (range 2, no minimum) and the arrows are an always-ready charge projectile with its own range 2-6,
+# with the Fire Lancer's, the Hearth Troop's and the Fire Archer's charge settings. A fourth tower keeps round 1's
+# order with the boulder's own range set to 0-2. Ballista mode: towers get no trait 8 switch button (round 1), so two
+# repeatable techs on the Fire Lancer tower upgrade it into a ballista tower and back (effect type 3).
+SENTRY_TOWER, BALLISTA_TOWER_UNIT, CATAPULT_STONE_UNIT, ARROW_UNIT = 234, 236, 656, 504
+TOWER_RANGE, TOWER_MIN_RANGE, BOULDER_RANGE, BOULDER_DAMAGE, BOULDER_SPLASH, ARROW_DAMAGE = 6.0, 2.0, 2.0, 30, 1.0, 6
+TOWER_SEARCH = 8.0
+FAST_RECHARGE, ALWAYS_FULL = 10.0, 3.2e18
+# label, charge event, charge target, max charge, recharge rate, normal attack ("boulder" or "arrows")
+TOWER_STYLES = (("Fire Lancer", 4, 127, 1.0, FAST_RECHARGE, "boulder"),
+                ("Hearth Troop", 6, 127, 1.0, FAST_RECHARGE, "boulder"),
+                ("Fire Archer", -4, 191, 20.0, ALWAYS_FULL, "boulder"),
+                ("Inverted", 4, 127, 1.0, FAST_RECHARGE, "arrows"))
+MODE_TECH_TIME, UPGRADE_UNIT = 3, 3
 HOPLITE, AXEMAN, SHORT_SWORDSMAN, LONG_SWORDSMAN, CLUBMAN, WAR_ELEPHANT = 93, 531, 74, 77, 281, 1132
 AURA, LOOT, HP_TRANSFORM, EXTRA_SPAWN = 155, 154, 158, 156
 PHALANX = (116, 117)                             # the Chronicles Hoplite's per-hoplite aura stats (armour)
@@ -624,47 +634,85 @@ def _unit_modes(d) -> None:
 
 
 def tower_mode_ids() -> dict[str, int]:
-    """The tower modes test's units: the boulder, then each tower and its ballista twin (after the unit modes)."""
+    """The tower modes test's units (after the unit modes): the two charge projectiles, a tower per TOWER_STYLES
+    label, and the ballista tower."""
     first = unit_mode_ids()[1] + 1
-    out = {"boulder": first}
-    for k, (label, _, _) in enumerate(TOWER_CHARGES):
-        out[label] = first + 1 + k * 2
-        out[f"{label} (ballista)"] = first + 2 + k * 2
-    return out
+    names = ["arrow projectile", "boulder projectile", *(style[0] for style in TOWER_STYLES), "ballista"]
+    return {name: first + k for k, name in enumerate(names)}
+
+
+def tower_mode_tech_ids() -> tuple[int, int]:
+    """("Ballista mode", "Arrow mode"), after the mercenary tech."""
+    return mercenary_tech_id() + 1, mercenary_tech_id() + 2
 
 
 def _tower_modes(d) -> None:
-    """The boulder projectile and two switchable towers (see TOWER_CHARGES)."""
+    """The charge projectiles, the TOWER_STYLES towers, the ballista tower and the two repeatable mode techs."""
     ids = tower_mode_ids()
-    assert len(d.civs[0].units) == ids["boulder"], "tower mode ids out of step with the data mod"
+    assert len(d.civs[0].units) == ids["arrow projectile"], "tower mode ids out of step with the data mod"
     for civ in d.civs:
         u = civ.units
-        stone, sentry, ballista = (u[i] if len(u) > i else None for i in (CATAPULT_STONE_UNIT, SENTRY_TOWER,
-                                                                          BALLISTA_TOWER_UNIT))
-        if not (stone and sentry and ballista):
-            u += [None] * (1 + 2 * len(TOWER_CHARGES))
+        sentry, ballista, stone, arrow = (u[i] if len(u) > i else None
+                                          for i in (SENTRY_TOWER, BALLISTA_TOWER_UNIT, CATAPULT_STONE_UNIT, ARROW_UNIT))
+        if not (sentry and ballista and stone and arrow):
+            u += [None] * len(ids)
             continue
-        boulder = copy.deepcopy(stone)
-        boulder.id = boulder.copy_id = boulder.base_id = ids["boulder"]
-        boulder.name = "Projectile Tower Boulder"
-        hit = copy.deepcopy(sentry.type_50.attacks[0])
-        hit.class_, hit.amount = 4, BOULDER_DAMAGE                    # melee, as the Stone Thrower hits
-        boulder.type_50.attacks = [hit]
-        boulder.type_50.blast_width = BOULDER_SPLASH
-        u.append(boulder)
-        for label, event, target in TOWER_CHARGES:
+        template_hit = sentry.type_50.attacks[0]
+
+        def hit(cls: int, amount: int):
+            h = copy.deepcopy(template_hit)
+            h.class_, h.amount = cls, amount
+            return h
+
+        # Charge projectiles hit with their own attacks (AoE2's do) and carry their own range.
+        arrow_p, boulder_p = copy.deepcopy(arrow), copy.deepcopy(stone)
+        arrow_p.type_50.attacks = [hit(3, ARROW_DAMAGE)]
+        arrow_p.type_50.min_range, arrow_p.type_50.max_range = TOWER_MIN_RANGE, TOWER_RANGE
+        boulder_p.type_50.attacks = [hit(4, BOULDER_DAMAGE)]
+        boulder_p.type_50.min_range, boulder_p.type_50.max_range = 0.0, BOULDER_RANGE
+        boulder_p.type_50.blast_width, boulder_p.type_50.blast_attack_level = BOULDER_SPLASH, 2
+        made = {"arrow projectile": arrow_p, "boulder projectile": boulder_p}
+        for label, event, target, max_charge, recharge, normal in TOWER_STYLES:
             tower = copy.deepcopy(sentry)
-            twin = copy.deepcopy(ballista)
-            tower.id = tower.copy_id = tower.base_id = ids[label]
-            twin.id = twin.copy_id = twin.base_id = ids[f"{label} (ballista)"]
-            tower.name, twin.name = f"Tower ({label})", f"Tower ({label}, ballista)"
-            tower.type_50.min_range = TOWER_MIN_RANGE
-            cr = tower.creatable
-            cr.max_charge, cr.recharge_rate, cr.charge_event, cr.charge_type = 1.0, BOULDER_RECHARGE, event, 6
-            cr.charge_target, cr.charge_projectile_unit = target, ids["boulder"]
-            tower.trait, tower.nothing = SWITCH_TRAIT, twin.id
-            twin.trait, twin.nothing = SWITCH_TRAIT, tower.id
-            u += [tower, twin]
+            t5, cr = tower.type_50, tower.creatable
+            if normal == "boulder":
+                t5.max_range, t5.min_range, t5.projectile_unit_id = BOULDER_RANGE, 0.0, CATAPULT_STONE_UNIT
+                t5.attacks = [hit(4, BOULDER_DAMAGE)]
+                t5.blast_width, t5.blast_attack_level = BOULDER_SPLASH, 2
+                cr.charge_projectile_unit = ids["arrow projectile"]
+            else:
+                t5.max_range, t5.min_range = TOWER_RANGE, TOWER_MIN_RANGE
+                cr.charge_projectile_unit = ids["boulder projectile"]
+            cr.max_charge, cr.recharge_rate, cr.charge_event, cr.charge_type = max_charge, recharge, event, 6
+            cr.charge_target = target
+            if tower.bird:
+                tower.bird.search_radius = TOWER_SEARCH
+            tower.line_of_sight = TOWER_SEARCH
+            made[label] = tower
+        made["ballista"] = copy.deepcopy(ballista)
+        for name, unit in made.items():
+            unit.id = unit.copy_id = unit.base_id = ids[name]
+            unit.name = f"Crucible {name}" if "projectile" in name else f"Tower ({name})"
+        u += [made[name] for name in ids]
+    template = d.techs[AXE_TECH]
+    command = next(c for e in d.effects for c in e.effect_commands if c.type == DISABLE_TECH)
+    switched = TOWER_STYLES[0][0]
+    for label, src, dst in (("Ballista mode", switched, "ballista"), ("Arrow mode", "ballista", switched)):
+        c = copy.deepcopy(command)
+        c.type, c.a, c.b, c.c, c.d = UPGRADE_UNIT, ids[src], ids[dst], -1, 0.0
+        effect = copy.deepcopy(d.effects[template.effect_id])
+        effect.effect_commands, effect.name = [c], f"Crucible tower {label}"
+        d.effects.append(effect)
+        tech = copy.deepcopy(template)
+        tech.name, tech.type, tech.civ, tech.repeatable = f"Crucible tower {label}", 0, -1, 1
+        tech.effect_id = len(d.effects) - 1
+        tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
+        for rc in tech.resource_costs:
+            rc.type, rc.amount, rc.flag = -1, 0, 0
+        loc = tech.research_locations
+        loc[0].location_id, loc[0].button_id, loc[0].research_time = ids[src], 1, MODE_TECH_TIME
+        tech.research_locations = loc[:1]
+        d.techs.append(tech)
 
 
 def _mule_cart_drop_site(data: dict) -> None:

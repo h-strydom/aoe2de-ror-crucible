@@ -1,9 +1,12 @@
-"""The over-the-top tower (`crucible_tower_modes`, with the Crucible Test Data mod).
+"""The over-the-top tower, round 2 (`crucible_tower_modes`, with the Crucible Test Data mod).
 
-Two data-mod towers fire arrows with a 2-tile minimum range and carry a charge-type-6 boulder (30 melee, splash) for
-enemies inside that range, each with different charge settings (testmod.TOWER_CHARGES); each can switch to a
-ballista twin (trait 8). A plain Sentry Tower given the same minimum range by trigger is the control. Passive enemy
-Clubmen stand next to each tower (inside the minimum range) and further out.
+Can native ranges plus automatic switching give a tower arrows at 2-6 and a boulder within 2? Round 1 (arrows as the
+normal attack, the boulder as a charge-type-6 projectile) fired both at the far enemies only. Round 2 flips it: the
+boulder is the normal attack (range 2) and the arrows a charge projectile with its own range 2-6, with three AoE2
+units' charge settings (Fire Lancer, Hearth Troop, Fire Archer); a fourth tower keeps round 1's order with the
+boulder's own range set to 0-2. See testmod.TOWER_STYLES. The Fire Lancer tower has two repeatable techs, "Ballista
+mode" and "Arrow mode", which upgrade it into a ballista tower and back. Passive enemy Clubmen stand 1.5 tiles
+(boulder range) and 5 tiles (arrow range) from each tower.
 
 A script logs the tracked Clubmen's HP every 2 s to `<profile>/profile/crucible_tower_modes.xsdat`;
 `crucible tower-modes-report` prints it.
@@ -17,22 +20,24 @@ from aoe2ed import blocks, games, tables
 from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
-from .testmod import SENTRY_TOWER, TOWER_CHARGES, TOWER_MIN_RANGE, tower_mode_ids
+from .testmod import TOWER_STYLES, tower_mode_ids
 
 NAME = "crucible_tower_modes"
-SIZE = 48
-MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412322004, 1, 1, 2
+MAGIC, VERSION, TAG_SAMPLE, INTERVAL = 412322004, 2, 1, 2
 REVEAL_MAP, MIN_RANGE = 203, 20
-ROWS = (8, 22, 36)
+ROWS = (8, 22, 36, 50)
+SIZE = 64
 
-INSTRUCTIONS = """Crucible tower modes test. Pick "Crucible Test Data" as the Data Mod. Nothing ends the game; watch \
-2 minutes, then try the switch.
+INSTRUCTIONS = """Crucible tower modes test, round 2. Pick "Crucible Test Data" as the Data Mod. Nothing ends the \
+game; watch 2 minutes, then try the buttons.
 
-Three towers, each with passive enemy Clubmen right beside it (inside a 2-tile minimum range) and more further out:
-TOP: data tower with the Hearth Troop's charge settings. MIDDLE: data tower with the Fire Archer's. BOTTOM: a plain \
-Sentry Tower with minimum range 2 (control: it should never hit the close ones).
-Do the top two shoot arrows at the far Clubmen and lob a boulder (splash) at the close ones?
-Then select a data tower: is there a button to switch it to ballista mode? Does it then fire bolts?"""
+Four towers, top to bottom, each with passive enemy Clubmen 1.5 tiles away (boulder range) and 5 tiles away (arrow \
+range). The top three throw a BOULDER as their normal attack and carry ARROWS as an always-ready charge with their \
+own range 2-6, using the charge settings of the Fire Lancer, the Hearth Troop and the Fire Archer. The bottom one is \
+the other way round: arrows normally, the boulder as the charge. Which tower hits BOTH the close Clubmen (boulder) and \
+the far ones (arrows)?
+BALLISTA MODE: the top tower has a "Ballista mode" button (a tech). Research it: does the tower become a ballista \
+tower firing bolts, with an "Arrow mode" button to go back? Can you go back and forth more than once?"""
 
 
 def _add(s, player: int, unit: str | int, x: float, y: float) -> int:
@@ -88,20 +93,15 @@ def build(out: Path) -> tuple[Path, list[tuple[str, int]]]:
             options_set(o.handle, {"victory_condition": "CUSTOM"})
             ctx = blocks.Ctx(s)
             passive, settings = [], []
-            towers = [(ids[label], label) for label, _, _ in TOWER_CHARGES] + [(SENTRY_TOWER, "control Sentry")]
-            for (unit, label), y in zip(towers, ROWS):
-                tower = _add(s, 1, unit, 12, y)
-                if unit == SENTRY_TOWER:
-                    settings.append({"type": "modify_object_attribute", "source_player": 1,
-                                     "selected_object_ids": [tower], "object_attributes": MIN_RANGE,
-                                     "operation": 1, "quantity": int(TOWER_MIN_RANGE)})
+            for (label, *_), y in zip(TOWER_STYLES, ROWS):
+                _add(s, 1, ids[label], 12, y)
                 near = [_add(s, 2, "CLUBMAN", 12 + dx, y + dy) for dx, dy in ((1.5, 0), (1.5, 1), (0, 1.5))]
-                far = [_add(s, 2, "CLUBMAN", 18 + dx, y + dy) for dx, dy in ((0, 0), (0, 1.2), (1.2, 0))]
+                far = [_add(s, 2, "CLUBMAN", 17 + dx, y + dy) for dx, dy in ((0, 0), (0, 1.2), (1.2, 0))]
                 passive += near + far
                 tracked += [(f"{label}: close 1", near[0]), (f"{label}: close 2", near[1]),
                             (f"{label}: far 1", far[0]), (f"{label}: far 2", far[1])]
-            _add(s, 1, "TOWN_CENTER", 40, 40)
-            blocks.anchor(ctx, player=2, at=(46, 2))
+            _add(s, 1, "TOWN_CENTER", 50, 50)
+            blocks.anchor(ctx, player=2, at=(62, 2))
             ctx.trigger("Setup", [], [
                 {"type": "change_object_stance", "source_player": 2, "selected_object_ids": passive,
                  "attack_stance": "NO_ATTACK_STANCE"},
