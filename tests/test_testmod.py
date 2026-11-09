@@ -18,8 +18,8 @@ def test_build(tmp_path):
     res = testmod.build(tmp_path)
     original = DatFile.parse(str(testmod._source_dat() / "empires2_x2_p1.dat"))
     modded = DatFile.parse(str(res["data_mod"] / testmod.ROR_DAT / "empires2_x2_p1.dat"))
-    for uid, hp in testmod.HP.items():
-        assert modded.civs[1].units[uid].hit_points == hp != original.civs[1].units[uid].hit_points
+    for uid in (testmod.HOPLITE, testmod.AXEMAN):                         # the old HP overrides are retired
+        assert modded.civs[1].units[uid].hit_points == original.civs[1].units[uid].hit_points
     tree = modded.effects[modded.civs[testmod.GREEK].tech_tree_id].effect_commands
     assert tree and all(c.type == 102 for c in tree)                      # Greek bonuses gone, disables kept
     egypt = original.civs[1].tech_tree_id                                 # other civs untouched

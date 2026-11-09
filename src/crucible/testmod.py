@@ -2,8 +2,8 @@
 
 Builds one local data mod and a two-mission test campaign:
 
-- **Crucible Test Data**: Return of Rome's own data file and `dropsites.json`, with visible changes. Hoplites have
-  999 hit points (120 normally) and Axemen 400 (50). The Greek civilization loses its bonuses (Hoplites cost
+- **Crucible Test Data**: Return of Rome's own data file and `dropsites.json`, with visible changes. (Hoplites had
+  999 hit points and Axemen 400 for the first test; retired.) The Greek civilization loses its bonuses (Hoplites cost
   60 food 40 gold instead of 48/32), which tests "a civ with no bonuses". Houses accept wood. Pick it in the
   campaign's Data Mod dropdown.
 - **crucible_mod_test**, the campaign: two identical missions (the second checks the data mod carries over). A
@@ -31,8 +31,9 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
 DATA_MOD, JSON_MOD, CAMPAIGN = "Crucible Test Data", "Crucible Test Dropsites", "crucible_mod_test"
 ROR_DAT = Path("modes") / "Pompeii" / "resources" / "_common" / "dat"
-HP = {93: 999, 531: 400}                   # Hoplite, Axeman (Clubmen become Axemen when a Bronze Age start
-                                           # researches Axe)
+# The first test gave Hoplites 999 HP and Axemen 400 (verified 2026-11-09). Retired the same day: later tests
+# (mechanics) use those units and need their normal stats.
+HP: dict[int, int] = {}
 HOPLITE = 93
 GREEK = 2                                  # civ index in RoR's data
 HOUSE_IDS = [70, 463, 464, 465]            # the House and its age looks
@@ -114,7 +115,7 @@ INSTRUCTIONS = """Crucible mod test.
 Before starting: in Mods > Installed Mods, enable "Crucible Test Data" (and disable "Crucible Test Dropsites" if \
 it's still there), restart the game, then on the campaign screen set Data Mod to "Crucible Test Data".
 
-1. HIT POINTS: select a Hoplite and an Axeman. With the data mod: 999 and 400. Without: 120 and 50.
+1. HIT POINTS: (retired: Hoplites and Axemen now have their normal 120 and 50.)
 2. GREEK BONUS GONE: train a Hoplite at the Academy. With the data mod: 60 food, 40 gold. With the normal Greek \
 bonus: 48 food, 32 gold.
 3. DROP SITE: send a villager to chop the trees beside the houses. Does it drop the wood at a House?
@@ -187,7 +188,7 @@ def build_data_mod(root: Path) -> Path:
                                        "worker_object_group": pit["worker_object_group"], "target_list": trees})
     _mule_cart_drop_site(data)
     (out.parent / "dropsites.json").write_text(json.dumps(data, indent=4), encoding="utf-8")
-    _info(folder, DATA_MOD, "Crucible test: Hoplites 999 HP, Axemen 400 HP, Greeks without bonuses, Houses take "
+    _info(folder, DATA_MOD, "Crucible test: Greeks without bonuses, Houses take "
                             "wood (Return of Rome).")
     return folder
 

@@ -101,8 +101,13 @@ def xs_code(enemy_hoplite: int, regen: tuple[int, int], tracked: tuple[int, int,
     hps = "".join(f"    crucibleHp({u});\n" for u in tracked)
     decls = "".join(f"int crucibleRegenLast{k} = -1;\nint crucibleRegenCool{k} = 0;\n" for k in range(len(regen)))
     regen_init = "".join(f"    xsEffectAmount(cSetUnitAttribute, {u}, {REGEN}, {REGEN_RATE}, 1);\n" for u in regen)
-    regen_body = "".join(f"""    if (xsDoesUnitExist({u})) {{
+    # Round 2 crashed the game the moment the scripted Cavalry died (crash report WorldTime 1:20, its HP 0): don't
+    # touch a unit at 0 HP (dying units still "exist").
+    regen_body = "".join(f"""    hp = 0;
+    if (xsDoesUnitExist({u})) {{
         hp = xsGetUnitHitpoints({u});
+    }}
+    if (hp > 0) {{
         if (hp < crucibleRegenLast{k}) {{
             if (crucibleRegenCool{k} == 0) {{
                 xsEffectAmount(cSetUnitAttribute, {u}, {REGEN}, 0, 1);
@@ -256,6 +261,9 @@ def build(out: Path) -> Path:
             _add(s, 1, "BARRACKS", 44, 44)
             _add(s, 1, "ARCHERY_RANGE", 60, 44)
             _add(s, 1, "STABLE", 70, 56)
+            # Room to train (round 2: headroom was -66, since RoR's cap comes from Houses): Houses, plus 150 headroom.
+            for k in range(15):
+                _add(s, 1, "HOUSE", 20 + (k % 5) * 3, 70 + (k // 5) * 3)
 
             # Mule Cart: villagers by a forest far from the Town Center.
             for x in range(71, 78):
@@ -276,7 +284,9 @@ def build(out: Path) -> Path:
                 {"type": "change_object_stance", "source_player": 1, "selected_object_ids": stand,
                  "attack_stance": "STAND_GROUND"},
                 {"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": 1, "quantity": 2,
-                 "operation": "SET"}, *regen_settings])
+                 "operation": "SET"},
+                {"type": "modify_resource", "tribute_list": POP_HEADROOM, "source_player": 1, "quantity": 150,
+                 "operation": "ADD"}, *regen_settings])
             ctx.trigger("Start", [{"type": "timer", "timer": 3}], start)
             ctx.trigger("Regen pulse", [{"type": "timer", "timer": PULSE_EVERY}], [pulse], looping=True)
             ctx.trigger("Logistics", [{"type": "timer", "timer": 30}], [
