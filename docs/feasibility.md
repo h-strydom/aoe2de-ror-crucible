@@ -274,8 +274,19 @@ Barracks; three exclusive Barracks techs.
 cAttributeDisable)` when one was queued didn't block them: all three could be researched in a row (the refund for
 the second and third did fire). In Chronicles, hovering one draws a red cross over the other, the other can't be
 started while one researches, and it vanishes when the first finishes. The data shows no extra link, but the tech
-`type` differs: Chronicles' unique techs are 0, ours were 9 (copied from RoR's Axe), and RoR's own exclusive set (the
-Market's Trade 0/50/100% wood) is 33. Round 4 compares type 0 and 33, script removed.
+`type` differs: Chronicles' unique techs are 0, ours were 9 (copied from RoR's Axe). 33 is the type of switchable
+settings that also disable each other (the Market's trade settings, the Athenian governments), not a one-time pick.
+Round 4 compares type 0 and 33, script removed.
+
+**Round 4** (2026-11-09): **neither type behaved like Chronicles** (type 0 at the Barracks, type 33 at the Town
+Center): no red cross, the others could still be started. Conclusion: Chronicles' exclusive-tech interface (red
+cross on hover, blocked while one researches) isn't in RoR, or depends on something outside the data. **Native
+exclusive techs in RoR: not possible.**
+- What does work: the techs disable each other once one finishes (data, command 102), and a script can refund any
+  extra one that finishes (round 3: the refund fired). That keeps the outcome exclusive, but the player can still
+  queue and pay for the others first, so it's clumsy.
+- For Crucible's "pick one" choices, use what's verified instead: the two-option decision popup, walk-on pads, or
+  buttons that a script removes once one is picked.
 
 ## Resources
 

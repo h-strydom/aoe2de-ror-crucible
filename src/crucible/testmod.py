@@ -76,8 +76,8 @@ EXCLUSIVE_PAY, EXCLUSIVE_COST, EXCLUSIVE_TIME = 200, 50, 20
 # Costs are paid at queue time, so two could be queued and both researched (rounds 1-3; a cost in a spare resource is
 # ignored, and a script disabling the others didn't hold). But in Chronicles, hovering one draws a red cross over the
 # other and the other can't be started while one researches. The tech `type` is the suspect: Chronicles' unique techs
-# are 0, the first sets were 9 (copied from RoR's Axe), and RoR's own exclusive set (Market: Trade 0/50/100% wood) is
-# 33. Round 4 compares type 0 (Barracks) with type 33 (Town Center).
+# are 0, the first sets were 9 (copied from RoR's Axe). 33 is the type of switchable settings (the Market's trade
+# settings, the Athenian governments). Round 4 compares type 0 (Barracks) with type 33 (Town Center).
 EXCLUSIVE_TYPE = 0
 EXCLUSIVE_33 = ((407051, 2, 8), (407052, 3, 9))   # a type 33 pair at the Town Center: pays stone, gold
 TOWN_CENTER = 109

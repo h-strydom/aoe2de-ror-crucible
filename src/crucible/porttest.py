@@ -10,8 +10,9 @@ A standalone scenario, `crucible_port_test`, played with the Crucible Test Data 
    copied from RoR's Axe): two could be queued and both researched; a cost in a spare resource was ignored; a script
    disabling the others didn't hold. In Chronicles, hovering one draws a red cross over the other and the other
    can't be started while one researches. Round 4 compares the tech type: a type 0 set at the Barracks (Chronicles'
-   unique techs) and a type 33 pair at the Town Center (RoR's own Market trade techs, also present, are 33). A
-   read-only script reports each tech's state in chat whenever it changes.
+   unique techs) and a type 33 pair at the Town Center (the type of AoE2's Athenian governments and the Market's
+   trade settings: switchable settings rather than a one-time pick). A read-only script reports each tech's state
+   in chat whenever it changes.
 
 Passive enemies (RoR units) stand to the right to fight.
 """
@@ -36,8 +37,7 @@ UNITS: portraits, left to right, should be RoR's Heavy Cavalry, Improved Bowman,
 EXCLUSIVE TECHS. Which buildings act like Chronicles (hover one: red cross over the others; while one researches \
 the others can't be started; they vanish when it finishes)? \
 1) BARRACKS: three new techs (Oligarchy, Democracy, Tyranny names), now the type Chronicles' unique techs use. \
-2) TOWN CENTER: two new techs, the type RoR's Market trade techs use. \
-3) MARKET: RoR's own Trade 0% / 50% / 100% wood techs, for reference. \
+2) TOWN CENTER: two new techs, the type AoE2 uses for switchable settings (Athenian governments). \
 Chat reports each new tech's state when it changes: 1 ready, 4 queued, 2 researching, 3 done, -1 disabled. \
 Nothing ends the game."""
 
@@ -86,7 +86,6 @@ def build(out: Path) -> Path:
                 _add(s, 1, "VILLAGER_MALE", 12, 18 + i * 2)
             _add(s, 1, "BARRACKS", 16, 12)
             _add(s, 1, "BARRACKS", 16, 30)
-            _add(s, 1, "MARKET", 6, 32)
             for k, uid in enumerate(PORTED):
                 _add(s, 1, ids[uid], 20 + k * 2, 22)
             enemies = [_add(s, 2, "HOPLITE", 34 + dx, 16 + dy) for dx in (0, 2) for dy in (0, 3, 6, 9)]
