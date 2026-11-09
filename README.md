@@ -45,14 +45,17 @@ uv run crucible test-mod --install
 ```
 
 Can the campaign depend on a mod for what triggers can't do? This builds and installs:
-- **Crucible Test Data**, a data mod: Return of Rome's own data file with Clubmen at 400 hit points and the
-  Greeks stripped of their bonuses (a "civ with no bonuses").
-- **Crucible Test Dropsites**, an ordinary mod holding only `dropsites.json`, which makes Houses accept wood.
+- **Crucible Test Data**, a data mod: Return of Rome's own data file and `dropsites.json`, with Hoplites at 999
+  hit points, Axemen at 400, the Greeks stripped of their bonuses (a "civ with no bonuses") and Houses
+  accepting wood.
 - **crucible_mod_test**, a two-mission campaign. A trigger also makes Scouts trainable at the Barracks, to test
   buildings that train new units with triggers alone.
 
-Enable both mods in Mods > Installed Mods, restart, then pick "Crucible Test Data" in the campaign's Data Mod
+Enable the mod in Mods > Installed Mods, restart, then pick "Crucible Test Data" in the campaign's Data Mod
 dropdown. The briefing lists the checks.
+
+Found so far: a mod holding only `dropsites.json` counts as a data mod of its own, so everything goes in one data
+mod. Scouts trained at the Barracks by trigger alone.
 
 ## License
 

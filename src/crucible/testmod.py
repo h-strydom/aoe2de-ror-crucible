@@ -1,15 +1,17 @@
 """The data mod test: can a Crucible campaign depend on a mod for what triggers can't do?
 
-Builds two local mods and a two-mission test campaign:
+Builds one local data mod and a two-mission test campaign:
 
-- **Crucible Test Data**, a data mod: Return of Rome's own data file with two visible changes. Clubmen have 400 hit
-  points (40 normally). The Greek civilization loses its bonuses (Hoplites cost 60 food 40 gold instead of
-  48/32, and walk at the normal speed), which tests "a civ with no bonuses". Pick it in the campaign's Data Mod
-  dropdown.
-- **Crucible Test Dropsites**, a plain mod holding only `dropsites.json`: Houses accept wood. It tests whether that
-  file works from an ordinary mod, without being the chosen data mod.
+- **Crucible Test Data**: Return of Rome's own data file and `dropsites.json`, with visible changes. Hoplites have
+  999 hit points (120 normally) and Axemen 400 (50). The Greek civilization loses its bonuses (Hoplites cost
+  60 food 40 gold instead of 48/32), which tests "a civ with no bonuses". Houses accept wood. Pick it in the
+  campaign's Data Mod dropdown.
 - **crucible_mod_test**, the campaign: two identical missions (the second checks the data mod carries over). A
   trigger also makes Scouts trainable at the Barracks, testing "buildings that train units" with triggers alone.
+
+First run (2026-11-09): a mod holding only `dropsites.json` under the data folder shows up in the Data Mod dropdown
+as a data mod of its own, so drop sites and data changes must ship in one data mod. Clubmen were the wrong check:
+starting in the Bronze Age researches Axe, which turns them into Axemen.
 
 The data file is changed with genieutils-py, which writes RoR's file back identically when nothing is changed
 (checked 2026-11-09: the decompressed bytes match; only the compression differs).
@@ -28,7 +30,9 @@ from aoe2ed.tools.world import options_set, player_set
 
 DATA_MOD, JSON_MOD, CAMPAIGN = "Crucible Test Data", "Crucible Test Dropsites", "crucible_mod_test"
 ROR_DAT = Path("modes") / "Pompeii" / "resources" / "_common" / "dat"
-CLUBMAN, CLUBMAN_HP = 281, 400
+HP = {93: 999, 531: 400}                   # Hoplite, Axeman (Clubmen become Axemen when a Bronze Age start
+                                           # researches Axe)
+HOPLITE = 93
 GREEK = 2                                  # civ index in RoR's data
 HOUSE_IDS = [70, 463, 464, 465]            # the House and its age looks
 STORAGE_PIT = 562
@@ -38,14 +42,13 @@ SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
 
-Before starting: in Mods > Installed Mods, enable "Crucible Test Data" and "Crucible Test Dropsites", restart the \
-game, then on the campaign screen set Data Mod to "Crucible Test Data".
+Before starting: in Mods > Installed Mods, enable "Crucible Test Data" (and disable "Crucible Test Dropsites" if \
+it's still there), restart the game, then on the campaign screen set Data Mod to "Crucible Test Data".
 
-1. CLUBMEN: select one. With the data mod: 400 hit points. Without: 40.
+1. HIT POINTS: select a Hoplite and an Axeman. With the data mod: 999 and 400. Without: 120 and 50.
 2. GREEK BONUS GONE: train a Hoplite at the Academy. With the data mod: 60 food, 40 gold. With the normal Greek \
 bonus: 48 food, 32 gold.
-3. DROP SITE: send a villager to chop the trees beside the houses. Does it drop the wood at a House (Crucible Test \
-Dropsites, an ordinary mod) or walk to the Town Center?
+3. DROP SITE: send a villager to chop the trees beside the houses. Does it drop the wood at a House?
 4. SCOUT AT BARRACKS (triggers only): does the Barracks offer a Scout?
 
 Walk any unit onto the flag in the far corner to finish the mission. Mission 2 is the same: check 1 and 2 again \
@@ -60,12 +63,14 @@ def _source_dat() -> Path:
 
 
 def build_data_mod(root: Path) -> Path:
-    """The data mod folder: RoR's data file with stronger Clubmen and Greeks without bonuses."""
+    """The data mod folder: RoR's data file (tougher Hoplites and Axemen, Greeks without bonuses) and its
+    dropsites.json (Houses take wood)."""
     from genieutils.datfile import DatFile
     d = DatFile.parse(str(_source_dat() / "empires2_x2_p1.dat"))
     for civ in d.civs:
-        if len(civ.units) > CLUBMAN and civ.units[CLUBMAN]:
-            civ.units[CLUBMAN].hit_points = CLUBMAN_HP
+        for uid, hp in HP.items():
+            if len(civ.units) > uid and civ.units[uid]:
+                civ.units[uid].hit_points = hp
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -76,23 +81,15 @@ def build_data_mod(root: Path) -> Path:
     out = folder / ROR_DAT / "empires2_x2_p1.dat"
     out.parent.mkdir(parents=True, exist_ok=True)
     d.save(str(out))
-    _info(folder, DATA_MOD, "Crucible test: Clubmen 400 HP, Greeks without bonuses (Return of Rome).")
-    return folder
-
-
-def build_json_mod(root: Path) -> Path:
-    """The plain mod: RoR's dropsites.json with Houses accepting wood."""
     data = json.loads((_source_dat() / "dropsites.json").read_text(encoding="utf-8"))
     pit = next(e for e in data["drop_site_list"] if e["building_id"] == STORAGE_PIT)
     trees = [t for t in pit["target_list"] if t["name"] == "Trees"]
     for hid in HOUSE_IDS:
         data["drop_site_list"].append({"name": "House", "building_id": hid,
                                        "worker_object_group": pit["worker_object_group"], "target_list": trees})
-    folder = root / JSON_MOD
-    out = folder / ROR_DAT / "dropsites.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(data, indent=4), encoding="utf-8")
-    _info(folder, JSON_MOD, "Crucible test: Houses accept wood (Return of Rome).")
+    (out.parent / "dropsites.json").write_text(json.dumps(data, indent=4), encoding="utf-8")
+    _info(folder, DATA_MOD, "Crucible test: Hoplites 999 HP, Axemen 400 HP, Greeks without bonuses, Houses take "
+                            "wood (Return of Rome).")
     return folder
 
 
@@ -162,19 +159,19 @@ def build(out: Path) -> dict:
     mods = out / "mods"
     if mods.exists():
         shutil.rmtree(mods)
-    return {"data_mod": build_data_mod(mods), "json_mod": build_json_mod(mods), "campaign": build_campaign(out)}
+    return {"data_mod": build_data_mod(mods), "campaign": build_campaign(out)}
 
 
 def install(res: dict) -> dict:
-    """Copy both mods into the profile's local mods and the campaign into RoR's campaign folder."""
+    """Copy the data mod into the profile's local mods and the campaign into RoR's campaign folder. Removes the first
+    run's separate dropsites mod, which this test created and which would otherwise compete as a data mod."""
     from aoe2ed import game
     from aoe2ed.screens import mod_dir
-    done = {}
-    for key in ("data_mod", "json_mod"):
-        dest = mod_dir(res[key].name, "ror")
-        if dest.exists():
-            shutil.rmtree(dest)
-        shutil.copytree(res[key], dest)
-        done[key] = dest
-    done["campaign"] = Path(game.install(res["campaign"], game="ror")["installed"])
-    return done
+    old = mod_dir(JSON_MOD, "ror")
+    if (old / "info.json").is_file() and "aoe2de-ror-crucible" in (old / "info.json").read_text(encoding="utf-8"):
+        shutil.rmtree(old)
+    dest = mod_dir(res["data_mod"].name, "ror")
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(res["data_mod"], dest)
+    return {"data_mod": dest, "campaign": Path(game.install(res["campaign"], game="ror")["installed"])}

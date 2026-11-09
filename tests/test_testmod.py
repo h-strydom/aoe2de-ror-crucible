@@ -18,15 +18,16 @@ def test_build(tmp_path):
     res = testmod.build(tmp_path)
     original = DatFile.parse(str(testmod._source_dat() / "empires2_x2_p1.dat"))
     modded = DatFile.parse(str(res["data_mod"] / testmod.ROR_DAT / "empires2_x2_p1.dat"))
-    assert modded.civs[1].units[testmod.CLUBMAN].hit_points == testmod.CLUBMAN_HP
-    assert original.civs[1].units[testmod.CLUBMAN].hit_points != testmod.CLUBMAN_HP
+    for uid, hp in testmod.HP.items():
+        assert modded.civs[1].units[uid].hit_points == hp != original.civs[1].units[uid].hit_points
     tree = modded.effects[modded.civs[testmod.GREEK].tech_tree_id].effect_commands
     assert tree and all(c.type == 102 for c in tree)                      # Greek bonuses gone, disables kept
     egypt = original.civs[1].tech_tree_id                                 # other civs untouched
     assert len(modded.effects[egypt].effect_commands) == len(original.effects[egypt].effect_commands)
     assert json.loads((res["data_mod"] / "info.json").read_text())["Title"] == testmod.DATA_MOD
 
-    sites = json.loads((res["json_mod"] / testmod.ROR_DAT / "dropsites.json").read_text())["drop_site_list"]
+    # drop sites ship inside the data mod: a mod with its own dropsites.json counts as a separate data mod
+    sites = json.loads((res["data_mod"] / testmod.ROR_DAT / "dropsites.json").read_text())["drop_site_list"]
     houses = [s for s in sites if s["building_id"] in testmod.HOUSE_IDS]
     assert len(houses) == 4 and all(t["name"] == "Trees" for s in houses for t in s["target_list"])
 
