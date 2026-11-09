@@ -57,7 +57,8 @@ terrain painted on top (grass, dirt, desert, road), then plain Rock 1. Do the to
 them? With your villagers: can you walk across each line, and can you place a House or a wall ON it anywhere?
 SAFE ZONES (right), round 3: from 0:12 an enemy Stone Thrower bombards the GROUND in the middle of each zone \
 (attack-ground: aimed at a spot, not a unit). Do your Hoplites inside lose HP from the splash? Leave them where they \
-are. At 1:30 the armies attack as before. Zone A (top) is the trigger version, zone B (below) the script version. \nYou also have a Heavy Catapult left of each zone: attack-ground into the zone yourself (your splash hits your own).
+are. At 1:30 the armies attack as before. Zone A (top) is the trigger version, zone B (below) the script version. \
+You also have a Heavy Catapult left of each zone: attack-ground into the zone yourself (your splash hits your own).
 DOUBLED RESOURCES (left): three gold mines; the report shows their amounts (A trigger, B script, C control).
 FORMATIONS (bottom): at 0:30 three groups march right: A in line formation, B in box, C plain. Do A and B keep a \
 formation and arrive together?
