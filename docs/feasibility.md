@@ -261,6 +261,15 @@ Barracks; three exclusive Barracks techs.
   another finished put them back in the UI. Chronicles has nothing extra in its data against this (Dekate's other
   resources are aura flags). Next: a "token" cost, 1 of a spare resource the player has exactly 1 of.
 
+**Round 2** (2026-11-09):
+- **The Immortal's alternate form works** once the port follows the `nothing` link (it switches to ranged and back
+  as an Immortal). `nothing` is 0 on units without one, so 0 must not be read as unit 0.
+- **A tech cost in a spare resource is ignored**: 1 of resource 30 ("Unused Resource 030"), with every civ starting
+  with 1, wasn't shown in the cost and didn't stop queueing. Tech costs seem limited to the four stockpile resources.
+- Next: a script. `xsGetTechState(tech, p)` reports queued (4) and researching (2); when one is queued, disable the
+  others (`xsEffectAmount(cModifyTech, tech, cAttributeDisable, 0, p)`), re-enable on cancel, and refund a second
+  one that finishes anyway.
+
 ## Resources
 
 Resource test scenario (`crucible resource-test`, 2026-11-09; 6.5 minutes logged). Each stone mine started at 350.
