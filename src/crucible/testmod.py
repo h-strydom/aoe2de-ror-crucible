@@ -18,6 +18,7 @@ The data file is changed with genieutils-py, which writes RoR's file back identi
 """
 from __future__ import annotations
 
+import copy
 import json
 import shutil
 from pathlib import Path
@@ -45,6 +46,9 @@ SECONDARY_PROJECTILE, GARRISON_TYPE, GARRISON_FIREPOWER = 65, 30, 130      # obj
 TOWER_ARROW_2 = 505                        # the secondary arrow AoE2's towers fire extra arrows with (in RoR's data)
 VILLAGERS, INFANTRY = 1, 2                 # garrison type flags (RoR towers: 1, villagers only)
 CIVILIAN, ARCHER = 4, 0                    # unit classes
+VILLAGER = 83
+GARRISON_ACTION, BUILDINGS, TRANSPORTS = 3, 3, 20     # task action type, and the classes a garrison task aims at
+FOOT = (0, 6)                              # archer and infantry classes
 SIZE = 48
 
 INSTRUCTIONS = """Crucible mod test.
@@ -85,6 +89,7 @@ def build_data_mod(root: Path) -> Path:
             unit = civ.units[uid] if len(civ.units) > uid else None
             if unit and unit.bird and HOUSE_IDS[0] not in unit.bird.drop_sites:
                 unit.bird.drop_sites.append(HOUSE_IDS[0])
+        _garrison_into_buildings(civ)
     greek = d.civs[GREEK]
     tree = d.effects[greek.tech_tree_id]
     tree.effect_commands = [c for c in tree.effect_commands if c.type == 102]   # keep its disabled techs only
@@ -105,6 +110,28 @@ def build_data_mod(root: Path) -> Path:
     _info(folder, DATA_MOD, "Crucible test: Hoplites 999 HP, Axemen 400 HP, Greeks without bonuses, Houses take "
                             "wood (Return of Rome).")
     return folder
+
+
+def _garrison_into_buildings(civ) -> int:
+    """Give foot soldiers (archers, infantry) the villager's "garrison into a building" task. RoR's soldiers can only
+    board transport ships; AoE2's also garrison in buildings (data compared, 2026-11-09). Returns units changed."""
+    villager = civ.units[VILLAGER]
+    if not (villager and villager.bird):
+        return 0
+    task = next((t for t in villager.bird.tasks if t.action_type == GARRISON_ACTION and t.class_id == BUILDINGS), None)
+    if task is None:
+        return 0
+    changed = 0
+    for unit in civ.units:
+        if not (unit and unit.type == 70 and unit.class_ in FOOT and unit.bird):
+            continue
+        actions = {(t.action_type, t.class_id) for t in unit.bird.tasks}
+        if (GARRISON_ACTION, TRANSPORTS) in actions and (GARRISON_ACTION, BUILDINGS) not in actions:
+            new = copy.deepcopy(task)
+            new.id = len(unit.bird.tasks)
+            unit.bird.tasks.append(new)
+            changed += 1
+    return changed
 
 
 def _info(folder: Path, title: str, description: str) -> None:
@@ -171,8 +198,9 @@ stand in range and don't fight back.
 Beside each tower: 5 villagers, 5 bowmen and 5 hoplites. Garrison them in turn and count the arrows per volley:
 1. Empty: both towers should fire 1 arrow.
 2. Villagers: each should add an arrow to the left tower. The right one?
-3. Bowmen: can they garrison in the left tower now? Do they add arrows?
-4. Hoplites: they should be able to garrison in the left tower but add no arrows.
+3. Bowmen: with the data mod they have a garrison command. They should fit in the left tower (not the right one, \
+which takes villagers only) and each add an arrow.
+4. Hoplites: they should fit in the left tower but add no arrows.
 
 Walk any unit onto the flag in the far corner to finish."""
 

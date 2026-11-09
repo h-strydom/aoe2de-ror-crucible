@@ -34,5 +34,11 @@ def test_build(tmp_path):
         assert testmod.HOUSE_IDS[0] in modded.civs[1].units[uid].bird.drop_sites
         assert testmod.HOUSE_IDS[0] not in original.civs[1].units[uid].bird.drop_sites
 
+    def garrisons_in_buildings(d, uid):
+        return any(t.action_type == testmod.GARRISON_ACTION and t.class_id == testmod.BUILDINGS
+                   for t in d.civs[1].units[uid].bird.tasks)
+    for uid in (4, 93):                                                  # bowman, hoplite
+        assert garrisons_in_buildings(modded, uid) and not garrisons_in_buildings(original, uid)
+
     camp = Campaign.read(res["campaign"])
     assert camp.name == testmod.CAMPAIGN and len(camp.scenarios) == 3
