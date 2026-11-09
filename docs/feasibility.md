@@ -177,6 +177,17 @@ Some units attacked outside their lane, so the lanes aren't perfectly clean:
   boost on. (Whether training then sped up still has to be confirmed in game.)
 - Still untested: a data mod artifact with a garrison task and a garrisonable class, for a real garrison button.
 
+**Round 3 results** (2026-11-09): **artifacts can garrison once they're in a garrisonable class.**
+- The data mod gave three artifacts the villager's "garrison into a building" task (action 3, class 3) and opened
+  every Barracks to every category (`building.garrison_type` 127). The AoE1 artifact (25), still in the artifact
+  class (1), stayed out. The copies in the infantry class (6) and the priest class (18) both garrisoned.
+- The script found them with `xsGetGarrisonedUnitIds` + `xsGetUnitObjectId` (log: 2 garrisoned), and the boost
+  worked: with the Barracks' work rate at 30, about nine 50-food units trained in 20 s.
+- So "an artifact in a Barracks speeds up every Barracks" is doable: a data mod artifact copy in the infantry or
+  priest class with a garrison task, plus XS. The class change has side effects to watch: class 6 takes infantry
+  bonus damage and counts as infantry for targeting; priest class may draw anti-priest behaviour.
+- Capture-on-contact for the class copies: not confirmed yet.
+
 Plan as written before the test:
 
 | Idea | How | Status |
