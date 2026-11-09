@@ -126,3 +126,16 @@ these tasks".
 
 Summary of AoE2 tasks in RoR: HP transform (158), extra spawn (156) and movable drop site (153) work; aura (155) and
 loot (154) don't.
+
+## Results, unit test (`crucible unit-test`, 2026-11-09): all work
+
+| Test | Result |
+|---|---|
+| Chu Ko Nu: total/max missiles 3, secondary arrow 510 (trigger) | Works: the neighbour of the target took damage too |
+| Kipchak: 3 arrows spread over a 1 x 1 area (data) | Works |
+| Mangonel: catapult stone, splash width 1, blast level 2 on a Bowman (trigger) | Works: the neighbour took splash (50 → 17) |
+| Manual mode: trait 8 + alternate unit (data) | Works: Bowmen get a switch button to a siege mode |
+| Automatic switch: charge type 6 (Fire Archer, Hearth Troop ported; a Bowman given the Fire Archer's settings by trigger) | Works |
+| Khmer farmers: player resource 33 = 50 (trigger) | Works: food arrived with no drop-off trips. Resource 33 switches hard-coded civ functions, so it can't be pointed at other resources |
+| No drop-off for wood: XS moves `cUnitAttributeHeld` into the stockpile every second | Works. Quirk: when a tree runs out, lumberjacks still walk to the nearest drop site (holding nothing) and back. A script could send them straight to the next tree |
+| Limited training: a unit costing 1 of resource 214, a Wonder tech giving the team 5 (effect 11) | Works: your ally got 5 too, and exactly 5 could be trained. Units honour a cost in a spare resource (techs don't) |
