@@ -34,7 +34,7 @@ def test_boons_become_techs_placed_or_not(tmp_path):
     for strings_dir in strings.STRINGS_DIRS:
         text = (folder / strings_dir / strings.STRINGS_FILE).read_text(encoding="utf-8")
         assert f'{tech.language_dll_name} "Carthaginians 4"' in text
-        assert "Camel Riders +15% HP" in text
+        assert f'{tech.language_dll_description} "Camel Riders +15% HP"' in text  # the hover text
 
 
 def test_one_choice_pair_on_the_wonder(tmp_path):

@@ -31,6 +31,7 @@ def add(mod: DataMod, modifiers: list[Modifier], buttons: dict[str, int] | None 
             f"Crucible {modifier.id}",
             effect=effect,
             title=modifier.name,
+            description=modifier.description,
             tooltip=tooltip(modifier),
             icon=icon_id(modifier.icon, mod.data),
             location=WONDER if button else NOWHERE,

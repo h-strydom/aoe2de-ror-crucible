@@ -36,6 +36,7 @@ def add(mod: DataMod) -> None:
             f"Crucible {key}",
             effect=effect,
             title=f"Boon category {number}",
+            description="Choose this category of boons.",
             tooltip=f"Research <b>Boon category {number}<b> (<cost>)\nChoose this category of boons.",
             icon=icon_id(Icon.TECHNOLOGY, mod.data),
             location=WONDER,

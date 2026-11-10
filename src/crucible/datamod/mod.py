@@ -68,6 +68,7 @@ class DataMod:
         *,
         effect: int,
         title: str,
+        description: str,
         tooltip: str,
         icon: int,
         location: int,
@@ -77,15 +78,17 @@ class DataMod:
     ) -> int:
         """Add a tech for any civ, with no prerequisites, researched at `location` (a unit id, or NOWHERE until a
         trigger places it) on `button`; `costs` are up to three (resource id, amount) pairs, free if empty. `title`
-        and `tooltip` are shipped as strings. Returns its id."""
-        title_id, tooltip_id = self.strings.add(title), self.strings.add(tooltip)
+        `description` (RoR's hover text, like "Upgrade to Battle Axe") and `tooltip` (AoE2's help text) are shipped
+        as strings. Returns its id."""
+        title_id, description_id = self.strings.add(title), self.strings.add(description)
+        tooltip_id = self.strings.add(tooltip)
 
         tech = copy.deepcopy(self._template())
         tech.name = name
         tech.effect_id = effect
         tech.civ, tech.type, tech.repeatable = -1, 0, 0
         tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
-        tech.language_dll_name, tech.language_dll_description = title_id, title_id
+        tech.language_dll_name, tech.language_dll_description = title_id, description_id
         tech.language_dll_help, tech.language_dll_tech_tree = tooltip_id, tooltip_id
         tech.icon_id = icon
 
