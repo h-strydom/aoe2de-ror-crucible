@@ -177,7 +177,7 @@ COMPILERS: dict[Stat, Callable[[Modifier, DatFile], list[Command]]] = {
     Stat.WOOD_COST: _attribute(WOOD_COST),
     Stat.TRAINING_SPEED: _attribute(TRAIN_TIME, faster=True),
     Stat.BUILD_SPEED: _attribute(TRAIN_TIME, faster=True),  # a building's train time is its build time
-    Stat.RESEARCH_SPEED: _resource(RESEARCH_TIME, faster=True),
+    Stat.RESEARCH_SPEED: _resource(RESEARCH_TIME, mode=SET, faster=True),  # set, as Palmyrans do; multiplying fails
     Stat.RESEARCH_TIME: research_time,
     Stat.HEAL_SPEED: _resource(HEAL_RATE),
     Stat.REJUVENATION: _attribute(RELOAD),  # a priest's faith recharge is its reload attribute, higher is faster

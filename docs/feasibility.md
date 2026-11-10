@@ -388,3 +388,11 @@ Useful XS for this: `xsGetPlayerUnitIds`, `xsGetGarrisonedUnitIds`, `xsGetUnitPo
   their counts, lock-in on click, one boon stacked on every row-1 slot per pick (the top one researches, then the next
   shows; all 22 stacked on 3 slots), boon hover text, choices counted down with the next pair shown at once, and
   "no boons left" at the end.
+
+## Compiled boons (`crucible check --test compiled`, 2026-11-10)
+
+All 101 boons compile (`src/crucible/bonuses/compile/`), copying how RoR's own civ bonuses address each stat. Checked
+in game: villager food cost (attribute 103, 50 -> 40), population room on a Town Center and a tower (first resource
+storage, attribute 21, +4 each), class armour (+1/+1 on villagers) and class attack (+1 on archers), priest range,
+house HP across ages, farm food (resource 36: 375), Storage Pit tech costs (-40%). Multiplying the research time
+resource (86) did nothing: Toolworking wasn't faster.

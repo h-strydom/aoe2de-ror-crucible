@@ -1,24 +1,12 @@
-"""Test: the newly compiled stats work in game. Boons researched for free at the start, chosen where the compile is a
-guess (not copied from one of RoR's own bonuses) or where the result is easy to see."""
+"""Test: research speed, the one compiled stat that failed (multiplying resource 86). Researched for free at the start;
+the rest are confirmed."""
 
 from crucible.bonuses import catalogue
 
 NAME = "compiled"
-BOONS = (
-    "shang_1",  # Villagers -10 food cost: food cost attribute (guess)
-    "shang_5",  # Town Centers +4 population room: first resource storage (guess)
-    "hittites_6",  # Towers +4 population room (guess)
-    "palmyrans_2",  # Villagers +1 melee armour: class armour
-    "palmyrans_3",  # Villagers +1 pierce armour
-    "hittites_1",  # Archers +1 attack: class attack
-    "egyptians_5",  # Priests +3 range, and line of sight
-    "macedonians_5",  # Houses +50 HP: buildings in every age
-    "sumerians_3",  # Farms +125 food
-    "choson_6",  # Storage Pit technologies -40% cost: tech costs
-    "palmyrans_9",  # +30% research speed (guess)
-)
+BOONS = ("palmyrans_9",)  # +30% research speed: the research time resource set, as Palmyrans do
 BUTTONS: dict[str, int] = {}
-UNITS = ("villager", "villager", "bowman", "priest", "sentry_tower", "house", "storage_pit")
+UNITS = ("villager", "storage_pit")
 
 
 def setup(s, ctx, techs: dict[str, int], top: int) -> str:
@@ -45,7 +33,6 @@ rule crucibleCompiledStart
     boons = "; ".join(catalogue.by_id(boon).description for boon in BOONS)
 
     return (
-        f"COMPILED STATS, researched for free at the start: {boons}. Look at the villagers (cost at the Town "
-        "Center, armour), the population cap (Town Center and the tower each +4), the bowman's attack, the priest's "
-        "range, the house's HP (and after Tool Age), a new farm's food, Storage Pit tech costs and research times."
+        f"RESEARCH SPEED, researched for free at the start: {boons}. Toolworking at the Storage Pit takes 40 s "
+        "normally: it should take about 31 s (time it, or compare the progress bar with a 40 s count)."
     )

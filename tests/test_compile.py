@@ -49,3 +49,7 @@ def test_player_resources(data):
     assert compiled("babylonians_7", data) == [(6, 195, -1, -1, 1.1)]  # construction rate
     assert compiled("macedonians_4", data) == [(1, 77, 0, -1, 4.0)]  # conversion resistance set to 4
     assert compiled("sumerians_3", data) == [(1, 36, 1, -1, 125.0)]  # farm food
+
+
+def test_research_speed_like_palmyrans(data):
+    assert compiled("palmyrans_9", data) == [(1, 86, 0, -1, 0.7692)]  # research time set to 1/1.3
