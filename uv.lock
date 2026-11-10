@@ -30,8 +30,8 @@ wheels = [
 
 [[package]]
 name = "aoe-agent-editor"
-version = "0.6.0"
-source = { git = "https://github.com/h-strydom/aoe-agent-editor?rev=v0.6.0#9b5614751f86076aa79cbc5c2867aa6416b60b8c" }
+version = "0.17.0"
+source = { git = "https://github.com/h-strydom/aoe-agent-editor?rev=v0.17.0#8170bd99cbd747df61011398390987b3c821cd2e" }
 dependencies = [
     { name = "aoe2scenarioparser" },
     { name = "mcp" },
@@ -57,7 +57,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aoe-agent-editor", git = "https://github.com/h-strydom/aoe-agent-editor?rev=v0.6.0" },
+    { name = "aoe-agent-editor", git = "https://github.com/h-strydom/aoe-agent-editor?rev=v0.17.0" },
     { name = "genieutils-py", specifier = ">=0.1.2" },
     { name = "pydantic", specifier = ">=2.14" },
 ]

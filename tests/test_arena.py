@@ -10,6 +10,7 @@ def test_arena_centres_the_wonder_and_copies_the_bases(tmp_path):
         units = o.scenario.unit_manager.units
         wonder = next(u for u in units[arena.HUMAN] if u.unit_const == arena.WONDER)
         assert (wonder.x, wonder.y) == (109.5, 109.5)  # the centre tile of a 220 map
+        assert o.scenario.sections["FileHeader"].unknown_numbers == [11]  # RoR's data set, or the game won't load it
 
         layout = SESSIONS.open(arena.LAYOUT)
         enemy = [u for u in layout.scenario.unit_manager.units[1] if u.x <= arena.ENEMY[2] + 1]
