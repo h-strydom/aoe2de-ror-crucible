@@ -23,6 +23,8 @@ def main(argv: list[str] | None = None) -> int:
         help="a test to include (repeatable; all registered tests if none): see scenarios/checks/",
     )
     check.add_argument("--install", action="store_true", help="install the data mod and the scenario")
+    arena = sub.add_parser("arena", help="build crucible_arena, the run map, from assets/map_crucible.aoe2scenario")
+    arena.add_argument("--install", action="store_true", help="install the scenario")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -46,6 +48,19 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.install:
             print(f"installed: {build.install(folder)}")
+            print(f"installed: {game.install(scenario, game='ror')['installed']}")
+
+        return 0
+
+    if args.command == "arena":
+        from aoe2ed import game
+
+        from crucible.scenarios import arena as arena_scenario
+
+        scenario = arena_scenario.build(OUT)
+        print(scenario)
+
+        if args.install:
             print(f"installed: {game.install(scenario, game='ror')['installed']}")
 
         return 0
