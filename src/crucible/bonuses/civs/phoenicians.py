@@ -8,7 +8,7 @@ Team Bonus:
 Archers +2 line of sight
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.PHOENICIANS,
         name="Phoenicians 1",
         icon=Icon.WOOD,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(2),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.PHOENICIANS,
         name="Phoenicians 2",
         icon=Icon.WOOD,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.25),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.PHOENICIANS,
         name="Phoenicians 3",
         icon=Icon.ELEPHANT,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.33),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.PHOENICIANS,
         name="Phoenicians 4",
         icon=Icon.SHIP,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(150),
@@ -55,6 +59,7 @@ MODIFIERS = (
         civ=Civ.PHOENICIANS,
         name="Phoenicians 5",
         icon=Icon.DOCK,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(4),
@@ -64,6 +69,7 @@ MODIFIERS = (
         civ=Civ.PHOENICIANS,
         name="Phoenicians 6",
         icon=Icon.DOCK,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(2),
@@ -73,5 +79,6 @@ MODIFIERS = (
         civ=Civ.PHOENICIANS,
         name="Phoenicians 7",
         icon=Icon.ARCHER,
+        rarity=Rarity.COMMON,
     ),
 )

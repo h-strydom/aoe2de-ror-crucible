@@ -72,9 +72,11 @@ class DataMod:
         location: int,
         button: int,
         research_time: int,
+        costs: list[tuple[int, int]] = (),
     ) -> int:
-        """Add a free tech for any civ, with no prerequisites, researched at `location` (a unit id) on `button`;
-        `title` and `tooltip` are shipped as strings. Returns its id."""
+        """Add a tech for any civ, with no prerequisites, researched at `location` (a unit id) on `button`; `costs`
+        are up to three (resource id, amount) pairs, free if empty. `title` and `tooltip` are shipped as strings.
+        Returns its id."""
         title_id, tooltip_id = self.strings.add(title), self.strings.add(tooltip)
 
         tech = copy.deepcopy(self._template())
@@ -86,8 +88,8 @@ class DataMod:
         tech.language_dll_help, tech.language_dll_tech_tree = tooltip_id, tooltip_id
         tech.icon_id = icon
 
-        for cost in tech.resource_costs:
-            cost.type, cost.amount, cost.flag = -1, 0, 0
+        for slot, cost in enumerate(tech.resource_costs):
+            cost.type, cost.amount, cost.flag = (*costs[slot], 1) if slot < len(costs) else (-1, 0, 0)
 
         research = tech.research_locations[0]
         research.location_id, research.button_id, research.research_time = location, button, research_time

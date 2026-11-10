@@ -8,7 +8,7 @@ Team Bonus:
 Town centers provide +4 population room
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.SHANG,
         name="Shang 1",
         icon=Icon.VILLAGER,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(-40),
@@ -27,6 +28,7 @@ MODIFIERS = (
         civ=Civ.SHANG,
         name="Shang 2",
         icon=Icon.FOOD,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.6),
@@ -36,6 +38,7 @@ MODIFIERS = (
         civ=Civ.SHANG,
         name="Shang 3",
         icon=Icon.WALL,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.1),
@@ -45,6 +48,7 @@ MODIFIERS = (
         civ=Civ.SHANG,
         name="Shang 4",
         icon=Icon.CAVALRY,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(4),
@@ -54,5 +58,6 @@ MODIFIERS = (
         civ=Civ.SHANG,
         name="Shang 5",
         icon=Icon.TOWN_CENTER,
+        rarity=Rarity.COMMON,
     ),
 )

@@ -8,7 +8,7 @@ Team Bonus:
 Markets cost -50%
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.GREEKS,
         name="Greeks 1",
         icon=Icon.TOWN_CENTER,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.3),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.GREEKS,
         name="Greeks 2",
         icon=Icon.ACADEMY,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(-0.2),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.GREEKS,
         name="Greeks 3",
         icon=Icon.ACADEMY,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.2),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.GREEKS,
         name="Greeks 4",
         icon=Icon.SHIP,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-1),
@@ -55,6 +59,7 @@ MODIFIERS = (
         civ=Civ.GREEKS,
         name="Greeks 5",
         icon=Icon.TEMPLE,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.5),
@@ -64,5 +69,6 @@ MODIFIERS = (
         civ=Civ.GREEKS,
         name="Greeks 6",
         icon=Icon.MARKET,
+        rarity=Rarity.COMMON,
     ),
 )

@@ -8,7 +8,7 @@ Team Bonus:
 Stables work 20% faster
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.PERSIANS,
         name="Persians 1",
         icon=Icon.FOOD,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(3),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.PERSIANS,
         name="Persians 2",
         icon=Icon.FOOD,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.25),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.PERSIANS,
         name="Persians 3",
         icon=Icon.ELEPHANT,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.33),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.PERSIANS,
         name="Persians 4",
         icon=Icon.SHIP,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.2),
@@ -55,6 +59,7 @@ MODIFIERS = (
         civ=Civ.PERSIANS,
         name="Persians 5",
         icon=Icon.WALL,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.2),
@@ -64,5 +69,6 @@ MODIFIERS = (
         civ=Civ.PERSIANS,
         name="Persians 6",
         icon=Icon.STABLE,
+        rarity=Rarity.COMMON,
     ),
 )

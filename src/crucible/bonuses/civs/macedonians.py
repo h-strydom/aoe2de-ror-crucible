@@ -8,7 +8,7 @@ Team Bonus:
 Houses +50 HP
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.MACEDONIANS,
         name="Macedonians 1",
         icon=Icon.INFANTRY,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(2),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.MACEDONIANS,
         name="Macedonians 2",
         icon=Icon.ACADEMY,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(-0.25),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.MACEDONIANS,
         name="Macedonians 3",
         icon=Icon.SIEGE,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(3),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.MACEDONIANS,
         name="Macedonians 4",
         icon=Icon.TEMPLE,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(50),
@@ -55,5 +59,6 @@ MODIFIERS = (
         civ=Civ.MACEDONIANS,
         name="Macedonians 5",
         icon=Icon.HOUSE,
+        rarity=Rarity.COMMON,
     ),
 )

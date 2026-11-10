@@ -9,7 +9,7 @@ Team Bonus:
 Technologies researched 30% faster
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -20,6 +20,7 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 1",
         icon=Icon.VILLAGER,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(1),
@@ -29,6 +30,7 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 2",
         icon=Icon.VILLAGER,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(1),
@@ -38,6 +40,7 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 3",
         icon=Icon.VILLAGER,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.25),
@@ -47,6 +50,7 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 4",
         icon=Icon.VILLAGER,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=flat(75),
@@ -55,6 +59,7 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 5",
         icon=Icon.FOOD,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.25),
@@ -64,6 +69,7 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 6",
         icon=Icon.CAMEL,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-1),
@@ -72,6 +78,7 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 7",
         icon=Icon.TRADE,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.2),
@@ -81,6 +88,7 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 8",
         icon=Icon.TRADE,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.3),
@@ -89,5 +97,6 @@ MODIFIERS = (
         civ=Civ.PALMYRANS,
         name="Palmyrans 9",
         icon=Icon.TECHNOLOGY,
+        rarity=Rarity.LEGENDARY,
     ),
 )

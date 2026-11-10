@@ -8,7 +8,7 @@ Team Bonus:
 Town Centers cost -25%
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.SUMERIANS,
         name="Sumerians 1",
         icon=Icon.VILLAGER,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.45),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.SUMERIANS,
         name="Sumerians 2",
         icon=Icon.SIEGE,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(125),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.SUMERIANS,
         name="Sumerians 3",
         icon=Icon.FARM,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(1),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.SUMERIANS,
         name="Sumerians 4",
         icon=Icon.CAMEL,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.25),
@@ -55,5 +59,6 @@ MODIFIERS = (
         civ=Civ.SUMERIANS,
         name="Sumerians 5",
         icon=Icon.TOWN_CENTER,
+        rarity=Rarity.COMMON,
     ),
 )

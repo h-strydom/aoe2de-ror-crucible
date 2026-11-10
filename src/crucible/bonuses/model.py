@@ -196,6 +196,37 @@ class Stat(StrEnum):
     TRIBUTE_TAX = "tribute tax"
 
 
+class Rarity(StrEnum):
+    """How good a boon is: it sets the price, and how often a boon is offered (rarity points)."""
+
+    COMMON = "common"
+    RARE = "rare"
+    LEGENDARY = "legendary"
+
+
+class Cost(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    food: int = 0
+    wood: int = 0
+    stone: int = 0
+    gold: int = 0
+
+    def items(self) -> list[tuple[int, int]]:
+        """(resource id, amount) for each resource it costs: food 0, wood 1, stone 2, gold 3."""
+        amounts = (self.food, self.wood, self.stone, self.gold)
+
+        return [(resource, amount) for resource, amount in enumerate(amounts) if amount]
+
+
+# What a boon costs by rarity: one place to tune every price.
+RARITY_COSTS: dict[Rarity, Cost] = {
+    Rarity.COMMON: Cost(food=250),
+    Rarity.RARE: Cost(food=250, gold=100),
+    Rarity.LEGENDARY: Cost(gold=300),
+}
+
+
 class Mode(StrEnum):
     PERCENT = "%"  # pct(0.25): 25% more
     FLAT = "+"  # flat(50): fifty more
@@ -256,7 +287,8 @@ class Modifier(BaseModel):
 
     What it applies to: `targets` (RoR object names: units, buildings), `groups` (classes and villager jobs) and
     `techs` (RoR tech names); all empty for player-wide changes. Names are checked against the game's tables when
-    the modifier is made. `name` is the upgrade's title ("Carthaginians 1") and `icon` its button picture; the
+    the modifier is made. `name` is the upgrade's title ("Carthaginians 1"), `icon` its button picture and `rarity`
+    sets its price (RARITY_COSTS) and how often it's offered; the
     description is written from the definition, so it follows any change to the numbers or targets. `subject`
     names a long list in short ("Storage Pit technologies") for the description; the change and stat stay live.
     """
@@ -272,6 +304,7 @@ class Modifier(BaseModel):
     civ: Civ
     name: str
     icon: Icon
+    rarity: Rarity
     subject: str | None = None
 
     @model_validator(mode="after")
@@ -290,6 +323,10 @@ class Modifier(BaseModel):
     def id(self) -> str:
         """Stable key from the name: "Carthaginians 1" is "carthaginians_1"."""
         return self.name.lower().replace(" ", "_")
+
+    @property
+    def cost(self) -> Cost:
+        return RARITY_COSTS[self.rarity]
 
     @property
     def description(self) -> str:
@@ -318,4 +355,4 @@ class Modifier(BaseModel):
         return category in self.groups
 
     def __str__(self) -> str:
-        return f"{self.name}: {self.description} [{', '.join(self.tags)}] {self.icon} icon"
+        return f"{self.name} ({self.rarity}): {self.description} [{', '.join(self.tags)}] {self.icon} icon"

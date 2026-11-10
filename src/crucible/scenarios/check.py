@@ -50,12 +50,12 @@ def _upgrades(s, modifiers: list[Modifier]) -> str:
             for n in range(3):
                 _add(s, target, 14 + k * 4 + n, y)
 
-        rows.append(f"  {button}. {modifier.name}: {modifier.description}")
+        rows.append(f"  {button}. {modifier.name} ({modifier.rarity}): {modifier.description}")
 
     return (
-        "UPGRADES on the Wonder (top left), free, 10 s each. Each row of units beside it is what an upgrade "
-        "affects: check them, research it, check again. Do the buttons show these names, tooltips and icons?\n"
-        + "\n".join(rows)
+        "UPGRADES on the Wonder (top left), priced by rarity and slow to research. Each row of units beside it is "
+        "what an upgrade affects: check them, research it, check again. Do the buttons show these names, tooltips "
+        "(with the cost) and icons?\n" + "\n".join(rows)
     )
 
 
@@ -69,7 +69,16 @@ def build(out: Path) -> Path:
             player_set(
                 o.handle,
                 1,
-                {"civilization": "GREEK", "starting_age": "IMPERIAL", "human": True, "population_cap": 200},
+                {
+                    "civilization": "GREEK",
+                    "starting_age": "IMPERIAL",
+                    "human": True,
+                    "population_cap": 200,
+                    "food": 5000,
+                    "wood": 5000,
+                    "stone": 5000,
+                    "gold": 5000,
+                },
             )
 
             options_set(o.handle, {"victory_condition": "CUSTOM"})

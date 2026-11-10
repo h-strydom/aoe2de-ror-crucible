@@ -9,7 +9,7 @@ Team Bonus:
 Academies work 20% faster
 """
 
-from crucible.bonuses.model import Civ, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 1",
         icon=Icon.FARM,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.25),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 2",
         icon=Icon.ACADEMY,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.25),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 3",
         icon=Icon.ELEPHANT,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.15),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 4",
         icon=Icon.CAMEL,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.25),
@@ -55,6 +59,7 @@ MODIFIERS = (
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 5",
         icon=Icon.SHIP,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.25),
@@ -64,6 +69,7 @@ MODIFIERS = (
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 6",
         icon=Icon.TRANSPORT,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-1),
@@ -73,6 +79,7 @@ MODIFIERS = (
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 7",
         icon=Icon.GOVERNMENT_CENTER,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.2),
@@ -82,5 +89,6 @@ MODIFIERS = (
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 8",
         icon=Icon.ACADEMY,
+        rarity=Rarity.COMMON,
     ),
 )

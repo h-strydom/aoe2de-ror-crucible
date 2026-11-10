@@ -9,7 +9,7 @@ Team Bonus:
 Builders work 10% faster
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -20,6 +20,7 @@ MODIFIERS = (
         civ=Civ.BABYLONIANS,
         name="Babylonians 1",
         icon=Icon.STONE,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(2),
@@ -29,6 +30,7 @@ MODIFIERS = (
         civ=Civ.BABYLONIANS,
         name="Babylonians 2",
         icon=Icon.STONE,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.3),
@@ -51,6 +53,7 @@ MODIFIERS = (
         name="Babylonians 3",
         subject="Market technologies",
         icon=Icon.MARKET,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(0.6),
@@ -60,6 +63,7 @@ MODIFIERS = (
         civ=Civ.BABYLONIANS,
         name="Babylonians 4",
         icon=Icon.TOWER,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(0.3),
@@ -69,6 +73,7 @@ MODIFIERS = (
         civ=Civ.BABYLONIANS,
         name="Babylonians 5",
         icon=Icon.PRIEST,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(1),
@@ -78,6 +83,7 @@ MODIFIERS = (
         civ=Civ.BABYLONIANS,
         name="Babylonians 6",
         icon=Icon.CHARIOT,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.1),
@@ -87,5 +93,6 @@ MODIFIERS = (
         civ=Civ.BABYLONIANS,
         name="Babylonians 7",
         icon=Icon.VILLAGER,
+        rarity=Rarity.COMMON,
     ),
 )

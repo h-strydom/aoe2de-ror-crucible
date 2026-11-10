@@ -5,7 +5,7 @@ import pytest
 from crucible.bonuses import catalogue
 from crucible.bonuses.civs import CIVS
 from crucible.bonuses.compile import commands
-from crucible.bonuses.model import Civ, Game, Group, Icon, Modifier, Stat, Tag, flat, pct, plural
+from crucible.bonuses.model import RARITY_COSTS, Civ, Game, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct, plural
 
 
 def test_every_civ_is_covered():
@@ -103,7 +103,14 @@ def test_civs_know_their_game():
 
 
 def test_typos_are_caught():
-    base = {"change": pct(0.1), "stat": Stat.HP, "civ": Civ.GREEKS, "name": "Greeks 99", "icon": Icon.ACADEMY}
+    base = {
+        "change": pct(0.1),
+        "stat": Stat.HP,
+        "civ": Civ.GREEKS,
+        "name": "Greeks 99",
+        "icon": Icon.ACADEMY,
+        "rarity": Rarity.COMMON,
+    }
     with pytest.raises(ValueError, match="unknown ror names"):
         Modifier(**base, targets=("hoplight",), tags=())
     with pytest.raises(ValueError, match="unknown ror names"):
@@ -114,3 +121,19 @@ def test_typos_are_caught():
         Modifier(**base, groups=("Archerz",), tags=())
     with pytest.raises(TypeError):
         Modifier(pct(0.1), Stat.HP, (), (), Civ.GREEKS, "Positional")  # keyword arguments only
+
+
+def test_every_boon_has_a_rarity_and_its_cost():
+    assert {m.rarity for m in catalogue.ALL} == set(Rarity)
+    assert all(m.cost == RARITY_COSTS[m.rarity] for m in catalogue.ALL)
+
+
+def test_rarity_rules():
+    by = catalogue.by_id
+    assert all(m.rarity is Rarity.COMMON for m in catalogue.query(Tag.SHIP))  # little water on the maps
+    assert by("assyrians_2").rarity is Rarity.LEGENDARY  # an age-scaled bonus, Iron Age value
+    assert by("hittites_1").rarity is Rarity.LEGENDARY  # all archers
+    assert by("carthaginians_4").rarity is Rarity.COMMON  # only camels
+    assert by("egyptians_3").rarity is Rarity.COMMON  # +2 carry
+    assert by("carthaginians_7").rarity is Rarity.COMMON  # a free tech worth 295
+    assert by("yamato_4").rarity is Rarity.LEGENDARY  # all stable and range upgrades

@@ -8,7 +8,7 @@ Team Bonus:
 Stables and Archery Ranges cost -33% wood
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.YAMATO,
         name="Yamato 1",
         icon=Icon.FISH,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.15),
@@ -29,6 +30,7 @@ MODIFIERS = (
         civ=Civ.YAMATO,
         name="Yamato 2",
         icon=Icon.CAVALRY,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(0.25),
@@ -38,6 +40,7 @@ MODIFIERS = (
         civ=Civ.YAMATO,
         name="Yamato 3",
         icon=Icon.SHIP,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.3),
@@ -62,6 +65,7 @@ MODIFIERS = (
         name="Yamato 4",
         subject="Stable and Archery Range upgrades",
         icon=Icon.STABLE,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(-0.33),
@@ -71,5 +75,6 @@ MODIFIERS = (
         civ=Civ.YAMATO,
         name="Yamato 5",
         icon=Icon.STABLE,
+        rarity=Rarity.COMMON,
     ),
 )

@@ -7,7 +7,7 @@ Team Bonus:
 Houses and farms built 50% faster
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -18,6 +18,7 @@ MODIFIERS = (
         civ=Civ.LAC_VIET,
         name="Lac Viet 1",
         icon=Icon.FOOD,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.25),
@@ -27,6 +28,7 @@ MODIFIERS = (
         civ=Civ.LAC_VIET,
         name="Lac Viet 2",
         icon=Icon.BARRACKS,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=flat(2),
@@ -46,6 +48,7 @@ MODIFIERS = (
         name="Lac Viet 3",
         subject="Archery Range units and Ballistas",
         icon=Icon.ARCHER,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(0.5),
@@ -55,5 +58,6 @@ MODIFIERS = (
         civ=Civ.LAC_VIET,
         name="Lac Viet 4",
         icon=Icon.HOUSE,
+        rarity=Rarity.COMMON,
     ),
 )

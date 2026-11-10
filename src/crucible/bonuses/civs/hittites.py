@@ -8,7 +8,7 @@ Team Bonus:
 Towers provide +4 population room
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.HITTITES,
         name="Hittites 1",
         icon=Icon.ARCHER,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(0.5),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.HITTITES,
         name="Hittites 2",
         icon=Icon.SIEGE,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(3),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.HITTITES,
         name="Hittites 3",
         icon=Icon.SHIP,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.5),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.HITTITES,
         name="Hittites 4",
         icon=Icon.MARKET,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(-0.5),
@@ -55,6 +59,7 @@ MODIFIERS = (
         civ=Civ.HITTITES,
         name="Hittites 5",
         icon=Icon.MARKET,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(4),
@@ -64,5 +69,6 @@ MODIFIERS = (
         civ=Civ.HITTITES,
         name="Hittites 6",
         icon=Icon.TOWER,
+        rarity=Rarity.RARE,
     ),
 )

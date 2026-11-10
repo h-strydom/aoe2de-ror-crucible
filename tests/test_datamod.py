@@ -16,7 +16,9 @@ def test_one_upgrade_becomes_a_wonder_tech(tmp_path):
     tech = data.techs[tech_id]
     location = tech.research_locations[0]
     assert (location.location_id, location.button_id) == (upgrades.WONDER, 1)
-    assert all(cost.type == -1 for cost in tech.resource_costs)  # free
+    costs = [(cost.type, cost.amount) for cost in tech.resource_costs if cost.type >= 0]
+    assert costs == camel.cost.items() == [(0, 250)]  # common: 250 food
+    assert location.research_time == upgrades.RESEARCH_TIME
     effect = [(c.type, c.a, c.c, round(c.d, 3)) for c in data.effects[tech.effect_id].effect_commands]
     assert effect == [(5, 329, 0, 1.15)]  # Camel Rider HP x1.15
     for strings_dir in strings.STRINGS_DIRS:

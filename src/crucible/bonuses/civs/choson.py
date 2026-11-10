@@ -8,7 +8,7 @@ Team Bonus:
 Buildings +2 line of sight
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.CHOSON,
         name="Choson 1",
         icon=Icon.INFANTRY,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(15),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.CHOSON,
         name="Choson 2",
         icon=Icon.INFANTRY,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(20),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.CHOSON,
         name="Choson 3",
         icon=Icon.INFANTRY,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(60),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.CHOSON,
         name="Choson 4",
         icon=Icon.INFANTRY,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(80),
@@ -55,6 +59,7 @@ MODIFIERS = (
         civ=Civ.CHOSON,
         name="Choson 5",
         icon=Icon.INFANTRY,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(-0.4),
@@ -81,6 +86,7 @@ MODIFIERS = (
         name="Choson 6",
         subject="Storage Pit technologies",
         icon=Icon.STORAGE_PIT,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=flat(2),
@@ -90,6 +96,7 @@ MODIFIERS = (
         civ=Civ.CHOSON,
         name="Choson 7",
         icon=Icon.TOWER,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(-0.3),
@@ -99,6 +106,7 @@ MODIFIERS = (
         civ=Civ.CHOSON,
         name="Choson 8",
         icon=Icon.PRIEST,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(2),
@@ -108,5 +116,6 @@ MODIFIERS = (
         civ=Civ.CHOSON,
         name="Choson 9",
         icon=Icon.BUILDING,
+        rarity=Rarity.COMMON,
     ),
 )

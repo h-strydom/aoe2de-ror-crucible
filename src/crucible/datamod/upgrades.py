@@ -9,7 +9,8 @@ from crucible.bonuses.model import Modifier
 from crucible.datamod.icons import icon_id
 from crucible.datamod.mod import DataMod
 
-WONDER, RESEARCH_TIME = 276, 10
+WONDER = 276
+RESEARCH_TIME = 60  # boons take long to research: tune here
 
 
 def tooltip(modifier: Modifier) -> str:
@@ -17,7 +18,8 @@ def tooltip(modifier: Modifier) -> str:
 
 
 def add(mod: DataMod, modifiers: list[Modifier]) -> None:
-    """One free tech per modifier, at the Wonder (buttons from 1); the manifest maps modifier id to tech id."""
+    """One tech per modifier at the Wonder (buttons from 1), priced by its rarity; the manifest maps modifier id to
+    tech id."""
     for index, modifier in enumerate(modifiers):
         effect = mod.new_effect(f"Crucible {modifier.id}", commands(modifier))
 
@@ -30,4 +32,5 @@ def add(mod: DataMod, modifiers: list[Modifier]) -> None:
             location=WONDER,
             button=index + 1,
             research_time=RESEARCH_TIME,
+            costs=modifier.cost.items(),
         )

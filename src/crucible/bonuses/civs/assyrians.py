@@ -7,7 +7,7 @@ Team Bonus:
 Siege Workshops work 20% faster
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, pct
 
 MODIFIERS = (
     Modifier(
@@ -18,6 +18,7 @@ MODIFIERS = (
         civ=Civ.ASSYRIANS,
         name="Assyrians 1",
         icon=Icon.VILLAGER,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.33),
@@ -27,6 +28,7 @@ MODIFIERS = (
         civ=Civ.ASSYRIANS,
         name="Assyrians 2",
         icon=Icon.ARCHER,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(-0.5),
@@ -37,6 +39,7 @@ MODIFIERS = (
         name="Assyrians 3",
         subject="Siege Workshop upgrades",
         icon=Icon.SIEGE,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(0.2),
@@ -46,5 +49,6 @@ MODIFIERS = (
         civ=Civ.ASSYRIANS,
         name="Assyrians 4",
         icon=Icon.SIEGE_WORKSHOP,
+        rarity=Rarity.COMMON,
     ),
 )

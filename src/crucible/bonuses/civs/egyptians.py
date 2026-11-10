@@ -8,7 +8,7 @@ Team Bonus:
 Priests +1P Armor
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -19,6 +19,7 @@ MODIFIERS = (
         civ=Civ.EGYPTIANS,
         name="Egyptians 1",
         icon=Icon.FARM,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.2),
@@ -28,6 +29,7 @@ MODIFIERS = (
         civ=Civ.EGYPTIANS,
         name="Egyptians 2",
         icon=Icon.GOLD,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(2),
@@ -37,6 +39,7 @@ MODIFIERS = (
         civ=Civ.EGYPTIANS,
         name="Egyptians 3",
         icon=Icon.GOLD,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.33),
@@ -46,6 +49,7 @@ MODIFIERS = (
         civ=Civ.EGYPTIANS,
         name="Egyptians 4",
         icon=Icon.CHARIOT,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(3),
@@ -55,6 +59,7 @@ MODIFIERS = (
         civ=Civ.EGYPTIANS,
         name="Egyptians 5",
         icon=Icon.PRIEST,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=flat(1),
@@ -64,5 +69,6 @@ MODIFIERS = (
         civ=Civ.EGYPTIANS,
         name="Egyptians 6",
         icon=Icon.PRIEST,
+        rarity=Rarity.COMMON,
     ),
 )

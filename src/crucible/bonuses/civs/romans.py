@@ -8,7 +8,7 @@ Team Bonus:
 Priests +50% heal speed
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -35,6 +35,7 @@ MODIFIERS = (
         name="Romans 1",
         subject="Buildings (except towers, walls and Wonders)",
         icon=Icon.BUILDING,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(-0.4),
@@ -44,6 +45,7 @@ MODIFIERS = (
         civ=Civ.ROMANS,
         name="Romans 2",
         icon=Icon.TOWER,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(0.5),
@@ -53,6 +55,7 @@ MODIFIERS = (
         civ=Civ.ROMANS,
         name="Romans 3",
         icon=Icon.INFANTRY,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=flat(1),
@@ -62,6 +65,7 @@ MODIFIERS = (
         civ=Civ.ROMANS,
         name="Romans 4",
         icon=Icon.SIEGE,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=pct(0.5),
@@ -71,5 +75,6 @@ MODIFIERS = (
         civ=Civ.ROMANS,
         name="Romans 5",
         icon=Icon.PRIEST,
+        rarity=Rarity.COMMON,
     ),
 )

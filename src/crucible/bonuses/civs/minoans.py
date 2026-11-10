@@ -7,7 +7,7 @@ Team Bonus:
 Docks cost -20%
 """
 
-from crucible.bonuses.model import Civ, Group, Icon, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -18,6 +18,7 @@ MODIFIERS = (
         civ=Civ.MINOANS,
         name="Minoans 1",
         icon=Icon.SHIP,
+        rarity=Rarity.COMMON,
     ),
     Modifier(
         change=flat(2),
@@ -27,6 +28,7 @@ MODIFIERS = (
         civ=Civ.MINOANS,
         name="Minoans 2",
         icon=Icon.ARCHER,
+        rarity=Rarity.LEGENDARY,
     ),
     Modifier(
         change=pct(0.1),
@@ -36,6 +38,7 @@ MODIFIERS = (
         civ=Civ.MINOANS,
         name="Minoans 3",
         icon=Icon.FARM,
+        rarity=Rarity.RARE,
     ),
     Modifier(
         change=pct(-0.2),
@@ -45,5 +48,6 @@ MODIFIERS = (
         civ=Civ.MINOANS,
         name="Minoans 4",
         icon=Icon.DOCK,
+        rarity=Rarity.COMMON,
     ),
 )
