@@ -8,7 +8,7 @@
 Team Bonus: Academies work 20% faster
 """
 
-from crucible.bonuses.model import Civ, Kind, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Icon, Kind, Modifier, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
@@ -17,7 +17,9 @@ MODIFIERS = (
         targets=(),
         tags=(Tag.ECONOMY,),
         civ=Civ.CARTHAGINIANS,
-        name="Start resources",
+        name="Carthaginians 1",
+        description="Gain 50 of all resources",
+        icon=Icon.FARM,
     ),
     Modifier(
         change=pct(0.25),
@@ -25,7 +27,9 @@ MODIFIERS = (
         targets=("hoplite", "phalangite", "centurion"),
         tags=(Tag.ACADEMY, Tag.INFANTRY),
         civ=Civ.CARTHAGINIANS,
-        name="Academy HP",
+        name="Carthaginians 2",
+        description="Academy units have 25% more hit points",
+        icon=Icon.ACADEMY,
     ),
     Modifier(
         change=pct(0.25),
@@ -33,7 +37,9 @@ MODIFIERS = (
         targets=("war_elephant", "armored_elephant", "elephant_archer"),
         tags=(Tag.ELEPHANT, Tag.STABLE, Tag.ARCHERY_RANGE),
         civ=Civ.CARTHAGINIANS,
-        name="Elephant HP",
+        name="Carthaginians 3",
+        description="Elephant units have 25% more hit points",
+        icon=Icon.ELEPHANT,
     ),
     Modifier(
         change=pct(0.15),
@@ -41,7 +47,9 @@ MODIFIERS = (
         targets=("camel_rider",),
         tags=(Tag.CAMEL, Tag.CAVALRY, Tag.STABLE),
         civ=Civ.CARTHAGINIANS,
-        name="Camel HP",
+        name="Carthaginians 4",
+        description="Camel Riders have 15% more hit points",
+        icon=Icon.CAMEL,
     ),
     Modifier(
         change=pct(0.25),
@@ -49,7 +57,9 @@ MODIFIERS = (
         targets=("fire_galley",),
         tags=(Tag.SHIP, Tag.DOCK),
         civ=Civ.CARTHAGINIANS,
-        name="Fire Galley attack",
+        name="Carthaginians 5",
+        description="Fire Galleys have 25% more attack",
+        icon=Icon.SHIP,
     ),
     Modifier(
         change=pct(0.25),
@@ -57,7 +67,9 @@ MODIFIERS = (
         targets=("light_transport", "heavy_transport"),
         tags=(Tag.SHIP, Tag.TRANSPORT, Tag.DOCK),
         civ=Civ.CARTHAGINIANS,
-        name="Transport speed",
+        name="Carthaginians 6",
+        description="Transport ships move 25% faster",
+        icon=Icon.TRANSPORT,
     ),
     Modifier(
         change=pct(-1),
@@ -65,7 +77,9 @@ MODIFIERS = (
         targets=("nobility",),
         tags=(Tag.GOVERNMENT_CENTER, Tag.ECONOMY),
         civ=Civ.CARTHAGINIANS,
-        name="Free Nobility",
+        name="Carthaginians 7",
+        description="Nobility is free",
+        icon=Icon.GOVERNMENT_CENTER,
     ),
     Modifier(
         change=pct(0.2),
@@ -73,7 +87,9 @@ MODIFIERS = (
         targets=("academy",),
         tags=(Tag.ACADEMY,),
         civ=Civ.CARTHAGINIANS,
-        name="Academies work faster",
+        name="Carthaginians 8",
+        description="Your team's Academies work 20% faster",
+        icon=Icon.ACADEMY,
         kind=Kind.TEAM,
     ),
 )
