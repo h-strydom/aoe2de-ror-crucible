@@ -32,16 +32,24 @@ def test_boons_become_techs_placed_or_not(tmp_path):
         assert "Camel Riders +15% HP" in text
 
 
-def test_choices_sit_on_row_3(tmp_path):
-    folder = build.build([], tmp_path)
+def test_choice_pairs_and_trainer(tmp_path):
+    folder = build.build([], tmp_path, choice_pairs=2, trainer=True)
     techs = build.manifest(folder)
     data = DatFile.parse(str(folder / mod.ROR_DAT / mod.DAT_FILE))
 
     for number, button in enumerate(shop.CHOICE_BUTTONS, start=1):
-        tech = data.techs[techs[shop.choice_key(number)]]
-        location = tech.research_locations[0]
-        assert (location.location_id, location.button_id, tech.repeatable) == (upgrades.WONDER, button, 1)
-        assert all(cost.type == -1 for cost in tech.resource_costs)  # free
+        first = data.techs[techs[shop.choice_key(1, number)]]
+        later = data.techs[techs[shop.choice_key(2, number)]]
+        assert (first.research_locations[0].location_id, first.research_locations[0].button_id) == (
+            upgrades.WONDER,
+            button,
+        )
+        assert later.research_locations[0].location_id == mod.NOWHERE  # placed by a trigger when its turn comes
+        assert all(cost.type == -1 for cost in first.resource_costs)  # free
+
+    trainer = data.civs[2].units[techs[shop.TRAINER]]
+    train = trainer.creatable.train_locations[0]
+    assert (train.unit_id, train.button_id, trainer.enabled) == (upgrades.WONDER, shop.TRAINER_BUTTON, 1)
 
 
 def test_every_icon_has_a_source():
@@ -51,9 +59,15 @@ def test_every_icon_has_a_source():
 
 
 def test_check_scenario_builds(tmp_path):
-    folder = build.build(check.upgrades(), tmp_path, buttons=check.PLACED)
+    folder = build.build(
+        check.upgrades(),
+        tmp_path,
+        buttons=check.PLACED,
+        choice_pairs=check.CHOICE_PAIRS,
+        trainer=True,
+    )
     techs = build.manifest(folder)
-    assert xs.check(check._choices_xs(techs))["ok"]
+    assert xs.check(check._choices_xs(techs, {check.REMOVE: 0, check.PLACE: 1, check.REENABLE: 2}))["ok"]
 
     path = check.build(tmp_path, techs)
     o = SESSIONS.open(path)

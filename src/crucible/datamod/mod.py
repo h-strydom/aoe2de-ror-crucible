@@ -101,6 +101,43 @@ class DataMod:
 
         return len(self.data.techs) - 1
 
+    def new_unit(
+        self,
+        name: str,
+        *,
+        template: str,
+        title: str,
+        location: int,
+        button: int,
+        train_time: int,
+    ) -> int:
+        """Add a free unit for every civ (a copy of `template`, a RoR object name), enabled and trained at
+        `location` on `button`; `title` is shipped as a string. Returns its id."""
+        unit_id = len(self.data.civs[0].units)
+        title_id = self.strings.add(title)
+        source_id = tables.object_id(template.upper(), "ror")
+
+        for civ in self.data.civs:
+            source = civ.units[source_id] if len(civ.units) > source_id else None
+
+            if source is None or source.creatable is None:
+                civ.units.append(None)
+                continue
+
+            unit = copy.deepcopy(source)
+            unit.id = unit.copy_id = unit.base_id = unit_id
+            unit.name, unit.language_dll_name, unit.enabled = name, title_id, 1
+
+            for cost in unit.creatable.resource_costs:
+                cost.type, cost.amount, cost.flag = -1, 0, 0
+
+            train = unit.creatable.train_locations[0]
+            train.unit_id, train.button_id, train.train_time = location, button, train_time
+            unit.creatable.train_locations = [train]
+            civ.units.append(unit)
+
+        return unit_id
+
     def write(self, out: Path) -> Path:
         """Write the mod folder under `out` (replacing an older build); returns it."""
         folder = out / MOD

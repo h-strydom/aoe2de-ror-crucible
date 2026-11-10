@@ -12,7 +12,7 @@ from aoe2ed.tools.world import options_set, player_set
 
 from crucible.bonuses import catalogue
 from crucible.bonuses.model import Modifier
-from crucible.datamod.shop import CHOICE_BUTTONS, choice_key
+from crucible.datamod.shop import CHOICE_BUTTONS, TRAINER, TRAINER_BUTTON, choice_key
 from crucible.datamod.upgrades import WONDER
 
 NAME = "crucible_check"
@@ -25,7 +25,10 @@ PLACED = {"carthaginians_4": 1}
 # A boon that starts unplaced and is moved onto the Wonder by a trigger: (id, button, seconds).
 MOVED = ("carthaginians_3", 2, 15)
 
-RENAME_EVERY = 3  # seconds between the choices' live renames
+CHOICE_PAIRS = 2
+CATEGORIES = {1: ("Stable", "Economy"), 2: ("Cavalry", "Greek")}  # the names each pair's two choices get
+GONE = 162  # a Flag: "moving a tech away" puts it on a unit no player has
+REMOVE, PLACE, REENABLE = "crucible_remove", "crucible_place", "crucible_reenable"  # trigger variables
 
 BRIEFING = """Crucible check. Pick "Crucible" as the Data Mod. The map is revealed; nothing ends the game.
 
@@ -96,70 +99,168 @@ def _moved(s, ctx, techs: dict[str, int]) -> str:
     )
 
 
-def _choices_xs(techs: dict[str, int]) -> str:
-    """Renames the two choice buttons every RENAME_EVERY seconds with a counter, and reports in chat every state
-    change of the choice techs (and each completed pick)."""
-    choices = [(number, techs[choice_key(number)]) for number in range(1, len(CHOICE_BUTTONS) + 1)]
-    labels = {1: "Stable", 2: "Economy"}
-    decls = "".join(f"int crucibleChoiceState{n} = -9;\n" for n, _ in choices)
+def _var_id(ctx, name: str) -> int:
+    """A trigger variable's number, for xsSetTriggerVariable."""
+    return next(v.variable_id for v in ctx.scenario.trigger_manager.variables if v.name == name)
 
-    renames = "".join(
-        f'    xsSetTechName({tech}, 1, "{labels[n]} boons (" + crucibleLeft + " left)");\n'
-        f'    xsSetTechDescription({tech}, 1, "Choose {labels[n]} boons. Renamed " + crucibleRenames + " times.");\n'
-        for n, tech in choices
+
+def _choice_triggers(ctx, techs: dict[str, int]) -> None:
+    """What the script asks for through trigger variables: remove a pair's other choice (pair 1 by disabling it,
+    pair 2 by moving it to a Flag, to compare the two), place the next pair, and re-enable pair 1 at the end."""
+    for name in (REMOVE, PLACE, REENABLE):
+        ctx.var(name)
+
+    for pair in range(1, CHOICE_PAIRS + 1):
+        for number in (1, 2):
+            tech = techs[choice_key(pair, number)]
+
+            if pair == 1:
+                removal = {"type": "enable_disable_technology", "source_player": 1, "technology": tech, "enabled": 0}
+            else:
+                removal = {
+                    "type": "change_technology_location",
+                    "source_player": 1,
+                    "technology": tech,
+                    "object_list_unit_id_2": GONE,
+                    "button_location": 1,
+                }
+
+            ctx.trigger(
+                f"Remove pair {pair} choice {number}",
+                [{"type": "variable_value", "variable": REMOVE, "comparison": "EQUAL", "quantity": pair * 10 + number}],
+                [removal],
+            )
+
+        if pair > 1:
+            ctx.trigger(
+                f"Place pair {pair}",
+                [{"type": "variable_value", "variable": PLACE, "comparison": "EQUAL", "quantity": pair}],
+                [
+                    {
+                        "type": "change_technology_location",
+                        "source_player": 1,
+                        "technology": techs[choice_key(pair, number)],
+                        "object_list_unit_id_2": WONDER,
+                        "button_location": button,
+                    }
+                    for number, button in enumerate(CHOICE_BUTTONS, start=1)
+                ],
+            )
+
+    ctx.trigger(
+        "Re-enable pair 1",
+        [{"type": "variable_value", "variable": REENABLE, "comparison": "EQUAL", "quantity": 1}],
+        [
+            {
+                "type": "enable_disable_technology",
+                "source_player": 1,
+                "technology": techs[choice_key(1, n)],
+                "enabled": 1,
+            }
+            for n in (1, 2)
+        ],
     )
 
-    watches = "".join(
-        f"""    state = xsGetTechState({tech}, 1);
 
-    if (state != crucibleChoiceState{n}) {{
-        xsChatData("Choice {n} state: %d", state);
-
-        if (crucibleChoiceState{n} == cTechStateResearching) {{
-            xsChatData("Choice {n} picked ({labels[n]})", 0);
-        }}
-
-        crucibleChoiceState{n} = state;
-    }}
-
-"""
-        for n, tech in choices
+def _choices_xs(techs: dict[str, int], variables: dict[str, int]) -> str:
+    """Names every pair's choices, then runs the pairs: a click locks in (the other choice is removed at once);
+    when the pick finishes, the next pair is placed; after the last, pair 1 is re-enabled (does a researched tech
+    come back?). Also removes each dummy unit the trainer makes. Chat narrates."""
+    names = "".join(
+        f'    xsSetTechName({techs[choice_key(pair, n)]}, 1, "{CATEGORIES[pair][n - 1]} boons");\n'
+        f'    xsSetTechDescription({techs[choice_key(pair, n)]}, 1, "Pair {pair}: {CATEGORIES[pair][n - 1]}.");\n'
+        for pair in CATEGORIES
+        for n in (1, 2)
+    )
+    tech_of = "".join(
+        f"    if ((pair == {pair}) && (number == {n})) {{\n        return ({techs[choice_key(pair, n)]});\n    }}\n"
+        for pair in range(1, CHOICE_PAIRS + 1)
+        for n in (1, 2)
     )
 
     return f"""// ---- crucible check: boon category choices ----
-{decls}int crucibleLeft = 13;
-int crucibleRenames = 0;
+int crucibleChoicePair = 1;
+int crucibleChoicePicked = 0;
+int crucibleTrained = 0;
 
-rule crucibleRenameChoices
-    active
-    minInterval {RENAME_EVERY}
-{{
-    crucibleRenames = crucibleRenames + 1;
+int crucibleChoiceTech(int pair = 0, int number = 0) {{
+{tech_of}    return (-1);
+}}
 
-    if (crucibleLeft > 0) {{
-        crucibleLeft = crucibleLeft - 1;
-    }}
-
-{renames}}}
-
-rule crucibleWatchChoices
+rule crucibleNameChoices
     active
     highFrequency
 {{
-    int state = 0;
+{names}    xsDisableSelf();
+}}
 
-{watches}}}
+rule crucibleRunChoices
+    active
+    highFrequency
+{{
+    int pair = crucibleChoicePair;
+
+    if (pair > {CHOICE_PAIRS}) {{
+        return;
+    }}
+
+    if (crucibleChoicePicked == 0) {{
+        for (number = 1; < 3) {{
+            int state = xsGetTechState(crucibleChoiceTech(pair, number), 1);
+
+            if ((state == cTechStateResearching) || (state == cTechStateQueued)) {{
+                crucibleChoicePicked = number;
+                xsSetTriggerVariable({variables[REMOVE]}, pair * 10 + 3 - number);
+                xsChatData("Pair %d: picked choice " + number + ", the other is removed", pair);
+            }}
+        }}
+
+        return;
+    }}
+
+    if (xsGetTechState(crucibleChoiceTech(pair, crucibleChoicePicked), 1) == cTechStateDone) {{
+        xsChatData("Pair %d: pick finished", pair);
+        crucibleChoicePicked = 0;
+        crucibleChoicePair = pair + 1;
+
+        if (pair < {CHOICE_PAIRS}) {{
+            xsSetTriggerVariable({variables[PLACE]}, pair + 1);
+            xsChatData("Pair %d placed", pair + 1);
+        }} else {{
+            xsSetTriggerVariable({variables[REENABLE]}, 1);
+            xsChatData("Re-enabling pair 1: does a button come back on 11 or 12?", 0);
+        }}
+    }}
+}}
+
+rule crucibleTrainerChoices
+    active
+    minInterval 1
+{{
+    int units = xsGetPlayerUnitIds(1, {techs[TRAINER]});
+
+    for (i = 0; < xsArrayGetSize(units)) {{
+        xsRemoveUnit(xsArrayGetInt(units, i));
+        crucibleTrained = crucibleTrained + 1;
+        xsChatData("Trainer used: %d", crucibleTrained);
+    }}
+}}
 """
 
 
 def _choices(ctx, techs: dict[str, int]) -> str:
-    ctx.xs(_choices_xs(techs))
+    _choice_triggers(ctx, techs)
+    variables = {name: _var_id(ctx, name) for name in (REMOVE, PLACE, REENABLE)}
+    ctx.xs(_choices_xs(techs, variables))
+    first, second = CATEGORIES[1], CATEGORIES[2]
 
     return (
-        f"CATEGORY CHOICES on the Wonder, row 3, buttons {CHOICE_BUTTONS[0]} and {CHOICE_BUTTONS[1]}. A script "
-        f"renames them every {RENAME_EVERY} s with a counting-down number ('Stable boons (12 left)'): do the names "
-        "and tooltips change live? Click one (free, 1 s): chat should say which you picked. Click it again: does it "
-        "work twice? Chat also shows each state change."
+        f"CATEGORY CHOICES on the Wonder, row 3 (buttons {CHOICE_BUTTONS[0]} and {CHOICE_BUTTONS[1]}): "
+        f"'{first[0]} boons' or '{first[1]} boons'. Click one: the other should vanish at once (you're locked in). "
+        f"When it finishes (1 s), a new pair, '{second[0]}' or '{second[1]}', should appear in the same spots; same "
+        "again. After that a trigger re-enables the first pair: does a button come back? Chat narrates each step.\n"
+        f"TRAINER on button {TRAINER_BUTTON}: a free dummy unit. Train it a few times: chat should count each one "
+        "and the unit should vanish. Does the button stay?"
     )
 
 

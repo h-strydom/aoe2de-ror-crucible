@@ -26,7 +26,13 @@ def main(argv: list[str] | None = None) -> int:
         from crucible.datamod import build
         from crucible.scenarios import check as check_scenario
 
-        folder = build.build(check_scenario.upgrades(), OUT, buttons=check_scenario.PLACED)
+        folder = build.build(
+            check_scenario.upgrades(),
+            OUT,
+            buttons=check_scenario.PLACED,
+            choice_pairs=check_scenario.CHOICE_PAIRS,
+            trainer=True,
+        )
         techs = build.manifest(folder)
         scenario = check_scenario.build(OUT, techs)
 
