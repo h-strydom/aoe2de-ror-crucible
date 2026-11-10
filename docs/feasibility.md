@@ -372,3 +372,7 @@ Useful XS for this: `xsGetPlayerUnitIds`, `xsGetGarrisonedUnitIds`, `xsGetUnitPo
   re-enabled and renamed to the next two categories.
 - A dummy unit trained at the Wonder (a button that never disappears) works, but it needs population room and gives
   the Wonder a gather-point button at row 3, column 1, where choice 1 sits: not used.
+- **The one-pair choice cycle works** (3 rounds): clicking one choice disables the other at once (locked in), and when
+  the pick finishes both come back with the next round's names on the same buttons. After the last round the
+  re-enable still fired, so round 3 came back with nothing locking it: the real shop must not re-enable after the
+  last pick (or disable both until the next wave).

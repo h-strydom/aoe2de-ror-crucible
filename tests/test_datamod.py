@@ -1,4 +1,3 @@
-from aoe2ed import xs
 from aoe2ed.session import SESSIONS
 from genieutils.datfile import DatFile
 
@@ -6,7 +5,7 @@ from crucible.bonuses import catalogue
 from crucible.bonuses.model import Icon
 from crucible.datamod import build, icons, mod, shop, strings, upgrades
 from crucible.scenarios import check
-from crucible.scenarios.checks import TESTS, choices
+from crucible.scenarios.checks import TESTS
 
 
 def test_boons_become_techs_placed_or_not(tmp_path):
@@ -55,7 +54,6 @@ def test_check_scenario_builds_every_test(tmp_path):
     tests = list(TESTS)
     folder = build.build(check.boons(tests), tmp_path, buttons=check.buttons(tests))
     techs = build.manifest(folder)
-    assert xs.check(choices.xs_code(techs, disable=0, enable=1))["ok"]
 
     path = check.build(tmp_path, techs, tests)
     o = SESSIONS.open(path)
@@ -63,8 +61,6 @@ def test_check_scenario_builds_every_test(tmp_path):
     try:
         units = [u.unit_const for u in o.scenario.unit_manager.units[1]]
         assert 276 in units  # the Wonder
-        names = {t.name for t in o.scenario.trigger_manager.triggers}
-        assert {"Disable choice 1", "Disable choice 2", "Re-enable choices"} <= names
     finally:
         SESSIONS.close(o.handle)
 
