@@ -25,10 +25,12 @@ def query(*categories: Category, exclude: Iterable[Category] = (), pool: Iterabl
     """The modifiers in every one of `categories` and none of `exclude`, e.g.
     query(Tag.CAVALRY, exclude=[Tag.DRAWBACK])."""
     exclude = tuple(exclude)
+
     return [m for m in pool if all(m.in_category(c) for c in categories) and not any(m.in_category(c) for c in exclude)]
 
 
 def pick(n: int, rng: random.Random, *categories: Category, exclude: Iterable[Category] = ()) -> list[Modifier]:
     """Up to `n` different modifiers at random from `query(*categories, exclude=exclude)`."""
     matches = query(*categories, exclude=exclude)
+
     return rng.sample(matches, min(n, len(matches)))

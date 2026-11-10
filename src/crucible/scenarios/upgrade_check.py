@@ -34,6 +34,7 @@ def _add(s, player: int, unit: str, x: float, y: float) -> int:
 def build(modifier: Modifier, out: Path) -> Path:
     o = SESSIONS.new(SIZE, game="ror")
     s = o.scenario
+
     try:
         with games.use("ror"):
             s.player_manager.active_players = 1
@@ -42,13 +43,17 @@ def build(modifier: Modifier, out: Path) -> Path:
                 1,
                 {"civilization": "GREEK", "starting_age": "IMPERIAL", "human": True, "population_cap": 200},
             )
+
             options_set(o.handle, {"victory_condition": "CUSTOM"})
             ctx = blocks.Ctx(s)
+
             _add(s, 1, "wonder", 12, 20)
             _add(s, 1, "town_center", 30, 30)
+
             for k, target in enumerate(modifier.targets):
                 for row in range(3):
                     _add(s, 1, target, 20 + k * 3, 16 + row * 3)
+
             ctx.trigger(
                 "Reveal map",
                 [],
@@ -62,14 +67,18 @@ def build(modifier: Modifier, out: Path) -> Path:
                     }
                 ],
             )
+
             s.message_manager.instructions = INSTRUCTIONS.format(
                 name=modifier.name,
                 description=modifier.description,
             )
+
             player_set(o.handle, 1, {"initial_player_view_x": 18, "initial_player_view_y": 20})
+
         out.mkdir(parents=True, exist_ok=True)
         path = out / f"{NAME}.aoe2scenario"
         SESSIONS.save(o.handle, path, overwrite=True)
+
         return path
     finally:
         SESSIONS.close(o.handle)

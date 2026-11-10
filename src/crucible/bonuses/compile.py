@@ -23,11 +23,14 @@ def object_id(name: str) -> int:
 def commands(m: Modifier) -> list[Command]:
     if m.groups or m.techs:
         raise NotImplementedError(f"{m.id}: groups and techs: doesn't compile yet")
+
     if m.stat in ATTRIBUTES:
         attribute = ATTRIBUTES[m.stat]
         if m.change.mode is Mode.PERCENT:
             return [(MUL_ATTRIBUTE, object_id(t), -1, attribute, 1 + m.change.amount) for t in m.targets]
         return [(ADD_ATTRIBUTE, object_id(t), -1, attribute, m.change.amount) for t in m.targets]
+
     if m.stat is Stat.ALL_RESOURCES and m.change.mode is Mode.FLAT:
         return [(RESOURCE, r, ADD, -1, m.change.amount) for r in (FOOD, WOOD, STONE, GOLD)]
+
     raise NotImplementedError(f"{m.id}: {m.stat} ({m.change.mode}) doesn't compile yet")

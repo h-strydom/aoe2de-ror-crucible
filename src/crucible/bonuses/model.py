@@ -211,6 +211,7 @@ class Change(BaseModel):
         """How descriptions say it: "+25%", "-100%", "+500"."""
         if self.mode is Mode.PERCENT:
             return f"{self.amount * 100:+g}%"
+
         return f"{self.amount:+g}"
 
 
@@ -231,12 +232,16 @@ def plural(target: str) -> str:
     """A target name as descriptions say it: "war_elephant" is "War Elephants", "academy" is "Academies",
     "axeman" is "Axemen", "heavy_cavalry" stays "Heavy Cavalry"."""
     words = target.replace("_", " ").title()
+
     if words.lower().endswith(UNCOUNTABLE):
         return words
+
     if words.endswith("man"):
         return words[:-3] + "men"
+
     if words.endswith("y") and words[-2:-1].lower() not in "aeiou":  # galley -> galleys
         return words[:-1] + "ies"
+
     return words + ("es" if words.endswith("s") else "s")
 
 
@@ -272,10 +277,13 @@ class Modifier(BaseModel):
     @model_validator(mode="after")
     def _names_exist(self) -> "Modifier":
         game = self.civ.game
+
         unknown = [t for t in self.targets if tables.object_id(t.upper(), game) is None]
         unknown += [t for t in self.techs if tables.tech_id(t.upper(), game) is None]
+
         if unknown:
             raise ValueError(f"{self.name}: unknown {game} names {unknown}")
+
         return self
 
     @property
@@ -292,16 +300,21 @@ class Modifier(BaseModel):
         else:
             names = [g.value for g in self.groups] + [plural(t) for t in self.targets]
             names += [t.replace("_", " ").title() for t in self.techs]
+
         who = f"{', '.join(names)} " if names else ""
+
         return f"{who}{self.change} {self.stat}"
 
     def in_category(self, category: Category) -> bool:
         if isinstance(category, Tag):
             return category in self.tags
+
         if isinstance(category, Civ):
             return category is self.civ
+
         if isinstance(category, Stat):
             return category is self.stat
+
         return category in self.groups
 
     def __str__(self) -> str:
