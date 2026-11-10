@@ -355,3 +355,14 @@ Useful XS for this: `xsGetPlayerUnitIds`, `xsGetGarrisonedUnitIds`, `xsGetUnitPo
 | More than two choices | The decision popup has exactly 2; use walk-on pads, buttons on a building (custom techs), or chained popups | Popup verified |
 
 
+
+## Boon shop: runtime checks (`crucible check`, 2026-11-10)
+
+- A boon tech placed on the Wonder at build time researches with its rarity price; its effect applies (Camel Riders
+  x1.15 HP).
+- **Moving a boon onto the Wonder at runtime works**: an unplaced boon (no building) appeared on Wonder button 2 when a
+  trigger ran Change Technology Location, and researched (elephants 600 -> 750 HP).
+- **Live renaming works**: the two choice buttons on row 3 were renamed by XS every 3 s ("Stable"/"Economy", with a
+  counter); both could be researched, as nothing hides the other one yet.
+- The check started in the Iron Age, which researches Nobility (cavalry +15% HP) for free, so camels started at 144;
+  the check now starts in the Stone Age.

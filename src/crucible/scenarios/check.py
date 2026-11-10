@@ -176,7 +176,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 1,
                 {
                     "civilization": "GREEK",
-                    "starting_age": "IMPERIAL",
+                    "starting_age": "DARK",  # Stone Age: later starts research techs (Nobility: cavalry +15% HP)
                     "human": True,
                     "population_cap": 200,
                     "food": 5000,
