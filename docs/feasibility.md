@@ -380,3 +380,7 @@ Useful XS for this: `xsGetPlayerUnitIds`, `xsGetGarrisonedUnitIds`, `xsGetUnitPo
   plus enable): an unplaced boon appeared on the Wonder button asked for, and researched. **XS disables one**
   (`cDisableTech`, `cAttributeDisable`): its button went. But **XS doesn't re-enable it** (`cAttributeEnable`): the
   button stayed gone. (The trigger Enable/Disable Technology does re-enable.)
+- Bringing a boon back after XS disabled it: **the trigger Enable/Disable Technology works**; XS setting its state to
+  Ready (`cModifyTech`, `cAttrSetState`) doesn't; XS moving it to no building (`cAttrSetLocation -1`) doesn't even
+  take it off the Wonder. So the shop places boons and disables choices from XS, and re-enables the choice pair by
+  trigger (two triggers in all, none per boon).
