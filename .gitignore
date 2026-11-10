@@ -11,6 +11,9 @@ build/
 # Build output (scenarios and campaigns are built from code; out/ is scratch)
 out/
 
+# AoE2ScenarioParser's dump when it can't read a scenario (written to the working directory)
+error_file.txt
+
 # OS / editors
 .DS_Store
 Thumbs.db
