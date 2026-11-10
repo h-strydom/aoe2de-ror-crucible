@@ -11,23 +11,12 @@ from crucible.datamod import shop, upgrades
 from crucible.datamod.mod import MANIFEST, MOD, DataMod
 
 
-def build(
-    modifiers: list[Modifier],
-    out: Path,
-    *,
-    buttons: dict[str, int] | None = None,
-    choice_pairs: int = 1,
-    trainer: bool = False,
-) -> Path:
+def build(modifiers: list[Modifier], out: Path, *, buttons: dict[str, int] | None = None) -> Path:
     """Write the mod folder under `out`; returns it. `buttons` places boons on the Wonder from the start (see
-    upgrades.add); `choice_pairs` is how many pairs of category choices to carry; `trainer` adds the dummy-unit
-    trainer."""
+    upgrades.add)."""
     mod = DataMod.from_ror()
     upgrades.add(mod, modifiers, buttons)
-    shop.add(mod, choice_pairs)
-
-    if trainer:
-        shop.add_trainer(mod)
+    shop.add(mod)
 
     return mod.write(out)
 

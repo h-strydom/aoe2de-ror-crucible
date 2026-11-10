@@ -15,7 +15,12 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command")
     check = sub.add_parser(
         "check",
-        help="build the data mod and crucible_check, the scenario for checking everything in game",
+        help="build the data mod and crucible_check, the scenario for checking things in game",
+    )
+    check.add_argument(
+        "--test",
+        action="append",
+        help="a test to include (repeatable; all registered tests if none): see scenarios/checks/",
     )
     check.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     args = parser.parse_args(argv)
@@ -25,20 +30,18 @@ def main(argv: list[str] | None = None) -> int:
 
         from crucible.datamod import build
         from crucible.scenarios import check as check_scenario
+        from crucible.scenarios.checks import TESTS
 
-        folder = build.build(
-            check_scenario.upgrades(),
-            OUT,
-            buttons=check_scenario.PLACED,
-            choice_pairs=check_scenario.CHOICE_PAIRS,
-            trainer=True,
-        )
+        tests = args.test or list(TESTS)
+        unknown = [name for name in tests if name not in TESTS]
+
+        if unknown:
+            parser.error(f"unknown tests {unknown}; registered: {sorted(TESTS)}")
+
+        folder = build.build(check_scenario.boons(tests), OUT, buttons=check_scenario.buttons(tests))
         techs = build.manifest(folder)
-        scenario = check_scenario.build(OUT, techs)
-
-        for key, tech in techs.items():
-            print(f"{key}: tech {tech}")
-
+        scenario = check_scenario.build(OUT, techs, tests)
+        print(f"tests: {', '.join(tests)}")
         print(folder, scenario, sep="\n")
 
         if args.install:

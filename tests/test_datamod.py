@@ -1,4 +1,4 @@
-from aoe2ed import tables, xs
+from aoe2ed import xs
 from aoe2ed.session import SESSIONS
 from genieutils.datfile import DatFile
 
@@ -6,6 +6,7 @@ from crucible.bonuses import catalogue
 from crucible.bonuses.model import Icon
 from crucible.datamod import build, icons, mod, shop, strings, upgrades
 from crucible.scenarios import check
+from crucible.scenarios.checks import TESTS, choices
 
 
 def test_boons_become_techs_placed_or_not(tmp_path):
@@ -32,24 +33,16 @@ def test_boons_become_techs_placed_or_not(tmp_path):
         assert "Camel Riders +15% HP" in text
 
 
-def test_choice_pairs_and_trainer(tmp_path):
-    folder = build.build([], tmp_path, choice_pairs=2, trainer=True)
+def test_one_choice_pair_on_the_wonder(tmp_path):
+    folder = build.build([], tmp_path)
     techs = build.manifest(folder)
     data = DatFile.parse(str(folder / mod.ROR_DAT / mod.DAT_FILE))
 
     for number, button in enumerate(shop.CHOICE_BUTTONS, start=1):
-        first = data.techs[techs[shop.choice_key(1, number)]]
-        later = data.techs[techs[shop.choice_key(2, number)]]
-        assert (first.research_locations[0].location_id, first.research_locations[0].button_id) == (
-            upgrades.WONDER,
-            button,
-        )
-        assert later.research_locations[0].location_id == mod.NOWHERE  # placed by a trigger when its turn comes
-        assert all(cost.type == -1 for cost in first.resource_costs)  # free
-
-    trainer = data.civs[2].units[techs[shop.TRAINER]]
-    train = trainer.creatable.train_locations[0]
-    assert (train.unit_id, train.button_id, trainer.enabled) == (upgrades.WONDER, shop.TRAINER_BUTTON, 1)
+        choice = data.techs[techs[shop.choice_key(number)]]
+        location = choice.research_locations[0]
+        assert (location.location_id, location.button_id) == (upgrades.WONDER, button)
+        assert all(cost.type == -1 for cost in choice.resource_costs)  # free
 
 
 def test_every_icon_has_a_source():
@@ -58,35 +51,20 @@ def test_every_icon_has_a_source():
     assert all(icons.icon_id(icon, data) >= 0 for icon in Icon)
 
 
-def test_check_scenario_builds(tmp_path):
-    folder = build.build(
-        check.upgrades(),
-        tmp_path,
-        buttons=check.PLACED,
-        choice_pairs=check.CHOICE_PAIRS,
-        trainer=True,
-    )
+def test_check_scenario_builds_every_test(tmp_path):
+    tests = list(TESTS)
+    folder = build.build(check.boons(tests), tmp_path, buttons=check.buttons(tests))
     techs = build.manifest(folder)
-    assert xs.check(check._choices_xs(techs, {check.REMOVE: 0, check.PLACE: 1, check.REENABLE: 2}))["ok"]
+    assert xs.check(choices.xs_code(techs, disable=0, enable=1))["ok"]
 
-    path = check.build(tmp_path, techs)
+    path = check.build(tmp_path, techs, tests)
     o = SESSIONS.open(path)
 
     try:
         units = [u.unit_const for u in o.scenario.unit_manager.units[1]]
         assert 276 in units  # the Wonder
-
-        for modifier in check.upgrades():
-            for target in modifier.targets:
-                assert units.count(tables.object_id(target.upper(), "ror")) == 3
-
-        move = next(t for t in o.scenario.trigger_manager.triggers if t.name == "Move a boon onto the Wonder")
-        effect = move.effects[0]
-        assert (effect.technology, effect.object_list_unit_id_2, effect.button_location) == (
-            techs[check.MOVED[0]],
-            upgrades.WONDER,
-            check.MOVED[1],
-        )
+        names = {t.name for t in o.scenario.trigger_manager.triggers}
+        assert {"Disable choice 1", "Disable choice 2", "Re-enable choices"} <= names
     finally:
         SESSIONS.close(o.handle)
 
