@@ -4,7 +4,7 @@ from genieutils.datfile import DatFile
 
 from crucible.bonuses import catalogue
 from crucible.bonuses.model import Icon
-from crucible.datamod import build, icons, mod, shop, strings, upgrades
+from crucible.datamod import build, civs, icons, mod, shop, strings, upgrades
 from crucible.scenarios import check
 from crucible.scenarios.checks import TESTS
 from crucible.shop import pool as shop_pool
@@ -88,3 +88,15 @@ def test_shop_pool_and_xs():
     assert f"const int cCrucibleBoons = {len(boons)};" in code
     assert "const int cCrucibleSlots = 3;" in code
     assert "const int cCrucibleChoices = 4;" in code
+
+
+def test_styles_lose_their_bonuses(tmp_path):
+    data = DatFile.parse(str(build.build([], tmp_path) / mod.ROR_DAT / mod.DAT_FILE))
+
+    for style in civs.Style:
+        civ = data.civs[style]
+        tree = data.effects[civ.tech_tree_id].effect_commands
+        assert tree and all(c.type == civs.DISABLE_TECH for c in tree)  # the tech tree stays
+        assert civ.team_bonus_id == -1
+
+    assert {data.civs[style].icon_set for style in civs.Style} == {0, 1, 2, 3, 4}  # one per architecture style
