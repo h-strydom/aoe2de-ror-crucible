@@ -398,3 +398,10 @@ house HP across ages, farm food (resource 36: 375), Storage Pit tech costs (-40%
 resource (86) did nothing: Toolworking wasn't faster.
 Setting it instead, as RoR's Palmyran team bonus does (`(1, 86, 0, -1, 1/1.3)`), works: Toolworking took ~31 s
 instead of 40. Still unchecked: trade gold (a trade boat's work rate), needs water.
+
+## Bonus-less civs (`crucible check --test civs`, 2026-11-10)
+
+One civ per architecture style (Egyptians, Greeks, Babylonians, Shang, Romans) with its tech-tree effect emptied and
+no team bonus: no bonuses and every tech. Checked in game: the Greek player had techs Greeks normally lack (Chariot,
+War Elephant, Elephant Archer, Broad Sword, Monotheism...) and paid full price for Hoplites; the other styles showed
+their own temples (Stone Age buildings otherwise look alike).
