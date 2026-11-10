@@ -1,7 +1,8 @@
 """Test: which way brings a boon button back after XS took it away? (XS placing and disabling work; XS's
 cAttributeEnable doesn't bring one back.)
 
-Three boons go on the Wonder at 5 s (buttons 1-3), are taken away at 10 s and brought back at 20 s, each a different way:
+Three boons go on the Wonder at 5 s (buttons 1-3), are taken away at 10 s and brought back at 20 s, each a
+different way:
   1. XS disable, then the trigger Enable/Disable Technology (set off by a trigger variable);
   2. XS disable, then XS sets its state to Ready (cModifyTech, cAttrSetState);
   3. XS moves it to no building (cAttrSetLocation -1), then back onto the Wonder.
@@ -10,7 +11,7 @@ Three boons go on the Wonder at 5 s (buttons 1-3), are taken away at 10 s and br
 from crucible.datamod.upgrades import WONDER
 
 NAME = "xs_tech"
-BOONS = ("carthaginians_4", "carthaginians_3", "egyptians_1")
+BOONS = ("carthaginians_4", "carthaginians_3", "greeks_1")
 BUTTONS: dict[str, int] = {}
 REENABLE = "crucible_reenable"  # trigger variable: 1 = the trigger re-enables boon 1
 
