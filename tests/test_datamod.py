@@ -1,10 +1,11 @@
+from aoe2ed import tables
 from aoe2ed.session import SESSIONS
 from genieutils.datfile import DatFile
 
 from crucible.bonuses import catalogue
 from crucible.bonuses.model import Icon
 from crucible.datamod import build, icons, mod, strings, upgrades
-from crucible.scenarios import upgrade_check
+from crucible.scenarios import check
 
 
 def test_one_upgrade_becomes_a_wonder_tech(tmp_path):
@@ -31,11 +32,18 @@ def test_every_icon_has_a_source():
 
 
 def test_check_scenario_builds(tmp_path):
-    path = upgrade_check.build(catalogue.by_id("carthaginians_4"), tmp_path)
+    path = check.build(tmp_path)
     o = SESSIONS.open(path)
+
     try:
         units = [u.unit_const for u in o.scenario.unit_manager.units[1]]
-        assert 276 in units and units.count(329) == 3  # the Wonder, three Camel Riders
+        assert 276 in units  # the Wonder
+
+        for modifier in check.upgrades():
+            for target in modifier.targets:
+                assert units.count(tables.object_id(target.upper(), "ror")) == 3
+
+        assert "Carthaginians 4" in o.scenario.message_manager.instructions
     finally:
         SESSIONS.close(o.handle)
 

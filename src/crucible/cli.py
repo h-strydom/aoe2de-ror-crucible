@@ -14,30 +14,35 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="command")
     check = sub.add_parser(
-        "upgrade-check",
-        help="build the data mod with one upgrade and a scenario to check it in game",
+        "check",
+        help="build the data mod and crucible_check, the scenario for checking everything in game",
     )
-    check.add_argument("upgrade", help='a modifier id from the catalogue, e.g. "carthaginians_4"')
     check.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     args = parser.parse_args(argv)
 
-    if args.command == "upgrade-check":
+    if args.command == "check":
         from aoe2ed import game
 
-        from crucible.bonuses import catalogue
         from crucible.datamod import build
-        from crucible.scenarios import upgrade_check
+        from crucible.scenarios import check as check_scenario
 
-        modifier = catalogue.by_id(args.upgrade)
-        folder = build.build([modifier], OUT)
-        scenario = upgrade_check.build(modifier, OUT)
-        print(f"{modifier.name}: {modifier.description} (tech {build.manifest(folder)[modifier.id]})")
+        folder = build.build(check_scenario.upgrades(), OUT)
+        scenario = check_scenario.build(OUT)
+        techs = build.manifest(folder)
+
+        for modifier in check_scenario.upgrades():
+            print(f"{modifier.name}: {modifier.description} (tech {techs[modifier.id]})")
+
         print(folder, scenario, sep="\n")
+
         if args.install:
             print(f"installed: {build.install(folder)}")
             print(f"installed: {game.install(scenario, game='ror')['installed']}")
+
         return 0
+
     parser.print_help()
+
     return 0
 
 
