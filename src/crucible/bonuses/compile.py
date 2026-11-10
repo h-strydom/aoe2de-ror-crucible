@@ -34,3 +34,12 @@ def commands(m: Modifier) -> list[Command]:
         return [(RESOURCE, r, ADD, -1, m.change.amount) for r in (FOOD, WOOD, STONE, GOLD)]
 
     raise NotImplementedError(f"{m.id}: {m.stat} ({m.change.mode}) doesn't compile yet")
+
+
+def compiles(m: Modifier) -> bool:
+    try:
+        commands(m)
+    except NotImplementedError:
+        return False
+
+    return True

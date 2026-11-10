@@ -1,11 +1,16 @@
+from aoe2ed import xs
 from aoe2ed.session import SESSIONS
 from genieutils.datfile import DatFile
 
 from crucible.bonuses import catalogue
+from crucible.bonuses.compile import compiles
 from crucible.bonuses.model import Icon
 from crucible.datamod import build, icons, mod, shop, strings, upgrades
 from crucible.scenarios import check
 from crucible.scenarios.checks import TESTS
+from crucible.shop import pool as shop_pool
+from crucible.shop import scenario as shop_scenario
+from crucible.shop.config import ShopConfig
 
 
 def test_boons_become_techs_placed_or_not(tmp_path):
@@ -69,3 +74,17 @@ def test_string_ids_count_up_and_escape_newlines():
     table = strings.Strings(first=10)
     assert (table.add("A"), table.add("B\nC")) == (10, 11)
     assert table.lines() == '10 "A"\n11 "B\\nC"\n'
+
+
+def test_shop_pool_and_xs():
+    config = ShopConfig(slots=3)
+    boons = shop_pool.boons(config)
+    assert boons and all(compiles(m) and m.civ in config.civs for m in boons)
+    categories = shop_pool.categories(config, boons)
+    assert all(any(m.in_category(c) for m in boons) for c in categories)
+
+    techs = {m.id: 900 + k for k, m in enumerate(boons)} | {shop.choice_key(1): 990, shop.choice_key(2): 991}
+    code = shop_scenario.xs(config, techs, choices_variable=0)
+    assert xs.check(code)["ok"]
+    assert f"const int cCrucibleBoons = {len(boons)};" in code
+    assert "const int cCrucibleSlots = 3;" in code
