@@ -366,3 +366,9 @@ Useful XS for this: `xsGetPlayerUnitIds`, `xsGetGarrisonedUnitIds`, `xsGetUnitPo
   counter); both could be researched, as nothing hides the other one yet.
 - The check started in the Iron Age, which researches Nobility (cavalry +15% HP) for free, so camels started at 144;
   the check now starts in the Stone Age.
+- **A researched choice never comes back on its own** (the data's repeatable flag doesn't help), but **re-enabling it
+  by trigger (Enable/Disable Technology) does**, for a researched and a disabled choice alike. So the shop reuses one
+  pair of choice techs every wave: on a click, the other is disabled (locked in); when the pick finishes, both are
+  re-enabled and renamed to the next two categories.
+- A dummy unit trained at the Wonder (a button that never disappears) works, but it needs population room and gives
+  the Wonder a gather-point button at row 3, column 1, where choice 1 sits: not used.
