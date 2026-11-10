@@ -376,3 +376,7 @@ Useful XS for this: `xsGetPlayerUnitIds`, `xsGetGarrisonedUnitIds`, `xsGetUnitPo
   the pick finishes both come back with the next round's names on the same buttons. After the last round the
   re-enable still fired, so round 3 came back with nothing locking it: the real shop must not re-enable after the
   last pick (or disable both until the next wave).
+- **XS alone places a boon** (`xsEffectAmount(cModifyTech, tech, cAttrSetLocation, 276, p)` then `cAttrSetButton`,
+  plus enable): an unplaced boon appeared on the Wonder button asked for, and researched. **XS disables one**
+  (`cDisableTech`, `cAttributeDisable`): its button went. But **XS doesn't re-enable it** (`cAttributeEnable`): the
+  button stayed gone. (The trigger Enable/Disable Technology does re-enable.)

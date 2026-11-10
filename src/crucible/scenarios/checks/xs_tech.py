@@ -1,44 +1,31 @@
-"""Test: can XS alone place, disable and re-enable boon techs on the Wonder (no triggers per boon)?
+"""Test: which way brings a boon button back after XS took it away? (XS placing and disabling work; XS's
+cAttributeEnable doesn't bring one back.)
 
-If so, the shop runs entirely in XS: `xsEffectAmount(cModifyTech, tech, cAttrSetLocation / cAttrSetButton, ...)` and
-`xsEffectAmount(cDisableTech, tech, cAttributeEnable / cAttributeDisable, 0, p)`.
+Three boons go on the Wonder at 5 s (buttons 1-3), are taken away at 10 s and brought back at 20 s, each a different way:
+  1. XS disable, then the trigger Enable/Disable Technology (set off by a trigger variable);
+  2. XS disable, then XS sets its state to Ready (cModifyTech, cAttrSetState);
+  3. XS moves it to no building (cAttrSetLocation -1), then back onto the Wonder.
 """
 
-from crucible.bonuses import catalogue
 from crucible.datamod.upgrades import WONDER
 
 NAME = "xs_tech"
-FIRST, SECOND = "carthaginians_4", "carthaginians_3"  # unplaced boons: camel and elephant HP
-BOONS = (FIRST, SECOND)
+BOONS = ("carthaginians_4", "carthaginians_3", "egyptians_1")
 BUTTONS: dict[str, int] = {}
-
-STEPS = (  # (seconds, chat line, XS)
-    (10, "placed boon 1 on button 3", "{place}({first}, 3);"),
-    (15, "placed boon 2 on button 4", "{place}({second}, 4);"),
-    (
-        25,
-        "disabled boon 2: button 4 should be empty",
-        "xsEffectAmount(cDisableTech, {second}, cAttributeDisable, 0, 1);",
-    ),
-    (
-        35,
-        "re-enabled boon 2: button 4 should be back",
-        "xsEffectAmount(cDisableTech, {second}, cAttributeEnable, 0, 1);",
-    ),
-)
+REENABLE = "crucible_reenable"  # trigger variable: 1 = the trigger re-enables boon 1
 
 
-def xs_code(techs: dict[str, int]) -> str:
-    first, second = techs[FIRST], techs[SECOND]
-    steps = "".join(
-        f"""    if ((crucibleXsStep == {k}) && (xsGetTime() >= {seconds})) {{
-        {xs.format(place="crucibleXsPlace", first=first, second=second)}
-        xsChatData("{seconds} s: {line}");
-        crucibleXsStep = {k + 1};
-    }}
-"""
-        for k, (seconds, line, xs) in enumerate(STEPS)
+def _trigger(ctx, tech: int) -> None:
+    ctx.var(REENABLE)
+    ctx.trigger(
+        "Re-enable boon 1",
+        [{"type": "variable_value", "variable": REENABLE, "comparison": "EQUAL", "quantity": 1}],
+        [{"type": "enable_disable_technology", "source_player": 1, "technology": tech, "enabled": 1}],
     )
+
+
+def xs_code(techs: dict[str, int], reenable: int) -> str:
+    first, second, third = (techs[boon] for boon in BOONS)
 
     return f"""// ---- crucible check: xs_tech ----
 int crucibleXsStep = 0;
@@ -53,16 +40,41 @@ rule crucibleXsTech
     active
     minInterval 1
 {{
-{steps}}}
+    if ((crucibleXsStep == 0) && (xsGetTime() >= 5)) {{
+        crucibleXsPlace({first}, 1);
+        crucibleXsPlace({second}, 2);
+        crucibleXsPlace({third}, 3);
+        xsChatData("5 s: boons on buttons 1, 2 and 3");
+        crucibleXsStep = 1;
+    }}
+
+    if ((crucibleXsStep == 1) && (xsGetTime() >= 10)) {{
+        xsEffectAmount(cDisableTech, {first}, cAttributeDisable, 0, 1);
+        xsEffectAmount(cDisableTech, {second}, cAttributeDisable, 0, 1);
+        xsEffectAmount(cModifyTech, {third}, cAttrSetLocation, -1, 1);
+        xsChatData("10 s: all three should be gone");
+        crucibleXsStep = 2;
+    }}
+
+    if ((crucibleXsStep == 2) && (xsGetTime() >= 20)) {{
+        xsSetTriggerVariable({reenable}, 1);
+        xsEffectAmount(cModifyTech, {second}, cAttrSetState, cTechStateReady, 1);
+        crucibleXsPlace({third}, 3);
+        xsChatData("20 s: 1 by trigger, 2 by XS state, 3 by moving back. Which came back?");
+        crucibleXsStep = 3;
+    }}
+}}
 """
 
 
 def setup(s, ctx, techs: dict[str, int], top: int) -> str:
-    ctx.xs(xs_code(techs))
-    first, second = catalogue.by_id(FIRST), catalogue.by_id(SECOND)
-    timeline = "; ".join(f"{seconds} s: {line}" for seconds, line, _ in STEPS)
+    from crucible.scenarios.check import var_id
+
+    _trigger(ctx, techs[BOONS[0]])
+    ctx.xs(xs_code(techs, var_id(ctx, REENABLE)))
 
     return (
-        f"XS TECH on the Wonder, no triggers: boon 1 is '{first.name}' ({first.description}), boon 2 is "
-        f"'{second.name}' ({second.description}). {timeline}. Research boon 1 to see it apply. Chat narrates."
+        "XS TECH on the Wonder: at 5 s three boons appear on buttons 1, 2 and 3; at 10 s all three go; at 20 s each "
+        "is brought back a different way (1: trigger, 2: XS sets its state, 3: XS moves it back). Note which came "
+        "back. Chat narrates."
     )
