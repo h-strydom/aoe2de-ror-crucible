@@ -1,13 +1,14 @@
 """The catalogue's modifiers as hidden techs.
 
 Handing out an upgrade is researching its tech: by trigger for the player or the enemy, at the start of a run for
-metaprogression, or from a button (the Wonder's, for the shop).
+metaprogression, or from a button (the Wonder's, for the shop). Boons start unplaced: the shop puts the ones on
+offer onto the Wonder at runtime.
 """
 
 from crucible.bonuses.compile import commands
 from crucible.bonuses.model import Modifier
 from crucible.datamod.icons import icon_id
-from crucible.datamod.mod import DataMod
+from crucible.datamod.mod import NOWHERE, DataMod
 
 WONDER = 276
 RESEARCH_TIME = 60  # boons take long to research: tune here
@@ -17,11 +18,14 @@ def tooltip(modifier: Modifier) -> str:
     return f"Research <b>{modifier.name}<b> (<cost>)\n{modifier.description}"
 
 
-def add(mod: DataMod, modifiers: list[Modifier]) -> None:
-    """One tech per modifier at the Wonder (buttons from 1), priced by its rarity; the manifest maps modifier id to
-    tech id."""
-    for index, modifier in enumerate(modifiers):
+def add(mod: DataMod, modifiers: list[Modifier], buttons: dict[str, int] | None = None) -> None:
+    """One tech per modifier, priced by its rarity. Modifiers in `buttons` (id -> button) sit on the Wonder from
+    the start; the rest are unplaced. The manifest maps modifier id to tech id."""
+    buttons = buttons or {}
+
+    for modifier in modifiers:
         effect = mod.new_effect(f"Crucible {modifier.id}", commands(modifier))
+        button = buttons.get(modifier.id, 0)
 
         mod.manifest[modifier.id] = mod.new_tech(
             f"Crucible {modifier.id}",
@@ -29,8 +33,8 @@ def add(mod: DataMod, modifiers: list[Modifier]) -> None:
             title=modifier.name,
             tooltip=tooltip(modifier),
             icon=icon_id(modifier.icon, mod.data),
-            location=WONDER,
-            button=index + 1,
+            location=WONDER if button else NOWHERE,
+            button=button,
             research_time=RESEARCH_TIME,
             costs=modifier.cost.items(),
         )

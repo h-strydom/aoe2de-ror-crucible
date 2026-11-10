@@ -7,14 +7,16 @@ from pathlib import Path
 from aoe2ed.screens import mod_dir
 
 from crucible.bonuses.model import Modifier
-from crucible.datamod import upgrades
+from crucible.datamod import shop, upgrades
 from crucible.datamod.mod import MANIFEST, MOD, DataMod
 
 
-def build(modifiers: list[Modifier], out: Path) -> Path:
-    """Write the mod folder under `out`; returns it."""
+def build(modifiers: list[Modifier], out: Path, buttons: dict[str, int] | None = None) -> Path:
+    """Write the mod folder under `out`; returns it. `buttons` places boons on the Wonder from the start (see
+    upgrades.add)."""
     mod = DataMod.from_ror()
-    upgrades.add(mod, modifiers)
+    upgrades.add(mod, modifiers, buttons)
+    shop.add(mod)
 
     return mod.write(out)
 

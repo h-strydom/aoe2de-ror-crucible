@@ -17,6 +17,7 @@ ROR_DAT = Path("modes") / "Pompeii" / "resources" / "_common" / "dat"
 DAT_FILE = "empires2_x2_p1.dat"
 MANIFEST = "crucible-manifest.json"
 TEMPLATE_TECH = "axe"  # new techs and effects start as copies of this one
+NOWHERE = -1  # a tech's location when no building offers it (a trigger can place it later)
 
 Command = tuple[int, int, int, int, float]  # an effect command: (type, a, b, c, d)
 
@@ -73,16 +74,17 @@ class DataMod:
         button: int,
         research_time: int,
         costs: list[tuple[int, int]] = (),
+        repeatable: bool = False,
     ) -> int:
-        """Add a tech for any civ, with no prerequisites, researched at `location` (a unit id) on `button`; `costs`
-        are up to three (resource id, amount) pairs, free if empty. `title` and `tooltip` are shipped as strings.
-        Returns its id."""
+        """Add a tech for any civ, with no prerequisites, researched at `location` (a unit id, or NOWHERE until a
+        trigger places it) on `button`; `costs` are up to three (resource id, amount) pairs, free if empty. `title`
+        and `tooltip` are shipped as strings. Returns its id."""
         title_id, tooltip_id = self.strings.add(title), self.strings.add(tooltip)
 
         tech = copy.deepcopy(self._template())
         tech.name = name
         tech.effect_id = effect
-        tech.civ, tech.type, tech.repeatable = -1, 0, 0
+        tech.civ, tech.type, tech.repeatable = -1, 0, int(repeatable)
         tech.required_techs, tech.required_tech_count = (-1,) * 6, 0
         tech.language_dll_name, tech.language_dll_description = title_id, title_id
         tech.language_dll_help, tech.language_dll_tech_tree = tooltip_id, tooltip_id

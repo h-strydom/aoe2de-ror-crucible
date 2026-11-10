@@ -26,12 +26,12 @@ def main(argv: list[str] | None = None) -> int:
         from crucible.datamod import build
         from crucible.scenarios import check as check_scenario
 
-        folder = build.build(check_scenario.upgrades(), OUT)
-        scenario = check_scenario.build(OUT)
+        folder = build.build(check_scenario.upgrades(), OUT, buttons=check_scenario.PLACED)
         techs = build.manifest(folder)
+        scenario = check_scenario.build(OUT, techs)
 
-        for modifier in check_scenario.upgrades():
-            print(f"{modifier.name}: {modifier.description} (tech {techs[modifier.id]})")
+        for key, tech in techs.items():
+            print(f"{key}: tech {tech}")
 
         print(folder, scenario, sep="\n")
 

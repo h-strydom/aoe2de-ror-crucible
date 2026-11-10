@@ -1,5 +1,5 @@
 """crucible_check: the one scenario for checking Crucible in game. It grows as we go: each section sets up one thing
-on its own strip of the map and adds a line to the briefing.
+on its own strip of the map and adds a paragraph to the briefing.
 
 Played with the Crucible data mod picked as the Data Mod.
 """
@@ -12,13 +12,20 @@ from aoe2ed.tools.world import options_set, player_set
 
 from crucible.bonuses import catalogue
 from crucible.bonuses.model import Modifier
+from crucible.datamod.shop import CHOICE_BUTTONS, choice_key
+from crucible.datamod.upgrades import WONDER
 
 NAME = "crucible_check"
 SIZE = 60
 REVEAL_MAP = 203
 
-# What the check shows. Upgrades go on the Wonder in this order (buttons 1, 2, ...).
-UPGRADES = ("carthaginians_4",)
+# Boons on the Wonder from the start (id -> button).
+PLACED = {"carthaginians_4": 1}
+
+# A boon that starts unplaced and is moved onto the Wonder by a trigger: (id, button, seconds).
+MOVED = ("carthaginians_3", 2, 15)
+
+RENAME_EVERY = 3  # seconds between the choices' live renames
 
 BRIEFING = """Crucible check. Pick "Crucible" as the Data Mod. The map is revealed; nothing ends the game.
 
@@ -26,7 +33,8 @@ BRIEFING = """Crucible check. Pick "Crucible" as the Data Mod. The map is reveal
 
 
 def upgrades() -> list[Modifier]:
-    return [catalogue.by_id(upgrade_id) for upgrade_id in UPGRADES]
+    """Every boon the check's data mod needs."""
+    return [catalogue.by_id(upgrade_id) for upgrade_id in (*PLACED, MOVED[0])]
 
 
 def _add(s, unit: str, x: float, y: float, player: int = 1) -> int:
@@ -38,28 +46,125 @@ def _add(s, unit: str, x: float, y: float, player: int = 1) -> int:
     ).reference_id
 
 
-def _upgrades(s, modifiers: list[Modifier]) -> str:
-    """The Wonder, with a row of three of each unit an upgrade affects."""
+def _units_for(s, modifier: Modifier, y: float) -> None:
+    """A row of three of each unit `modifier` affects."""
+    for k, target in enumerate(modifier.targets):
+        for n in range(3):
+            _add(s, target, 14 + k * 4 + n, y)
+
+
+def _placed(s) -> str:
+    """The Wonder, with the placed boons on its buttons and rows of the units they affect."""
     _add(s, "wonder", 6, 8)
     rows = []
 
-    for button, modifier in enumerate(modifiers, start=1):
-        y = 4 + (button - 1) * 4
-
-        for k, target in enumerate(modifier.targets):
-            for n in range(3):
-                _add(s, target, 14 + k * 4 + n, y)
-
-        rows.append(f"  {button}. {modifier.name} ({modifier.rarity}): {modifier.description}")
+    for row, (upgrade_id, button) in enumerate(PLACED.items()):
+        modifier = catalogue.by_id(upgrade_id)
+        _units_for(s, modifier, 4 + row * 4)
+        rows.append(f"  button {button}: {modifier.name} ({modifier.rarity}): {modifier.description}")
 
     return (
-        "UPGRADES on the Wonder (top left), priced by rarity and slow to research. Each row of units beside it is "
-        "what an upgrade affects: check them, research it, check again. Do the buttons show these names, tooltips "
+        "BOONS on the Wonder (top left), priced by rarity and slow to research. Each row of units beside it is "
+        "what a boon affects: check them, research it, check again. Do the buttons show these names, tooltips "
         "(with the cost) and icons?\n" + "\n".join(rows)
     )
 
 
-def build(out: Path) -> Path:
+def _moved(s, ctx, techs: dict[str, int]) -> str:
+    """A boon that starts unplaced; a trigger moves it onto the Wonder (Change Technology Location)."""
+    upgrade_id, button, seconds = MOVED
+    modifier = catalogue.by_id(upgrade_id)
+    _units_for(s, modifier, 4 + len(PLACED) * 4)
+
+    ctx.trigger(
+        "Move a boon onto the Wonder",
+        [{"type": "timer", "timer": seconds}],
+        [
+            {
+                "type": "change_technology_location",
+                "source_player": 1,
+                "technology": techs[upgrade_id],
+                "object_list_unit_id_2": WONDER,
+                "button_location": button,
+            }
+        ],
+    )
+
+    return (
+        f"MOVING A BOON: {modifier.name} ({modifier.description}) isn't on any building at the start. At 0:{seconds} "
+        f"a trigger should put it on the Wonder, button {button}. Does it appear there, and can you research it?"
+    )
+
+
+def _choices_xs(techs: dict[str, int]) -> str:
+    """Renames the two choice buttons every RENAME_EVERY seconds with a counter, and reports in chat every state
+    change of the choice techs (and each completed pick)."""
+    choices = [(number, techs[choice_key(number)]) for number in range(1, len(CHOICE_BUTTONS) + 1)]
+    labels = {1: "Stable", 2: "Economy"}
+    decls = "".join(f"int crucibleChoiceState{n} = -9;\n" for n, _ in choices)
+
+    renames = "".join(
+        f'    xsSetTechName({tech}, 1, "{labels[n]} boons (" + crucibleLeft + " left)");\n'
+        f'    xsSetTechDescription({tech}, 1, "Choose {labels[n]} boons. Renamed " + crucibleRenames + " times.");\n'
+        for n, tech in choices
+    )
+
+    watches = "".join(
+        f"""    state = xsGetTechState({tech}, 1);
+
+    if (state != crucibleChoiceState{n}) {{
+        xsChatData("Choice {n} state: %d", state);
+
+        if (crucibleChoiceState{n} == cTechStateResearching) {{
+            xsChatData("Choice {n} picked ({labels[n]})", 0);
+        }}
+
+        crucibleChoiceState{n} = state;
+    }}
+
+"""
+        for n, tech in choices
+    )
+
+    return f"""// ---- crucible check: boon category choices ----
+{decls}int crucibleLeft = 13;
+int crucibleRenames = 0;
+
+rule crucibleRenameChoices
+    active
+    minInterval {RENAME_EVERY}
+{{
+    crucibleRenames = crucibleRenames + 1;
+
+    if (crucibleLeft > 0) {{
+        crucibleLeft = crucibleLeft - 1;
+    }}
+
+{renames}}}
+
+rule crucibleWatchChoices
+    active
+    highFrequency
+{{
+    int state = 0;
+
+{watches}}}
+"""
+
+
+def _choices(ctx, techs: dict[str, int]) -> str:
+    ctx.xs(_choices_xs(techs))
+
+    return (
+        f"CATEGORY CHOICES on the Wonder, row 3, buttons {CHOICE_BUTTONS[0]} and {CHOICE_BUTTONS[1]}. A script "
+        f"renames them every {RENAME_EVERY} s with a counting-down number ('Stable boons (12 left)'): do the names "
+        "and tooltips change live? Click one (free, 1 s): chat should say which you picked. Click it again: does it "
+        "work twice? Chat also shows each state change."
+    )
+
+
+def build(out: Path, techs: dict[str, int]) -> Path:
+    """`techs` is the data mod's manifest (what each boon and choice is as a tech)."""
     o = SESSIONS.new(SIZE, game="ror")
     s = o.scenario
 
@@ -85,7 +190,8 @@ def build(out: Path) -> Path:
             ctx = blocks.Ctx(s)
 
             _add(s, "town_center", SIZE - 8, SIZE - 8)
-            sections = [_upgrades(s, upgrades())]
+            sections = [_placed(s), _moved(s, ctx, techs), _choices(ctx, techs)]
+            ctx.flush_xs()
 
             ctx.trigger(
                 "Reveal map",
