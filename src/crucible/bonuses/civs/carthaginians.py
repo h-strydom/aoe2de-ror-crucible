@@ -5,16 +5,16 @@
 • Fire Galley +25% attack
 • Transport ships move 25% faster
 • Nobility free (requires Government Center)
-Team Bonus: Academies work 20% faster
+Team Bonus:
+Academies work 20% faster
 """
 
-from crucible.bonuses.model import Civ, Icon, Kind, Modifier, Stat, Tag, flat, pct
+from crucible.bonuses.model import Civ, Icon, Modifier, Stat, Tag, flat, pct
 
 MODIFIERS = (
     Modifier(
         change=flat(50),
         stat=Stat.ALL_RESOURCES,
-        targets=(),
         tags=(Tag.ECONOMY,),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 1",
@@ -24,7 +24,7 @@ MODIFIERS = (
         change=pct(0.25),
         stat=Stat.HP,
         targets=("hoplite", "phalangite", "centurion"),
-        tags=(Tag.ACADEMY, Tag.INFANTRY),
+        tags=(Tag.ACADEMY, Tag.INFANTRY, Tag.HOPLITE, Tag.UNIT),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 2",
         icon=Icon.ACADEMY,
@@ -33,7 +33,7 @@ MODIFIERS = (
         change=pct(0.25),
         stat=Stat.HP,
         targets=("war_elephant", "armored_elephant", "elephant_archer"),
-        tags=(Tag.ELEPHANT, Tag.STABLE, Tag.ARCHERY_RANGE),
+        tags=(Tag.ELEPHANT, Tag.STABLE, Tag.ARCHERY_RANGE, Tag.UNIT),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 3",
         icon=Icon.ELEPHANT,
@@ -42,7 +42,7 @@ MODIFIERS = (
         change=pct(0.15),
         stat=Stat.HP,
         targets=("camel_rider",),
-        tags=(Tag.CAMEL, Tag.CAVALRY, Tag.STABLE),
+        tags=(Tag.CAMEL, Tag.CAVALRY, Tag.STABLE, Tag.UNIT),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 4",
         icon=Icon.CAMEL,
@@ -51,7 +51,7 @@ MODIFIERS = (
         change=pct(0.25),
         stat=Stat.ATTACK,
         targets=("fire_galley",),
-        tags=(Tag.SHIP, Tag.DOCK),
+        tags=(Tag.SHIP, Tag.DOCK, Tag.UNIT),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 5",
         icon=Icon.SHIP,
@@ -60,16 +60,16 @@ MODIFIERS = (
         change=pct(0.25),
         stat=Stat.SPEED,
         targets=("light_transport", "heavy_transport"),
-        tags=(Tag.SHIP, Tag.TRANSPORT, Tag.DOCK),
+        tags=(Tag.SHIP, Tag.TRANSPORT, Tag.DOCK, Tag.UNIT),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 6",
         icon=Icon.TRANSPORT,
     ),
     Modifier(
         change=pct(-1),
-        stat=Stat.TECH_COST,
-        targets=("nobility",),
-        tags=(Tag.GOVERNMENT_CENTER, Tag.ECONOMY),
+        stat=Stat.COST,
+        techs=("nobility",),
+        tags=(Tag.GOVERNMENT_CENTER, Tag.ECONOMY, Tag.TECHNOLOGY),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 7",
         icon=Icon.GOVERNMENT_CENTER,
@@ -78,10 +78,9 @@ MODIFIERS = (
         change=pct(0.2),
         stat=Stat.WORK_RATE,
         targets=("academy",),
-        tags=(Tag.ACADEMY,),
+        tags=(Tag.ACADEMY, Tag.BUILDING, Tag.TEAM),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 8",
         icon=Icon.ACADEMY,
-        kind=Kind.TEAM,
     ),
 )

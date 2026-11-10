@@ -1,5 +1,41 @@
 """One module per RoR civ, each a MODIFIERS tuple. Add a civ by adding its module to CIVS."""
 
-from crucible.bonuses.civs import carthaginians
+from crucible.bonuses.civs import (
+    assyrians,
+    babylonians,
+    carthaginians,
+    choson,
+    egyptians,
+    greeks,
+    hittites,
+    lac_viet,
+    macedonians,
+    minoans,
+    palmyrans,
+    persians,
+    phoenicians,
+    romans,
+    shang,
+    sumerians,
+    yamato,
+)
 
-CIVS = (carthaginians,)
+CIVS = (
+    egyptians,
+    greeks,
+    babylonians,
+    assyrians,
+    minoans,
+    hittites,
+    phoenicians,
+    sumerians,
+    persians,
+    shang,
+    yamato,
+    choson,
+    romans,
+    carthaginians,
+    palmyrans,
+    macedonians,
+    lac_viet,
+)

@@ -8,7 +8,7 @@ import random
 from collections.abc import Iterable
 
 from crucible.bonuses.civs import CIVS
-from crucible.bonuses.model import Civ, Kind, Modifier, Stat, Tag
+from crucible.bonuses.model import Category, Modifier, Tag
 
 ALL: tuple[Modifier, ...] = tuple(m for civ in CIVS for m in civ.MODIFIERS)
 
@@ -21,25 +21,14 @@ def tags() -> set[Tag]:
     return {t for m in ALL for t in m.tags}
 
 
-def query(
-    tag: Tag | None = None,
-    civ: Civ | None = None,
-    stat: Stat | None = None,
-    kind: Kind | None = None,
-    pool: Iterable[Modifier] = ALL,
-) -> list[Modifier]:
-    """The modifiers matching every filter given."""
-    return [
-        m
-        for m in pool
-        if (tag is None or tag in m.tags)
-        and (civ is None or m.civ == civ)
-        and (stat is None or m.stat == stat)
-        and (kind is None or m.kind == kind)
-    ]
+def query(*categories: Category, exclude: Iterable[Category] = (), pool: Iterable[Modifier] = ALL) -> list[Modifier]:
+    """The modifiers in every one of `categories` and none of `exclude`, e.g.
+    query(Tag.CAVALRY, exclude=[Tag.DRAWBACK])."""
+    exclude = tuple(exclude)
+    return [m for m in pool if all(m.in_category(c) for c in categories) and not any(m.in_category(c) for c in exclude)]
 
 
-def pick(n: int, rng: random.Random, **filters) -> list[Modifier]:
-    """Up to `n` different modifiers at random from the ones matching `filters` (see `query`)."""
-    matches = query(**filters)
+def pick(n: int, rng: random.Random, *categories: Category, exclude: Iterable[Category] = ()) -> list[Modifier]:
+    """Up to `n` different modifiers at random from `query(*categories, exclude=exclude)`."""
+    matches = query(*categories, exclude=exclude)
     return rng.sample(matches, min(n, len(matches)))

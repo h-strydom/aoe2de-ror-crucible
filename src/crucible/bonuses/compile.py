@@ -21,6 +21,8 @@ def object_id(name: str) -> int:
 
 
 def commands(m: Modifier) -> list[Command]:
+    if m.groups or m.techs:
+        raise NotImplementedError(f"{m.id}: groups and techs: doesn't compile yet")
     if m.stat in ATTRIBUTES:
         attribute = ATTRIBUTES[m.stat]
         if m.change.mode is Mode.PERCENT:
