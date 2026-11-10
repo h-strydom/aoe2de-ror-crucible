@@ -8,7 +8,7 @@ import random
 from collections.abc import Iterable
 
 from crucible.bonuses.civs import CIVS
-from crucible.bonuses.model import Modifier, Stat
+from crucible.bonuses.model import Civ, Kind, Modifier, Stat, Tag
 
 ALL: tuple[Modifier, ...] = tuple(m for civ in CIVS for m in civ.MODIFIERS)
 
@@ -17,15 +17,15 @@ def by_id(modifier_id: str) -> Modifier:
     return next(m for m in ALL if m.id == modifier_id)
 
 
-def tags() -> set[str]:
+def tags() -> set[Tag]:
     return {t for m in ALL for t in m.tags}
 
 
 def query(
-    tag: str | None = None,
-    civ: str | None = None,
+    tag: Tag | None = None,
+    civ: Civ | None = None,
     stat: Stat | None = None,
-    kind: str | None = None,
+    kind: Kind | None = None,
     pool: Iterable[Modifier] = ALL,
 ) -> list[Modifier]:
     """The modifiers matching every filter given."""

@@ -46,6 +46,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aoe-agent-editor" },
     { name = "genieutils-py" },
+    { name = "pydantic" },
 ]
 
 [package.dev-dependencies]
@@ -58,6 +59,7 @@ dev = [
 requires-dist = [
     { name = "aoe-agent-editor", git = "https://github.com/h-strydom/aoe-agent-editor?rev=v0.6.0" },
     { name = "genieutils-py", specifier = ">=0.1.2" },
+    { name = "pydantic", specifier = ">=2.14" },
 ]
 
 [package.metadata.requires-dev]

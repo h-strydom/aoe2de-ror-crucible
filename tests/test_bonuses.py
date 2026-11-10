@@ -4,7 +4,7 @@ import pytest
 
 from crucible.bonuses import catalogue
 from crucible.bonuses.compile import commands
-from crucible.bonuses.model import Stat
+from crucible.bonuses.model import Civ, Game, Kind, Modifier, Stat, Tag, pct
 
 
 def test_ids_are_unique():
@@ -13,14 +13,14 @@ def test_ids_are_unique():
 
 
 def test_query_and_pick_by_tag():
-    stable = catalogue.query(tag="stable")
+    stable = catalogue.query(tag=Tag.STABLE)
     assert {m.name for m in stable} == {"Elephant HP", "Camel HP"}
-    picked = catalogue.pick(4, random.Random(1), tag="stable")
+    picked = catalogue.pick(4, random.Random(1), tag=Tag.STABLE)
     assert len(picked) == 2 and set(picked) <= set(stable)  # only 2 exist: all of them, no repeats
 
 
 def test_team_bonus_is_its_own_kind():
-    assert [m.name for m in catalogue.query(kind="team")] == ["Academies work faster"]
+    assert [m.name for m in catalogue.query(kind=Kind.TEAM)] == ["Academies work faster"]
 
 
 def test_compile_hp():
@@ -38,10 +38,15 @@ def test_unsupported_stat_says_so():
         commands(galley)
 
 
-def test_every_target_resolves():
-    from crucible.bonuses.compile import object_id
+def test_civs_know_their_game():
+    assert Civ.CARTHAGINIANS.game is Game.ROR
+    assert all(m.civ.game is Game.ROR for m in catalogue.ALL)
 
-    for m in catalogue.ALL:
-        if m.stat is not Stat.TECH_COST:
-            for t in m.targets:
-                assert object_id(t) >= 0, t
+
+def test_typos_are_caught():
+    with pytest.raises(ValueError, match="unknown ror targets"):
+        Modifier(change=pct(0.1), stat=Stat.HP, targets=("hoplight",), tags=(), civ=Civ.GREEKS, name="Typo")
+    with pytest.raises(ValueError):
+        Modifier(change=pct(0.1), stat=Stat.HP, targets=(), tags=("stabel",), civ=Civ.GREEKS, name="Typo")
+    with pytest.raises(TypeError):
+        Modifier(pct(0.1), Stat.HP, (), (), Civ.GREEKS, "Positional")  # keyword arguments only
