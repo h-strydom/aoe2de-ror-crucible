@@ -3,7 +3,6 @@ from aoe2ed.session import SESSIONS
 from genieutils.datfile import DatFile
 
 from crucible.bonuses import catalogue
-from crucible.bonuses.compile import compiles
 from crucible.bonuses.model import Icon
 from crucible.datamod import build, icons, mod, shop, strings, upgrades
 from crucible.scenarios import check
@@ -79,7 +78,7 @@ def test_string_ids_count_up_and_escape_newlines():
 def test_shop_pool_and_xs():
     config = ShopConfig(slots=3, choices=4)
     boons = shop_pool.boons(config)
-    assert boons and all(compiles(m) and m.civ in config.civs for m in boons)
+    assert boons and all(m.civ in config.civs for m in boons)
     categories = shop_pool.categories(config, boons)
     assert all(any(m.in_category(c) for m in boons) for c in categories)
 

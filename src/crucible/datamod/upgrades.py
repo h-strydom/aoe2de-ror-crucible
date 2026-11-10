@@ -24,7 +24,7 @@ def add(mod: DataMod, modifiers: list[Modifier], buttons: dict[str, int] | None 
     buttons = buttons or {}
 
     for modifier in modifiers:
-        effect = mod.new_effect(f"Crucible {modifier.id}", commands(modifier))
+        effect = mod.new_effect(f"Crucible {modifier.id}", commands(modifier, mod.data))
         button = buttons.get(modifier.id, 0)
 
         mod.manifest[modifier.id] = mod.new_tech(

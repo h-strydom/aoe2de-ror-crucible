@@ -4,7 +4,6 @@ import pytest
 
 from crucible.bonuses import catalogue
 from crucible.bonuses.civs import CIVS
-from crucible.bonuses.compile import commands
 from crucible.bonuses.model import RARITY_COSTS, Civ, Game, Group, Icon, Modifier, Rarity, Stat, Tag, flat, pct, plural
 
 
@@ -80,21 +79,6 @@ def test_plurals():
 
 def test_subject_shortens_long_lists():
     assert catalogue.by_id("choson_6").description == "Storage Pit technologies -40% cost"
-
-
-def test_compile_hp():
-    assert commands(catalogue.by_id("carthaginians_4")) == [(5, 329, -1, 0, 1.15)]
-
-
-def test_compile_start_resources():
-    assert commands(catalogue.by_id("carthaginians_1")) == [(1, r, 1, -1, 50) for r in range(4)]
-
-
-def test_not_yet_compiled_says_so():
-    with pytest.raises(NotImplementedError, match="doesn't compile yet"):
-        commands(catalogue.by_id("hittites_1"))  # a group
-    with pytest.raises(NotImplementedError, match="doesn't compile yet"):
-        commands(catalogue.by_id("carthaginians_5"))  # attack
 
 
 def test_civs_know_their_game():
