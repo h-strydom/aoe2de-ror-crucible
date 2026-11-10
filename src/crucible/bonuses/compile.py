@@ -26,6 +26,6 @@ def commands(m: Modifier) -> list[Command]:
         if m.change.mode is Mode.PERCENT:
             return [(MUL_ATTRIBUTE, object_id(t), -1, attribute, 1 + m.change.amount) for t in m.targets]
         return [(ADD_ATTRIBUTE, object_id(t), -1, attribute, m.change.amount) for t in m.targets]
-    if m.stat is Stat.START_RESOURCES and m.change.mode is Mode.FLAT:
+    if m.stat is Stat.ALL_RESOURCES and m.change.mode is Mode.FLAT:
         return [(RESOURCE, r, ADD, -1, m.change.amount) for r in (FOOD, WOOD, STONE, GOLD)]
     raise NotImplementedError(f"{m.id}: {m.stat} ({m.change.mode}) doesn't compile yet")

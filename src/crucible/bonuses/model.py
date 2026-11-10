@@ -108,12 +108,14 @@ class Icon(StrEnum):
 
 
 class Stat(StrEnum):
-    HP = "hp"
+    """What a modifier changes; the value is how descriptions say it."""
+
+    HP = "HP"
     ATTACK = "attack"
     SPEED = "speed"
     WORK_RATE = "work rate"
-    START_RESOURCES = "start resources"
-    TECH_COST = "tech cost"
+    ALL_RESOURCES = "all resources"
+    TECH_COST = "cost"
 
 
 class Kind(StrEnum):
@@ -122,8 +124,8 @@ class Kind(StrEnum):
 
 
 class Mode(StrEnum):
-    PERCENT = "x"  # +0.25x: 25% more
-    FLAT = "+"  # +50: fifty more
+    PERCENT = "%"  # pct(0.25): 25% more
+    FLAT = "+"  # flat(50): fifty more
 
 
 class Change(BaseModel):
@@ -133,7 +135,10 @@ class Change(BaseModel):
     mode: Mode
 
     def __str__(self) -> str:
-        return f"{self.amount:+g}{'x' if self.mode is Mode.PERCENT else ''}"
+        """How descriptions say it: "+25%", "-100%", "+500"."""
+        if self.mode is Mode.PERCENT:
+            return f"{self.amount * 100:+g}%"
+        return f"{self.amount:+g}"
 
 
 def pct(amount: float) -> Change:
@@ -146,13 +151,22 @@ def flat(amount: float) -> Change:
     return Change(amount=amount, mode=Mode.FLAT)
 
 
+def plural(target: str) -> str:
+    """A target name as descriptions say it: "war_elephant" is "War Elephants", "academy" is "Academies"."""
+    words = target.replace("_", " ").title()
+    if words.endswith("y") and words[-2:-1].lower() not in "aeiou":  # galley -> galleys
+        return words[:-1] + "ies"
+    return words + ("es" if words.endswith("s") else "s")
+
+
 class Modifier(BaseModel):
     """One bonus, which becomes one upgrade (a hidden tech) to hand out: to the player, the enemy, as
     metaprogression or a boon.
 
     `targets` are RoR object names (units, buildings), or tech names for `Stat.TECH_COST`; empty for player-wide
     changes. They're checked against the game's tables when the modifier is made. `name` is the upgrade's title
-    ("Carthaginians 1"), `description` what it does, `icon` its button picture.
+    ("Carthaginians 1") and `icon` its button picture; the description is written from the definition, so it
+    follows any change to the numbers or targets.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -163,7 +177,6 @@ class Modifier(BaseModel):
     tags: tuple[Tag, ...]
     civ: Civ
     name: str
-    description: str
     icon: Icon
     kind: Kind = Kind.CIV
 
@@ -180,9 +193,17 @@ class Modifier(BaseModel):
         """Stable key from the name: "Carthaginians 1" is "carthaginians_1"."""
         return self.name.lower().replace(" ", "_")
 
+    @property
+    def description(self) -> str:
+        """E.g. "Hoplites, Phalangites, Centurions +25% HP", "+500 all resources", "Team: Academies +20% work rate".
+        Techs aren't plural: "Nobility -100% cost"."""
+        if self.stat is Stat.TECH_COST:
+            names = [t.replace("_", " ").title() for t in self.targets]
+        else:
+            names = [plural(t) for t in self.targets]
+        who = f"{', '.join(names)} " if names else ""
+        team = "Team: " if self.kind is Kind.TEAM else ""
+        return f"{team}{who}{self.change} {self.stat}"
+
     def __str__(self) -> str:
-        on = ", ".join(self.targets) or "player"
-        return (
-            f"{self.name}: {self.description} | {self.change} {self.stat} [{on}] [{', '.join(self.tags)}] "
-            f"{self.icon} icon ({self.kind})"
-        )
+        return f"{self.name}: {self.description} [{', '.join(self.tags)}] {self.icon} icon"

@@ -13,12 +13,11 @@ from crucible.bonuses.model import Civ, Icon, Kind, Modifier, Stat, Tag, flat, p
 MODIFIERS = (
     Modifier(
         change=flat(50),
-        stat=Stat.START_RESOURCES,
+        stat=Stat.ALL_RESOURCES,
         targets=(),
         tags=(Tag.ECONOMY,),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 1",
-        description="Gain 50 of all resources",
         icon=Icon.FARM,
     ),
     Modifier(
@@ -28,7 +27,6 @@ MODIFIERS = (
         tags=(Tag.ACADEMY, Tag.INFANTRY),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 2",
-        description="Academy units have 25% more hit points",
         icon=Icon.ACADEMY,
     ),
     Modifier(
@@ -38,7 +36,6 @@ MODIFIERS = (
         tags=(Tag.ELEPHANT, Tag.STABLE, Tag.ARCHERY_RANGE),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 3",
-        description="Elephant units have 25% more hit points",
         icon=Icon.ELEPHANT,
     ),
     Modifier(
@@ -48,7 +45,6 @@ MODIFIERS = (
         tags=(Tag.CAMEL, Tag.CAVALRY, Tag.STABLE),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 4",
-        description="Camel Riders have 15% more hit points",
         icon=Icon.CAMEL,
     ),
     Modifier(
@@ -58,7 +54,6 @@ MODIFIERS = (
         tags=(Tag.SHIP, Tag.DOCK),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 5",
-        description="Fire Galleys have 25% more attack",
         icon=Icon.SHIP,
     ),
     Modifier(
@@ -68,7 +63,6 @@ MODIFIERS = (
         tags=(Tag.SHIP, Tag.TRANSPORT, Tag.DOCK),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 6",
-        description="Transport ships move 25% faster",
         icon=Icon.TRANSPORT,
     ),
     Modifier(
@@ -78,7 +72,6 @@ MODIFIERS = (
         tags=(Tag.GOVERNMENT_CENTER, Tag.ECONOMY),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 7",
-        description="Nobility is free",
         icon=Icon.GOVERNMENT_CENTER,
     ),
     Modifier(
@@ -88,7 +81,6 @@ MODIFIERS = (
         tags=(Tag.ACADEMY,),
         civ=Civ.CARTHAGINIANS,
         name="Carthaginians 8",
-        description="Your team's Academies work 20% faster",
         icon=Icon.ACADEMY,
         kind=Kind.TEAM,
     ),
