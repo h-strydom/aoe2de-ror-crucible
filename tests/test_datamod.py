@@ -90,13 +90,12 @@ def test_shop_pool_and_xs():
     assert "const int cCrucibleChoices = 4;" in code
 
 
-def test_styles_lose_their_bonuses(tmp_path):
+def test_styles_lose_their_bonuses_and_get_every_tech(tmp_path):
     data = DatFile.parse(str(build.build([], tmp_path) / mod.ROR_DAT / mod.DAT_FILE))
 
     for style in civs.Style:
         civ = data.civs[style]
-        tree = data.effects[civ.tech_tree_id].effect_commands
-        assert tree and all(c.type == civs.DISABLE_TECH for c in tree)  # the tech tree stays
+        assert data.effects[civ.tech_tree_id].effect_commands == []  # no bonuses, every tech
         assert civ.team_bonus_id == -1
 
     assert {data.civs[style].icon_set for style in civs.Style} == {0, 1, 2, 3, 4}  # one per architecture style

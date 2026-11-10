@@ -1,14 +1,14 @@
-"""Bonus-less civs: one per architecture style. The player is Greek; the others are for looks (the map, the waves).
+"""Bonus-less civs with every tech: one per architecture style. The player is Greek; the others are for looks (the
+map, the waves), so no civ has anything another lacks.
 
 RoR keeps a civ's bonuses in two places only: its tech-tree effect (every command that isn't a tech disable) and
-its team-bonus effect. Units and starting resources are the same for every civ apart from their graphics.
+its team-bonus effect. Its tech tree is the disables in that same effect. Units and starting resources are the
+same for every civ apart from their graphics.
 """
 
 from enum import IntEnum
 
 from crucible.datamod.mod import DataMod
-
-DISABLE_TECH = 102  # effect command type: what a tech tree is made of
 
 
 class Style(IntEnum):
@@ -22,12 +22,18 @@ class Style(IntEnum):
 
 
 PLAYER = Style.GREEK
+SCENARIO_CIVS = {  # each style's civ as a scenario names it
+    Style.EGYPTIAN: "EGYPTIAN",
+    Style.GREEK: "GREEK",
+    Style.BABYLONIAN: "BABYLONIAN",
+    Style.ASIAN: "SHANG",
+    Style.ROMAN: "ROMAN",
+}
 
 
 def strip_bonuses(mod: DataMod) -> None:
-    """Take every style's civ bonuses out, keeping its tech tree."""
+    """Empty every style's tech-tree effect (no bonuses, nothing disabled) and drop its team bonus."""
     for style in Style:
         civ = mod.data.civs[style]
-        tree = mod.data.effects[civ.tech_tree_id]
-        tree.effect_commands = [c for c in tree.effect_commands if c.type == DISABLE_TECH]
+        mod.data.effects[civ.tech_tree_id].effect_commands = []
         civ.team_bonus_id = -1

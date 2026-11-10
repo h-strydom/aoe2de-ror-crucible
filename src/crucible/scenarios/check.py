@@ -81,7 +81,7 @@ def build(out: Path, techs: dict[str, int], tests: list[str]) -> Path:
 
             add_unit(s, "wonder", 6, 8)
             add_unit(s, "town_center", SIZE - 8, SIZE - 8)
-            sections = [TESTS[name].setup(s, ctx, techs, top=4 + k * STRIP) for k, name in enumerate(tests)]
+            sections = [TESTS[name].setup(o, ctx, techs, top=4 + k * STRIP) for k, name in enumerate(tests)]
             ctx.flush_xs()
 
             ctx.trigger(
