@@ -52,7 +52,6 @@ int crucibleBoonTech = -1;
 int crucibleBoonRarity = -1;
 int crucibleBoonMember = -1;  // category * cCrucibleBoons + boon -> 1 if the boon is in the category
 int crucibleBoonTaken = -1;  // 1 once offered
-int crucibleSlotBoon = -1;  // the boon on each row-1 slot, -1 if none yet
 int crucibleCategoryName = -1;
 int crucibleRarityPoints = -1;
 
@@ -61,7 +60,6 @@ void crucibleShopData() {{
     crucibleBoonRarity = xsArrayCreateInt(cCrucibleBoons, 0, "crucibleBoonRarity");
     crucibleBoonMember = xsArrayCreateInt(cCrucibleCategories * cCrucibleBoons, 0, "crucibleBoonMember");
     crucibleBoonTaken = xsArrayCreateInt(cCrucibleBoons, 0, "crucibleBoonTaken");
-    crucibleSlotBoon = xsArrayCreateInt(cCrucibleSlots, -1, "crucibleSlotBoon");
     crucibleCategoryName = xsArrayCreateString(cCrucibleCategories, "", "crucibleCategoryName");
     crucibleRarityPoints = xsArrayCreateInt(cCrucibleRarities, 0, "crucibleRarityPoints");
 {lines}

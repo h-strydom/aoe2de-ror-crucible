@@ -1,6 +1,6 @@
 // ---- Crucible shop: runtime (the generated data block comes first) ----
 // crucibleShopOpen() after a wave: two categories on the choice buttons. A click locks in (the other is disabled);
-// when the pick finishes, the free boon slots on row 1 fill with boons of that category.
+// when the pick finishes, each boon slot on row 1 gets a boon of that category, stacking on the ones there.
 
 int crucibleShopState = 0;  // 0 closed, 1 choosing, 2 picked
 int crucibleShopCategory1 = -1;
@@ -165,33 +165,21 @@ int crucibleShopBoon(int category = 0, int rarity = 0) {
     return (-1);
 }
 
-// Fill every free slot (empty, or its boon researched) with a boon of the category.
+// One boon of the category on each slot. Boons stack on a slot: the one on top researches, then the next shows.
 void crucibleShopOffer(int category = 0) {
     int offered = 0;
 
     for (slot = 0; < cCrucibleSlots) {
-        bool free = true;
-        int current = xsArrayGetInt(crucibleSlotBoon, slot);
+        int rarity = crucibleShopRarity(category);
 
-        if (current >= 0) {
-            if (xsGetTechState(xsArrayGetInt(crucibleBoonTech, current), 1) != cTechStateDone) {
-                free = false;
-            }
-        }
+        if (rarity >= 0) {
+            int boon = crucibleShopBoon(category, rarity);
+            int tech = xsArrayGetInt(crucibleBoonTech, boon);
 
-        if (free) {
-            int rarity = crucibleShopRarity(category);
-
-            if (rarity >= 0) {
-                int boon = crucibleShopBoon(category, rarity);
-                int tech = xsArrayGetInt(crucibleBoonTech, boon);
-
-                xsEffectAmount(cModifyTech, tech, cAttrSetLocation, cCrucibleWonder, 1);
-                xsEffectAmount(cModifyTech, tech, cAttrSetButton, slot + 1, 1);
-                xsArraySetInt(crucibleBoonTaken, boon, 1);
-                xsArraySetInt(crucibleSlotBoon, slot, boon);
-                offered = offered + 1;
-            }
+            xsEffectAmount(cModifyTech, tech, cAttrSetLocation, cCrucibleWonder, 1);
+            xsEffectAmount(cModifyTech, tech, cAttrSetButton, slot + 1, 1);
+            xsArraySetInt(crucibleBoonTaken, boon, 1);
+            offered = offered + 1;
         }
     }
 
