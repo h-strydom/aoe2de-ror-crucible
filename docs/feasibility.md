@@ -384,3 +384,7 @@ Useful XS for this: `xsGetPlayerUnitIds`, `xsGetGarrisonedUnitIds`, `xsGetUnitPo
   Ready (`cModifyTech`, `cAttrSetState`) doesn't; XS moving it to no building (`cAttrSetLocation -1`) doesn't even
   take it off the Wonder. So the shop places boons and disables choices from XS, and re-enables the choice pair by
   trigger (two triggers in all, none per boon).
+- **The shop works in game** (`src/crucible/shop/`, 3 slots, 4 choices a wave, 22 boons): category choices named with
+  their counts, lock-in on click, one boon stacked on every row-1 slot per pick (the top one researches, then the next
+  shows; all 22 stacked on 3 slots), boon hover text, choices counted down with the next pair shown at once, and
+  "no boons left" at the end.

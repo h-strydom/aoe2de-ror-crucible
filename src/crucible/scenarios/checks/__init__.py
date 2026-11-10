@@ -4,6 +4,4 @@ on the Wonder from the start) and setup(s, ctx, techs, top) returning its briefi
 Standing rule: delete a test's module once it's confirmed in game.
 """
 
-from crucible.scenarios.checks import shop
-
-TESTS = {module.NAME: module for module in (shop,)}
+TESTS = {module.NAME: module for module in ()}  # none waiting to be confirmed
