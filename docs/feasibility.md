@@ -396,3 +396,5 @@ in game: villager food cost (attribute 103, 50 -> 40), population room on a Town
 storage, attribute 21, +4 each), class armour (+1/+1 on villagers) and class attack (+1 on archers), priest range,
 house HP across ages, farm food (resource 36: 375), Storage Pit tech costs (-40%). Multiplying the research time
 resource (86) did nothing: Toolworking wasn't faster.
+Setting it instead, as RoR's Palmyran team bonus does (`(1, 86, 0, -1, 1/1.3)`), works: Toolworking took ~31 s
+instead of 40. Still unchecked: trade gold (a trade boat's work rate), needs water.
