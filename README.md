@@ -11,7 +11,7 @@ AI and campaign, and keeps progress between missions in the campaign bank.
 
 ## Requirements
 
-- Windows, [uv](https://docs.astral.sh/uv/) and Python 3.12+
+- Windows, [uv](https://docs.astral.sh/uv/) and Python 3.13+
 - Age of Empires II: DE with the Return of Rome expansion
 
 ## Getting started
