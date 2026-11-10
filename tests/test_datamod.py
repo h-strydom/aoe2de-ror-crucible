@@ -77,7 +77,7 @@ def test_string_ids_count_up_and_escape_newlines():
 
 
 def test_shop_pool_and_xs():
-    config = ShopConfig(slots=3)
+    config = ShopConfig(slots=3, choices=4)
     boons = shop_pool.boons(config)
     assert boons and all(compiles(m) and m.civ in config.civs for m in boons)
     categories = shop_pool.categories(config, boons)
@@ -88,3 +88,4 @@ def test_shop_pool_and_xs():
     assert xs.check(code)["ok"]
     assert f"const int cCrucibleBoons = {len(boons)};" in code
     assert "const int cCrucibleSlots = 3;" in code
+    assert "const int cCrucibleChoices = 4;" in code

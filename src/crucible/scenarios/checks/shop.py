@@ -1,10 +1,11 @@
-"""Test: the shop, with 3 boon slots. A "wave is defeated" at 5 s and again 15 s after each offer."""
+"""Test: the shop, with 3 boon slots and 4 choices a wave. A "wave is defeated" at 5 s, and again 15 s after the
+shop closes."""
 
 from crucible.shop import pool, scenario
 from crucible.shop.config import ShopConfig
 
 NAME = "shop"
-CONFIG = ShopConfig(slots=3)
+CONFIG = ShopConfig(slots=3, choices=4)
 BOONS = tuple(m.id for m in pool.boons(CONFIG))
 BUTTONS: dict[str, int] = {}
 
@@ -24,7 +25,7 @@ rule crucibleCheckWaves
 
     if ((crucibleCheckOpen == false) && (xsGetTime() >= crucibleCheckNext)) {
         crucibleCheckWave = crucibleCheckWave + 1;
-        xsChatData("Wave %d defeated: choose a category", crucibleCheckWave);
+        xsChatData("Wave %d defeated", crucibleCheckWave);
         crucibleShopOpen();
         crucibleCheckOpen = true;
     }
@@ -38,9 +39,9 @@ def setup(s, ctx, techs: dict[str, int], top: int) -> str:
     categories = ", ".join(str(c).title() for c in pool.categories(CONFIG, pool.boons(CONFIG)))
 
     return (
-        f"SHOP on the Wonder, {len(BOONS)} boons in {categories}. At 5 s, and 15 s after each offer, two categories "
-        "appear on row 3 (buttons 11 and 12) named with how many boons they have left. Click one: the other goes. "
-        "When it finishes, each of the 3 slots on row 1 gets one of that category's boons, priced by rarity, stacking "
-        "on any boon already there: research the one on top and the next should show. Leave some unresearched: all "
-        f"{len(BOONS)} should end up stacked on the 3 slots. A boon never comes up twice. Chat narrates."
+        f"SHOP on the Wonder, {len(BOONS)} boons in {categories}. Each wave (at 5 s, then 15 s after the shop "
+        f"closes) gives {CONFIG.choices} choices. A choice shows two categories on row 3 (buttons 11 and 12), named "
+        "with how many boons they have left; the hover text says how many choices are left. Click one: the other "
+        "goes. When it finishes, each of the 3 slots on row 1 gets one of that category's boons, stacking on any "
+        "already there, and the next choice shows on the same buttons. A boon never comes up twice. Chat narrates."
     )

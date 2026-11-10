@@ -1,11 +1,13 @@
 // ---- Crucible shop: runtime (the generated data block comes first) ----
-// crucibleShopOpen() after a wave: two categories on the choice buttons. A click locks in (the other is disabled);
-// when the pick finishes, each boon slot on row 1 gets a boon of that category, stacking on the ones there.
+// crucibleShopOpen() after a wave grants cCrucibleChoices choices. Each choice: two categories on the choice buttons;
+// a click locks in (the other is disabled); when the pick finishes, each boon slot on row 1 gets a boon of that
+// category, stacking on the ones there, and the next choice (if any are left) appears on the same buttons.
 
 int crucibleShopState = 0;  // 0 closed, 1 choosing, 2 picked
 int crucibleShopCategory1 = -1;
 int crucibleShopCategory2 = -1;
 int crucibleShopPicked = 0;  // the choice clicked: 1 or 2
+int crucibleShopChoices = 0;  // choices still to make
 bool crucibleShopReady = false;
 
 void crucibleShopInit() {
@@ -79,20 +81,16 @@ void crucibleShopName(int number = 1, int category = 0) {
     int count = crucibleShopAvailable(category, -1);
 
     xsSetTechName(tech, 1, name + " boons (" + count + ")");
-    xsSetTechDescription(tech, 1, "Choose from " + count + " " + name + " boons.");
+    xsSetTechDescription(tech, 1, "Choose from " + count + " " + name + " boons (choices left: " + crucibleShopChoices + ").");
 }
 
-void crucibleShopOpen() {
-    crucibleShopInit();
-
-    if (crucibleShopState != 0) {
-        return;
-    }
-
+// Show the next choice: two categories with boons left on the choice buttons.
+void crucibleShopShow() {
     crucibleShopCategory1 = crucibleShopRandomCategory(-1);
 
     if (crucibleShopCategory1 < 0) {
         xsChatData("Shop: no boons left");
+        crucibleShopChoices = 0;
         return;
     }
 
@@ -107,6 +105,17 @@ void crucibleShopOpen() {
     }
 
     crucibleShopState = 1;
+    xsChatData("Shop: choose (choices left: %d)", crucibleShopChoices);
+}
+
+// A wave is defeated: grant its choices, and show one unless a choice is already up.
+void crucibleShopOpen() {
+    crucibleShopInit();
+    crucibleShopChoices = crucibleShopChoices + cCrucibleChoices;
+
+    if (crucibleShopState == 0) {
+        crucibleShopShow();
+    }
 }
 
 // A rarity drawn by points among those the category still has; -1 if none.
@@ -215,5 +224,10 @@ rule crucibleShop
 
         crucibleShopPicked = 0;
         crucibleShopState = 0;
+        crucibleShopChoices = crucibleShopChoices - 1;
+
+        if (crucibleShopChoices > 0) {
+            crucibleShopShow();
+        }
     }
 }

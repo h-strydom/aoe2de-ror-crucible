@@ -43,6 +43,7 @@ const int cCrucibleBoons = {len(pool)};
 const int cCrucibleCategories = {len(categories)};
 const int cCrucibleRarities = {len(RARITIES)};
 const int cCrucibleSlots = {min(config.slots, len(BOON_BUTTONS))};
+const int cCrucibleChoices = {config.choices};
 const int cCrucibleWonder = {WONDER};
 const int cCrucibleChoice1 = {techs[choice_key(1)]};
 const int cCrucibleChoice2 = {techs[choice_key(2)]};
