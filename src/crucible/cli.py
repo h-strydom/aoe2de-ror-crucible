@@ -25,6 +25,8 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     arena = sub.add_parser("arena", help="build crucible_arena, the run map, from assets/map_crucible.aoe2scenario")
     arena.add_argument("--install", action="store_true", help="install the scenario")
+    parts = sub.add_parser("parts", help="put each arena part on its own blank map, from assets/arena_edited")
+    parts.add_argument("--install", action="store_true", help="install the scenarios")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -62,6 +64,19 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.install:
             print(f"installed: {game.install(scenario, game='ror')['installed']}")
+
+        return 0
+
+    if args.command == "parts":
+        from aoe2ed import game
+
+        from crucible.scenarios import parts as part_scenarios
+
+        for scenario in part_scenarios.build(OUT / "parts"):
+            print(scenario)
+
+            if args.install:
+                print(f"installed: {game.install(scenario, game='ror')['installed']}")
 
         return 0
 
