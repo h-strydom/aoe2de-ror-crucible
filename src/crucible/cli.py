@@ -29,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     parts.add_argument("--install", action="store_true", help="install the scenarios")
     ground = sub.add_parser(
         "ground",
-        help="crucible_arena from assets/arena_edited on even ground: all Dirt Mud, elevation 5",
+        help="crucible_arena from assets/arena_edited on even ground: all Dirt Mud, elevation 5 (editor)",
     )
     ground.add_argument("--install", action="store_true", help="install the scenario")
     args = parser.parse_args(argv)

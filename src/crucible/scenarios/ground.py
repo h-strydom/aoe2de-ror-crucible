@@ -1,4 +1,5 @@
-"""The arena as edited by hand (assets/arena_edited.aoe2scenario) on even ground: every tile Dirt Mud at elevation 5.
+"""The arena as edited by hand (assets/arena_edited.aoe2scenario) on even ground: every tile Dirt Mud at elevation 5,
+as the editor counts.
 
 Units, players and everything else stay as they are. It is installed as crucible_arena, in place of the edited one.
 """
@@ -10,7 +11,7 @@ from aoe2ed.session import SESSIONS
 from crucible.scenarios.arena import NAME
 from crucible.scenarios.parts import EDITED, MUD
 
-ELEVATION = 5
+ELEVATION = 4  # the editor shows it as 5: it counts from 1
 
 
 def build(out: Path) -> Path:
