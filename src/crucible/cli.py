@@ -27,6 +27,11 @@ def main(argv: list[str] | None = None) -> int:
     arena.add_argument("--install", action="store_true", help="install the scenario")
     parts = sub.add_parser("parts", help="put each arena part on its own blank map, from assets/arena_edited")
     parts.add_argument("--install", action="store_true", help="install the scenarios")
+    ground = sub.add_parser(
+        "ground",
+        help="crucible_arena from assets/arena_edited on even ground: all Dirt Mud, elevation 5",
+    )
+    ground.add_argument("--install", action="store_true", help="install the scenario")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -77,6 +82,19 @@ def main(argv: list[str] | None = None) -> int:
 
             if args.install:
                 print(f"installed: {game.install(scenario, game='ror')['installed']}")
+
+        return 0
+
+    if args.command == "ground":
+        from aoe2ed import game
+
+        from crucible.scenarios import ground as ground_scenario
+
+        scenario = ground_scenario.build(OUT)
+        print(scenario)
+
+        if args.install:
+            print(f"installed: {game.install(scenario, game='ror')['installed']}")
 
         return 0
 
