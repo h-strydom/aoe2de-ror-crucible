@@ -17,6 +17,7 @@ Map: 220 x 220. Compass: y = 0 is north, x = 0 is west.
 | 5 | Allies | gray (6) | Greek | the player's ally: resources sent for objectives, units sent to help. **Not in the map yet** |
 
 Diplomacy: 1 and 5 allied, sharing vision; 2 and 3 allied and enemies of 1 and 5; 4 neutral to everyone.
+Vision: 2, 3 and 4 see the whole map; 1 and 5 have fog.
 All civs are the bonus-less style civs (`datamod/civs.py`).
 
 ## Places

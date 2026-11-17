@@ -20,6 +20,7 @@ from crucible.scenarios.arena import ARENA
 NAME = "crucible_run"
 TOWN_CENTER, WONDER = 109, 276
 WALL_CLASSES = (27, 39)
+REVEAL_MAP = 203  # resource: 2 = the whole map visible, no fog
 
 
 class Faction(IntEnum):
@@ -123,6 +124,21 @@ def build(out: Path) -> Path:
                         "visibility_state": 0,  # visible
                     }
                     for source, target in ((Faction.PLAYER, Faction.ALLIES), (Faction.ALLIES, Faction.PLAYER))
+                ],
+            )
+            ctx.trigger(
+                "Full vision",  # everyone but the player and the Allies sees the whole map
+                [],
+                [
+                    {
+                        "type": "modify_resource",
+                        "tribute_list": REVEAL_MAP,
+                        "source_player": player,
+                        "quantity": 2,
+                        "operation": "SET",
+                    }
+                    for player in Faction
+                    if player not in FRIENDS
                 ],
             )
             blocks.lose_if_destroyed(
