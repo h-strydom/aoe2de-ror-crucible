@@ -63,6 +63,9 @@ void crucibleRunOneHp(int type = -1) {{
 
 void crucibleRunInvulnerable(int type = -1) {{
     int ids = xsGetPlayerUnitIds({invulnerable}, type, -1);
+    // splash hits a unit whose blast defence level is at least the attack's (catapults 2, buildings 2-3, units 3):
+    // at 0, like trees, nothing but a level 0 attack splashes it
+    xsEffectAmount(cSetAttribute, type, cBlastDefenseLevel, 0, {invulnerable});
 
     for (i = 0; < xsArrayGetSize(ids)) {{
         xsSetUnitProperty(xsArrayGetInt(ids, i), cUnitAttackable, 0);
