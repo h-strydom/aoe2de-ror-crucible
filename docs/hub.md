@@ -44,3 +44,9 @@ everything bought so far. Replaying the hub asks "save your choices?": No throws
 
 - what upgrades cost (currency earned in runs)
 - getting back to the hub after a run
+
+## The data mod
+
+A scenario doesn't record its data mod, so the player picks Crucible as the Data Mod on the campaign screen; it
+stays loaded from the hub into the run. Without it the hub's and the run's techs don't exist: both maps then say to
+pick it and, 5 seconds later, kill everything of the player's, which loses the mission.

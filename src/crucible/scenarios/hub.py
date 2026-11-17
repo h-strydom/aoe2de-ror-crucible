@@ -24,6 +24,7 @@ from crucible import meta
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import SEND_WAVE, choice_key
+from crucible.scenarios import datamod_check
 from crucible.scenarios.maps import asset
 
 NAME = "crucible_hub"
@@ -230,6 +231,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 [{"type": "research_technology", "source_player": PLAYER, "technology": techs[meta.BEGIN]}],
                 [{"type": "declare_victory", "source_player": PLAYER, "enabled": True}],
             )
+            datamod_check.add(ctx, techs[meta.BEGIN], player=PLAYER)
+            ctx.flush_xs()
 
         out.mkdir(parents=True, exist_ok=True)
         path = out / f"{NAME}.aoe2scenario"

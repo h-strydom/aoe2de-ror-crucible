@@ -18,8 +18,8 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 from crucible import meta
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
-from crucible.datamod.shop import choice_key
-from crucible.scenarios import run_meta, run_xs, waves
+from crucible.datamod.shop import SEND_WAVE, choice_key
+from crucible.scenarios import datamod_check, run_meta, run_xs, waves
 from crucible.scenarios.maps import asset
 
 NAME = "crucible_run"
@@ -167,6 +167,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
 
             for area in waves.SPAWN_AREAS:
                 blocks.fog.reveal(ctx, area=area, player=Faction.PLAYER, keep=True)
+
+            datamod_check.add(ctx, techs[SEND_WAVE], player=Faction.PLAYER)
             ctx.flush_xs()
             ctx.trigger(
                 "Shared vision",

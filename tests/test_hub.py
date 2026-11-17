@@ -20,7 +20,7 @@ def test_hub_has_a_trigger_per_level(tmp_path, techs):
         names = {t.name for t in s.trigger_manager.triggers}
         for upgrade in meta.UPGRADES:
             assert {f"Hub: {upgrade.title} bought", f"Hub: {upgrade.title} sold out"} <= names
-        assert {"Hub: Villager 6", "Hub: House 7", "Hub: Clubmen 2", "Hub: begin the Crucible"} <= names
+        assert {"Hub: Villager 6", "Hub: House 7", "Hub: Clubmen 2", "Hub: begin the Crucible", "No data mod"} <= names
     finally:
         SESSIONS.close(o.handle)
 
