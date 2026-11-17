@@ -18,9 +18,11 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 from crucible import meta
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
-from crucible.datamod.shop import SEND_WAVE, choice_key
+from crucible.datamod.shop import SEND_WAVE
 from crucible.scenarios import datamod_check, run_meta, run_xs, waves
 from crucible.scenarios.maps import asset
+from crucible.shop import scenario as shop
+from crucible.shop.config import ShopConfig
 
 NAME = "crucible_run"
 TOWN_CENTER, WONDER = 109, 276
@@ -128,6 +130,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
 
             ctx = blocks.Ctx(s)
             ctx.xs(run_xs.start(walls, buildings, city_states, allies=Faction.ALLIES, invulnerable=Faction.CITY_STATES))
+            shop.add(ctx, ShopConfig(), techs)  # before the waves: their XS opens it when a wave is defeated
             waves.add(ctx, techs)
             town_center = next(u for u in s.unit_manager.units[Faction.PLAYER] if u.unit_const == TOWN_CENTER)
             run_meta.add(
@@ -137,19 +140,6 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 allies=Faction.ALLIES,
                 town_center=(town_center.x, town_center.y),
                 villagers=META_VILLAGERS,
-            )
-            ctx.trigger(
-                "No shop yet",  # the boon category choices stay off the Wonder until the shop is in
-                [],
-                [
-                    {
-                        "type": "enable_disable_technology",
-                        "source_player": Faction.PLAYER,
-                        "technology": techs[choice_key(number)],
-                        "enabled": 0,
-                    }
-                    for number in (1, 2)
-                ],
             )
             ctx.trigger(
                 "No hub buttons",  # the hub's upgrades are data mod techs on every Town Center and Barracks

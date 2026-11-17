@@ -19,13 +19,13 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert s.player_manager.active_players == 5
         assert s.sections["FileHeader"].unknown_numbers == [11]
         names = {t.name for t in s.trigger_manager.triggers}
-        assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in", "No shop yet"} <= names
+        assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in"} <= names
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 7", "Meta: Barracks 1"} <= names
         assert {"Meta: Clubmen", "No hub buttons", "No data mod", "No data mod: defeat"} <= names
 
         messages = [e.message for t in s.trigger_manager.triggers for e in t.effects if e.message]
         code = "\n".join(m for m in messages if "{" in m)  # the scripts, not the timer's text
-        assert "crucibleRunStart" in code and "crucibleWaves" in code
+        assert "crucibleRunStart" in code and "crucibleWaves" in code and "crucibleShopOpen" in code
         result = xs.check(code)
         assert result["ok"], result["diagnostics"]
     finally:

@@ -97,6 +97,7 @@ void crucibleWaveCountDefeated() {
                 crucibleWaveDefeatedCount++;
                 xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterRelics, crucibleWaveDefeatedCount);
                 xsChatData("Wave %d defeated", wave);
+                crucibleShopOpen();  // a decision: two boon categories on the Wonder
             }
         }
     }

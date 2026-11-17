@@ -98,6 +98,9 @@ in it is dead. A timer shows the time to the next send; the objective counts
 defeated waves to 9 ("Defeat 9 waves (n/9)"), and chat names each one as it falls. Waves clump as they walk, so only
 the middle tile of each row matters as a reference.
 
+**Boons.** Each wave defeated gives one decision in the shop (`shop/`): two boon categories on the Wonder, then a
+boon of the one picked on each boon slot. For now every boon (but drawbacks) can come up.
+
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's
 villagers and patrol around them. Destroying a base stops all of that and gives one decision reward (one more shop
