@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
         help="save: copy the game's copy into the repo after editing; install: put the repo's copy in the game",
     )
     run = sub.add_parser("run", help="build crucible_run, the arena as a game (docs/arena.md)")
-    run.add_argument("--install", action="store_true", help="install the scenario")
+    run.add_argument("--install", action="store_true", help="install the data mod and the scenario")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -71,12 +71,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         from aoe2ed import game
 
+        from crucible.bonuses import catalogue
+        from crucible.datamod import build
         from crucible.scenarios import run as run_scenario
 
-        scenario = run_scenario.build(OUT)
-        print(scenario)
+        folder = build.build(list(catalogue.ALL), OUT)
+        scenario = run_scenario.build(OUT, build.manifest(folder))
+        print(folder, scenario, sep="\n")
 
         if args.install:
+            print(f"installed: {build.install(folder)}")
             print(f"installed: {game.install(scenario, game='ror')['installed']}")
 
         return 0

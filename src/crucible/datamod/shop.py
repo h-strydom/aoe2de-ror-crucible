@@ -3,7 +3,7 @@
 The Wonder's 15 buttons are three rows of five:
   row 1 (1-5): boons on offer (they stack);
   row 3, columns 1-2 (11, 12): the two boon categories to choose between after a wave;
-  row 3, column 5 (15): "Send next wave" (later).
+  row 3, column 5 (15): "Send next wave", which a script turns on when a wave is in position.
 
 A choice is a free, near-instant tech that a script renames to the category it stands for. One pair serves every
 wave: a click disables the other choice (locked in), and when the pick finishes both are re-enabled (a researched
@@ -19,6 +19,7 @@ BOON_BUTTONS = (1, 2, 3, 4, 5)
 CHOICE_BUTTONS = (11, 12)
 NEXT_WAVE_BUTTON = 15
 CHOICE_TIME = 1
+SEND_WAVE = "send_wave"  # its manifest key
 
 
 def choice_key(number: int) -> str:
@@ -27,7 +28,7 @@ def choice_key(number: int) -> str:
 
 
 def add(mod: DataMod) -> None:
-    """The two category choices, on row 3; the script gives them their names."""
+    """The two category choices and the send button, on row 3; the script gives the choices their names."""
     for number, button in enumerate(CHOICE_BUTTONS, start=1):
         key = choice_key(number)
         effect = mod.new_effect(f"Crucible {key}", [])
@@ -43,3 +44,16 @@ def add(mod: DataMod) -> None:
             button=button,
             research_time=CHOICE_TIME,
         )
+
+    mod.manifest[SEND_WAVE] = mod.new_tech(
+        "Crucible send wave",
+        effect=mod.new_effect("Crucible send wave", []),
+        title="Send next wave",
+        description="Send the waiting wave now. The next one walks in, and comes 5 minutes after this one.",
+        tooltip="Research <b>Send next wave<b>\nSend the waiting wave now. The next one walks in, and comes 5 minutes "
+        "after this one.",
+        icon=icon_id(Icon.TECHNOLOGY, mod.data),
+        location=WONDER,
+        button=NEXT_WAVE_BUTTON,
+        research_time=CHOICE_TIME,
+    )

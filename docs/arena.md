@@ -55,6 +55,9 @@ included, belongs to the Allies (5):
 - walls keep their normal HP but start randomly damaged: some destroyed, some heavily damaged, some fine; more damaged
   than destroyed or whole
 
+The player starts with standard resources (200 food, 200 wood, 150 stone) and 4 villagers by the Town Center; a meta
+upgrade adds 6 more just south of them.
+
 Meta upgrades will hand more of these buildings to the player at the start (later: from the campaign bank).
 
 **Ages.** The City States (2) start in the Iron Age (eye candy). The Legion (3) starts in the Stone Age and ages up with
@@ -81,10 +84,17 @@ join the wave pool. Units already on the map get the techs too.
 
 post-Iron: the last upgrades, such as Ballista to Helepolis, Catapult to Heavy Catapult, Phalangite to Centurion.
 
-**Calling a wave early.** A "Spawn next wave" button (on the Wonder) spawns the next wave now and starts the 5 minute
-timer again. A short cooldown after any wave stops the next one spawning on top of it before it has walked out. A
-called wave that brings an age up brings it early: the player can call waves 1 and 2 at once, fight the Clubmen, and
-then meet Tool Age units at 5:00. Calling a wave doesn't clear it: a wave is cleared when every unit in it is dead.
+**Staging.** Each lane is three rows of three tiles: where a wave spawns (the map edge), where it waits (a row
+inside the spawn base) and where it attacks to (in the player's base). A wave spawns a row at a time and walks in,
+in line formation, to its waiting row. Then it waits until it's sent, and marches out as one, in formation, straight
+down its road. As soon as it heads out, the next wave walks in at the other City States. The Capital's lanes end on
+the west and east of the Wonder; each side City State's lane ends beside the Capital lane on its side.
+
+**Sending a wave.** When the waiting wave is in position, the "Send next wave" button on the Wonder comes on. A wave
+is sent 5 minutes after the one before (the first at 5:00), or as soon as the player clicks; a click starts the 5
+minutes again. A sent wave that brings an age up brings it early: the player can send waves 1 and 2 at once, fight
+the Clubmen, and then meet Tool Age units at 5:00. Sending a wave doesn't clear it: a wave is cleared when every unit
+in it is dead.
 
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's
@@ -103,7 +113,7 @@ raids more frequent and harder. The 5 minute wave timer never changes.
 ## Open
 
 - the waves' contents by age, and how large the last wave is
-- the cooldown after calling a wave (how long it takes a wave to walk out)
+- how many units a row is when a wave is bigger than one row, and how its rows follow each other
 - what a raiding party is (size, units), and how raid frequency is drawn
 - how the bases' behaviour is done: an AI (RoR ships AiBuilder_p, a scenario AI set by phases) or triggers
 - player 5: where its units appear when the Allies send help
