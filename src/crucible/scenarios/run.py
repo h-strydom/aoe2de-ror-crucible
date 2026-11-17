@@ -17,6 +17,7 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
+from crucible.datamod.shop import choice_key
 from crucible.scenarios import run_xs, waves
 from crucible.scenarios.arena import ARENA
 
@@ -127,6 +128,19 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             ctx = blocks.Ctx(s)
             ctx.xs(run_xs.start(walls, buildings, city_states, allies=Faction.ALLIES, invulnerable=Faction.CITY_STATES))
             waves.add(ctx, techs)
+            ctx.trigger(
+                "No shop yet",  # the boon category choices stay off the Wonder until the shop is in
+                [],
+                [
+                    {
+                        "type": "enable_disable_technology",
+                        "source_player": Faction.PLAYER,
+                        "technology": techs[choice_key(number)],
+                        "enabled": 0,
+                    }
+                    for number in (1, 2)
+                ],
+            )
             ctx.flush_xs()
             ctx.trigger(
                 "Shared vision",

@@ -4,7 +4,7 @@ from aoe2ed.session import SESSIONS
 from crucible.datamod.shop import SEND_WAVE
 from crucible.scenarios import run, waves
 
-TECHS = {SEND_WAVE: 1000}  # a stand-in for the data mod's manifest
+TECHS = {SEND_WAVE: 1000, "choice_1": 1001, "choice_2": 1002}  # a stand-in for the data mod's manifest
 
 
 def test_run_hands_the_base_to_the_allies(tmp_path):
@@ -22,7 +22,7 @@ def test_run_hands_the_base_to_the_allies(tmp_path):
         assert s.player_manager.active_players == 5
         assert s.sections["FileHeader"].unknown_numbers == [11]
         names = {t.name for t in s.trigger_manager.triggers}
-        assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in"} <= names
+        assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in", "No shop yet"} <= names
 
         messages = [e.message for t in s.trigger_manager.triggers for e in t.effects if e.message]
         code = "\n".join(m for m in messages if "{" in m)  # the scripts, not the timer's text

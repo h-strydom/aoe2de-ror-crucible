@@ -139,12 +139,6 @@ rule crucibleWaves
     if ((crucibleWaveReady == false) && crucibleWaveStaged()) {
         xsSetTriggerVariable(cCrucibleWaveButtonVariable, 1);
         crucibleWaveReady = true;
-        xsChatData("Wave %d in position: Send next wave is on the Wonder", crucibleWave);  // while the button is checked
-    }
-
-    if (crucibleWaveReady && (crucibleWaveArmed == false)) {
-        // while the button is checked: -2 no such tech (data mod?), -1 disabled, 0 not ready, 1 ready
-        xsChatData("Send button state: %d", state);
     }
 
     if (crucibleWaveReady && (state == cTechStateReady)) {
