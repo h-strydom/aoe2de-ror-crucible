@@ -108,7 +108,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             s.player_manager.active_players = len(Faction)
 
             for player, fields in PLAYERS.items():
-                ai = {} if fields.get("human") else {"ai": "none", "human": False}
+                ai = {} if fields.get("human") else {"ai": "immobile", "human": False}
                 player_set(o.handle, player, fields | ai)
 
             _diplomacy(o.handle)

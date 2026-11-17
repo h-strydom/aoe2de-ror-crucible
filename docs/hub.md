@@ -11,7 +11,8 @@ mission of the Crucible campaign, before `crucible_run`.
 - **2, purple but not the player**: what the next run starts with.
 - **3 and up, gray**: what can still be bought. Several players so ages and architectures can be mixed.
 
-Everyone is allied. Workers look busy but gather nothing: the purple villagers on the berries (the run's first four),
+Everyone is allied, and the computer players play the "Immobile AI" (the "None AI" explores). Only players who own
+something are active: an empty one would be given a starting town. Workers look busy but gather nothing: the purple villagers on the berries (the run's first four),
 the gray ones on the stone and gold, all at work rate 0.
 
 ## Upgrades

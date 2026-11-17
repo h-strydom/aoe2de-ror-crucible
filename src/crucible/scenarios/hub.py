@@ -104,11 +104,14 @@ def _work(s) -> dict[int, list[dict]]:
 
 def _setup(o) -> None:
     s = o.scenario
+    # only players who own something: an active player with no units is given a starting town (a Town Center and
+    # villagers) and plays it
+    s.player_manager.active_players = max(p for p in range(1, 9) if s.unit_manager.units[p])
     player_set(o.handle, PLAYER, {"civilization": SCENARIO_CIVS[Style.GREEK], "color": 5, "human": True})
-    player_set(o.handle, PURPLE, {"color": 5, "human": False, "ai": "none"})
+    player_set(o.handle, PURPLE, {"color": 5, "human": False, "ai": "immobile"})
 
     for player in range(GRAY, s.player_manager.active_players + 1):
-        player_set(o.handle, player, {"human": False, "ai": "none"})
+        player_set(o.handle, player, {"human": False, "ai": "immobile"})
 
     for player in range(1, s.player_manager.active_players + 1):
         others = [p for p in range(1, s.player_manager.active_players + 1) if p != player]

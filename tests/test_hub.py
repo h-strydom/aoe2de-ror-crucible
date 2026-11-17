@@ -12,6 +12,9 @@ def test_hub_has_a_trigger_per_level(tmp_path, techs):
         units = s.unit_manager.units
         assert {u.unit_const for u in units[hub.PLAYER]} == {meta.TOWN_CENTER, hub.WONDER}
         assert len([u for u in units[hub.PURPLE] if u.unit_const in hub.VILLAGERS]) == 4  # at the berries
+        assert s.player_manager.active_players == 3  # no empty players: they'd get a starting town
+        players = s.player_manager.players
+        assert all(players[p].personality == "Immobile AI" for p in (2, 3))  # "None AI" explores
         assert s.sections["FileHeader"].unknown_numbers == [11]
 
         names = {t.name for t in s.trigger_manager.triggers}
