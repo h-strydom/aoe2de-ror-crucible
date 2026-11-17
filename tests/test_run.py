@@ -24,7 +24,8 @@ def test_run_hands_the_base_to_the_allies(tmp_path):
         names = {t.name for t in s.trigger_manager.triggers}
         assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in"} <= names
 
-        code = "\n".join(e.message for t in s.trigger_manager.triggers for e in t.effects if e.message)
+        messages = [e.message for t in s.trigger_manager.triggers for e in t.effects if e.message]
+        code = "\n".join(m for m in messages if "{" in m)  # the scripts, not the timer's text
         assert "crucibleRunStart" in code and "crucibleWaves" in code
         result = xs.check(code)
         assert result["ok"], result["diagnostics"]

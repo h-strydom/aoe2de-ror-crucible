@@ -94,7 +94,9 @@ the west and east of the Wonder; each side City State's lane ends beside the Cap
 is sent 5 minutes after the one before (the first at 5:00), or as soon as the player clicks; a click starts the 5
 minutes again. A sent wave that brings an age up brings it early: the player can send waves 1 and 2 at once, fight
 the Clubmen, and then meet Tool Age units at 5:00. Sending a wave doesn't clear it: a wave is cleared when every unit
-in it is dead.
+in it is dead. A timer shows the time to the next send; the objective counts
+defeated waves to 9 ("Defeat 9 waves (n/9)"), and chat names each one as it falls. Waves clump as they walk, so only
+the middle tile of each row matters as a reference.
 
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's

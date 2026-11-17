@@ -8,6 +8,10 @@ wave spawns and walks in. Waves alternate: the Capital's two lanes, then one lan
 A lane is three rows of three tiles (marked by hand in the editor, 2026-11-17): where a row spawns, where it waits,
 and where it attacks to.
 
+A timer shows the time to the next send. A sent wave is defeated when every unit in it is dead; an objective counts
+them to 9. Trigger text can't show a variable, but it can show a player's attribute (`<Gold Storage, 4>`), so XS keeps
+the count in the Traders' gold, which nothing else uses.
+
 The XS (waves.xs) decides; triggers do: XS sets a variable, a looping trigger acts on it and sets it back to 0.
 """
 
@@ -24,6 +28,10 @@ PER_LANE = 3  # for now: one row of Clubmen
 SEND_TIME = 300  # seconds between sends
 MOVE, ATTACK_MOVE, LINE_FORMATION = 1, 17, 18
 MARGIN = 2  # tiles around a row that still count as on it
+WAVES = 9  # to defeat
+TRADERS, GOLD = 4, 3  # where the defeated count is kept: the Traders' gold
+COUNTER = f"<Gold Storage, {TRADERS}>"
+TIMER = 0  # display timer slot
 
 ORDER_VARIABLE = "crucible_wave_order"  # 1: spawn the Capital's wave; 3: send it, spawn the city states'; 4: back
 BUTTON_VARIABLE = "crucible_wave_button"  # 1: button on, 2: off
@@ -124,13 +132,47 @@ def _button(tech: int, on: bool) -> dict:
     return {"type": "enable_disable_technology", "source_player": 1, "technology": tech, "enabled": int(on)}
 
 
+def _timer() -> list[dict]:
+    return [
+        {"type": "clear_timer", "timer": TIMER},
+        {
+            "type": "display_timer",
+            "timer": TIMER,
+            "display_time": SEND_TIME,
+            "time_unit": "SECONDS",
+            "message": "Next wave: %d",
+        },
+    ]
+
+
+def _objective(ctx) -> None:
+    text = f"Defeat {WAVES} waves ({COUNTER}/{WAVES})"
+    ctx.trigger(
+        "Waves defeated",
+        [
+            {
+                "type": "accumulate_attribute",
+                "source_player": TRADERS,
+                "attribute": GOLD,
+                "quantity": WAVES,
+            }
+        ],
+        [],
+        display_as_objective=True,
+        display_on_screen=True,
+        description=text,
+        short_description=text,
+    )
+
+
 def _triggers(ctx, tech: int) -> None:
     ctx.var(ORDER_VARIABLE)
     ctx.var(BUTTON_VARIABLE)
     capital = [effect for lane in CAPITAL for effect in _walk_in(lane)]
     city_states = [effect for lane in CITY_STATES for effect in _walk_in(lane)]
 
-    ctx.trigger("Wave: no button at start", [], [_button(tech, on=False)])
+    ctx.trigger("Wave: no button at start", [], [_button(tech, on=False), *_timer()[1:]])
+    _objective(ctx)
     ctx.triggers(
         _on(BUTTON_VARIABLE, 1, "Wave: button on", [_button(tech, on=True)]),
         _on(BUTTON_VARIABLE, 2, "Wave: button off", [_button(tech, on=False)]),
@@ -139,13 +181,13 @@ def _triggers(ctx, tech: int) -> None:
             ORDER_VARIABLE,
             3,
             "Wave: Capital sent, city states walk in",
-            [*(e for lane in CAPITAL for e in _send(lane)), *city_states],
+            [*(e for lane in CAPITAL for e in _send(lane)), *city_states, *_timer()],
         ),
         _on(
             ORDER_VARIABLE,
             4,
             "Wave: city states sent, Capital walks in",
-            [*(e for lane in CITY_STATES for e in _send(lane)), *capital],
+            [*(e for lane in CITY_STATES for e in _send(lane)), *capital, *_timer()],
         ),
     )
 
@@ -170,6 +212,9 @@ def xs(ctx, tech: int) -> str:
             f"const int cCrucibleWaveOrderVariable = {_variable_id(ctx, ORDER_VARIABLE)};",
             f"const int cCrucibleWaveButtonVariable = {_variable_id(ctx, BUTTON_VARIABLE)};",
             f"const int cCrucibleWaveUnit = {WAVE_UNIT};",
+            f"const int cCrucibleWaves = {WAVES};",
+            f"const int cCrucibleWaveCounterPlayer = {TRADERS};",
+            f"const int cCrucibleWaveCounterResource = {GOLD};",
             "bool crucibleWaveIn(vector pos = cInvalidVector, int x1 = 0, int y1 = 0, int x2 = 0, int y2 = 0) {",
             "    float x = xsVectorGetX(pos);",
             "    float y = xsVectorGetY(pos);",
