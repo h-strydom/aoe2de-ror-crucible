@@ -1,6 +1,8 @@
 """The XS crucible_run starts with: the Allies' buildings to 1 HP, their walls randomly damaged, the City States made
-invulnerable. It runs once, on the first tick.
+invulnerable. It runs once, at 2 seconds: after the meta upgrades have taken the player's buildings back.
 """
+
+START = 2  # seconds
 
 # how a wall starts: (chance in percent, lowest and highest HP in percent of its full HP); more damaged than destroyed
 # or whole
@@ -76,6 +78,10 @@ rule crucibleRunStart
     active
     highFrequency
 {{
+    if (xsGetTime() < {START}) {{
+        return;
+    }}
+
 {wall_calls}
 {building_calls}
 {invulnerable_calls}

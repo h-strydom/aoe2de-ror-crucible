@@ -23,14 +23,18 @@ def main(argv: list[str] | None = None) -> int:
         help="a test to include (repeatable; all registered tests if none): see scenarios/checks/",
     )
     check.add_argument("--install", action="store_true", help="install the data mod and the scenario")
-    arena = sub.add_parser("arena", help="crucible_arena, the run map kept in assets/")
-    arena.add_argument(
+    maps = sub.add_parser("map", help="the hand-made maps kept in assets/: the arena and meta (the hub)")
+    maps.add_argument(
         "action",
         choices=("save", "install"),
         help="save: copy the game's copy into the repo after editing; install: put the repo's copy in the game",
     )
-    run = sub.add_parser("run", help="build crucible_run, the arena as a game (docs/arena.md)")
-    run.add_argument("--install", action="store_true", help="install the data mod and the scenario")
+    maps.add_argument("name", choices=("arena", "meta"))
+    campaign = sub.add_parser(
+        "campaign",
+        help="build the data mod, crucible_hub, crucible_run and the Crucible campaign that plays them in turn",
+    )
+    campaign.add_argument("--install", action="store_true", help="install the data mod, the scenarios and the campaign")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -58,30 +62,35 @@ def main(argv: list[str] | None = None) -> int:
 
         return 0
 
-    if args.command == "arena":
-        from crucible.scenarios import arena as arena_scenario
+    if args.command == "map":
+        from crucible.scenarios import maps as hand_made
 
         if args.action == "save":
-            print(f"saved: {arena_scenario.save()}")
+            print(f"saved: {hand_made.save(args.name)}")
         else:
-            print(f"installed: {arena_scenario.install()}")
+            print(f"installed: {hand_made.install(args.name)}")
 
         return 0
 
-    if args.command == "run":
+    if args.command == "campaign":
         from aoe2ed import game
 
         from crucible.bonuses import catalogue
         from crucible.datamod import build
-        from crucible.scenarios import run as run_scenario
+        from crucible.scenarios import campaign as crucible_campaign
+        from crucible.scenarios import hub, run
 
         folder = build.build(list(catalogue.ALL), OUT)
-        scenario = run_scenario.build(OUT, build.manifest(folder))
-        print(folder, scenario, sep="\n")
+        techs = build.manifest(folder)
+        scenarios = [hub.build(OUT, techs), run.build(OUT, techs)]
+        built = crucible_campaign.build(OUT, *scenarios)
+        print(folder, *scenarios, built, sep="\n")
 
         if args.install:
             print(f"installed: {build.install(folder)}")
-            print(f"installed: {game.install(scenario, game='ror')['installed']}")
+
+            for path in (*scenarios, built):
+                print(f"installed: {game.install(path, game='ror')['installed']}")
 
         return 0
 

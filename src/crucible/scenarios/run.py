@@ -18,8 +18,8 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import choice_key
-from crucible.scenarios import run_xs, waves
-from crucible.scenarios.arena import ARENA
+from crucible.scenarios import run_meta, run_xs, waves
+from crucible.scenarios.maps import asset
 
 NAME = "crucible_run"
 TOWN_CENTER, WONDER = 109, 276
@@ -100,7 +100,7 @@ def _hand_over(s) -> list[int]:
 def build(out: Path, techs: dict[str, int]) -> Path:
     """`techs`: the Crucible data mod's manifest."""
     units = source_dat().civs[Style.GREEK].units
-    o = SESSIONS.open(ARENA)
+    o = SESSIONS.open(asset("arena"))
     s = o.scenario
 
     try:
@@ -128,6 +128,15 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             ctx = blocks.Ctx(s)
             ctx.xs(run_xs.start(walls, buildings, city_states, allies=Faction.ALLIES, invulnerable=Faction.CITY_STATES))
             waves.add(ctx, techs)
+            town_center = next(u for u in s.unit_manager.units[Faction.PLAYER] if u.unit_const == TOWN_CENTER)
+            run_meta.add(
+                ctx,
+                s,
+                player=Faction.PLAYER,
+                allies=Faction.ALLIES,
+                town_center=(town_center.x, town_center.y),
+                villagers=META_VILLAGERS,
+            )
             ctx.trigger(
                 "No shop yet",  # the boon category choices stay off the Wonder until the shop is in
                 [],

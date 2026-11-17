@@ -1,14 +1,11 @@
 from aoe2ed import xs
 from aoe2ed.session import SESSIONS
 
-from crucible.datamod.shop import SEND_WAVE
 from crucible.scenarios import run, waves
 
-TECHS = {SEND_WAVE: 1000, "choice_1": 1001, "choice_2": 1002}  # a stand-in for the data mod's manifest
 
-
-def test_run_hands_the_base_to_the_allies(tmp_path):
-    o = SESSIONS.open(run.build(tmp_path, TECHS))
+def test_run_hands_the_base_to_the_allies(tmp_path, techs):
+    o = SESSIONS.open(run.build(tmp_path, techs))
 
     try:
         s = o.scenario
@@ -23,6 +20,8 @@ def test_run_hands_the_base_to_the_allies(tmp_path):
         assert s.sections["FileHeader"].unknown_numbers == [11]
         names = {t.name for t in s.trigger_manager.triggers}
         assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in", "No shop yet"} <= names
+        assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 7", "Meta: Barracks 1"} <= names
+        assert "Meta: Clubmen" in names
 
         messages = [e.message for t in s.trigger_manager.triggers for e in t.effects if e.message]
         code = "\n".join(m for m in messages if "{" in m)  # the scripts, not the timer's text
