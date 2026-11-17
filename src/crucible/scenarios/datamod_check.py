@@ -6,6 +6,8 @@ defeat" effect, and declaring an ally the winner would win it for the player too
 
 VARIABLE = "crucible_no_data_mod"
 DELAY = 5  # seconds to read the message
+START = 2  # seconds before checking
+ALWAYS = 101  # Tool Age: a tech every game has, to tell when tech states are ready
 
 
 def _variable_id(ctx) -> int:
@@ -43,8 +45,13 @@ def add(ctx, tech: int, *, player: int = 1) -> None:
         f"""// ---- crucible: lose without the data mod ----
 rule crucibleDataModCheck
     active
-    highFrequency
+    minInterval 1
 {{
+    // on the first tick every tech reads invalid: wait for one RoR always has
+    if ((xsGetTime() < {START}) || (xsGetTechState({ALWAYS}, {player}) == cTechStateInvalid)) {{
+        return;
+    }}
+
     if (xsGetTechState({tech}, {player}) == cTechStateInvalid) {{
         xsSetTriggerVariable({_variable_id(ctx)}, 1);
     }}
