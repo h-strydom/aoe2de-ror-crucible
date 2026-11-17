@@ -23,15 +23,12 @@ def main(argv: list[str] | None = None) -> int:
         help="a test to include (repeatable; all registered tests if none): see scenarios/checks/",
     )
     check.add_argument("--install", action="store_true", help="install the data mod and the scenario")
-    arena = sub.add_parser("arena", help="build crucible_arena, the run map, from assets/map_crucible.aoe2scenario")
-    arena.add_argument("--install", action="store_true", help="install the scenario")
-    parts = sub.add_parser("parts", help="put each arena part on its own blank map, from assets/arena_edited")
-    parts.add_argument("--install", action="store_true", help="install the scenarios")
-    ground = sub.add_parser(
-        "ground",
-        help="crucible_arena from assets/arena_edited on even ground: all Dirt Mud, elevation 5 (editor)",
+    arena = sub.add_parser("arena", help="crucible_arena, the run map kept in assets/")
+    arena.add_argument(
+        "action",
+        choices=("save", "install"),
+        help="save: copy the game's copy into the repo after editing; install: put the repo's copy in the game",
     )
-    ground.add_argument("--install", action="store_true", help="install the scenario")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -60,41 +57,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "arena":
-        from aoe2ed import game
-
         from crucible.scenarios import arena as arena_scenario
 
-        scenario = arena_scenario.build(OUT)
-        print(scenario)
-
-        if args.install:
-            print(f"installed: {game.install(scenario, game='ror')['installed']}")
-
-        return 0
-
-    if args.command == "parts":
-        from aoe2ed import game
-
-        from crucible.scenarios import parts as part_scenarios
-
-        for scenario in part_scenarios.build(OUT / "parts"):
-            print(scenario)
-
-            if args.install:
-                print(f"installed: {game.install(scenario, game='ror')['installed']}")
-
-        return 0
-
-    if args.command == "ground":
-        from aoe2ed import game
-
-        from crucible.scenarios import ground as ground_scenario
-
-        scenario = ground_scenario.build(OUT)
-        print(scenario)
-
-        if args.install:
-            print(f"installed: {game.install(scenario, game='ror')['installed']}")
+        if args.action == "save":
+            print(f"saved: {arena_scenario.save()}")
+        else:
+            print(f"installed: {arena_scenario.install()}")
 
         return 0
 
