@@ -22,6 +22,8 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in"} <= names
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 7", "Meta: Barracks 1"} <= names
         assert {"Meta: Clubmen", "No hub buttons", "No data mod", "No data mod: defeat"} <= names
+        assert {"Win: waves defeated", "Win: End the run", "Player: no walls or towers", "Allies: age 3"} <= names
+        assert any(n.startswith("Boon: ") for n in names)
 
         messages = [e.message for t in s.trigger_manager.triggers for e in t.effects if e.message]
         code = "\n".join(m for m in messages if "{" in m)  # the scripts, not the timer's text

@@ -1,4 +1,4 @@
-"""The hub's techs: one per meta upgrade (meta.py), and "Begin the Crucible". Free and near instant for now; the hub's
+"""The hub's techs: one per meta upgrade (meta.py), and "Begin the Crucible". Free and instant for now; the hub's
 triggers decide what a research does."""
 
 from crucible import meta
@@ -6,7 +6,7 @@ from crucible.bonuses.model import Icon
 from crucible.datamod.icons import icon_id
 from crucible.datamod.mod import DataMod
 
-RESEARCH_TIME = 1
+RESEARCH_TIME = 0  # instant
 
 
 def add(mod: DataMod) -> None:

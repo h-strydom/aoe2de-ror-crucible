@@ -23,7 +23,7 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 from crucible import meta
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
-from crucible.datamod.shop import SEND_WAVE, choice_key
+from crucible.datamod.shop import END_RUN, SEND_WAVE, choice_key
 from crucible.scenarios import datamod_check
 from crucible.scenarios.maps import asset
 
@@ -137,7 +137,7 @@ def _start(ctx, techs: dict[str, int], orders: dict[int, list[dict]]) -> None:
         ),
         *(
             {"type": "enable_disable_technology", "source_player": PLAYER, "technology": t, "enabled": 0}
-            for t in [*default_techs, techs[SEND_WAVE], techs[choice_key(1)], techs[choice_key(2)]]
+            for t in [*default_techs, techs[SEND_WAVE], techs[END_RUN], techs[choice_key(1)], techs[choice_key(2)]]
         ),
     ]
     idle = [
@@ -224,7 +224,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             _start(ctx, techs, orders)
 
             for upgrade in meta.UPGRADES:
-                _upgrade(ctx, upgrade, techs[upgrade.tech], plan[upgrade.key], orders)
+                levels = plan.get(upgrade.key, [])  # the Wonder's upgrades change nothing's hands
+                _upgrade(ctx, upgrade, techs[upgrade.tech], levels, orders)
 
             ctx.trigger(
                 "Hub: begin the Crucible",

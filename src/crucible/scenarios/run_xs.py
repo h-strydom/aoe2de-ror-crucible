@@ -31,10 +31,13 @@ def start(
     *,
     allies: int,
     invulnerable: int,
+    aged: list[int] = (),
 ) -> str:
-    """`walls`: wall type -> its full HP."""
+    """`walls`: wall type -> its full HP. `aged`: the buildings' types in every age, to put back to 1 HP when the
+    Allies age up."""
     wall_calls = "\n".join(f"    crucibleRunWalls({unit}, {hp});" for unit, hp in walls.items())
     building_calls = "\n".join(f"    crucibleRunOneHp({unit});" for unit in buildings)
+    aged_calls = "\n".join(f"    crucibleRunOneHp({unit});" for unit in aged)
     invulnerable_calls = "\n".join(f"    crucibleRunInvulnerable({unit});" for unit in city_states)
 
     return f"""// ---- crucible run: start ----
@@ -58,9 +61,29 @@ void crucibleRunOneHp(int type = -1) {{
 
     for (i = 0; < xsArrayGetSize(ids)) {{
         id = xsArrayGetInt(ids, i);
-        xsEffectAmount(cSetUnitAttribute, id, cHitpoints, 1, {allies});
-        xsSetUnitProperty(id, cUnitHitpoints, 1);
+
+        if (xsGetUnitProperty(id, cUnitHitpoints) > 0) {{  // never on a dying unit: that crashed the game
+            xsEffectAmount(cSetUnitAttribute, id, cHitpoints, 1, {allies});
+            xsSetUnitProperty(id, cUnitHitpoints, 1);
+        }}
     }}
+}}
+
+// The Allies age with the player: their buildings turn into the new age's, back at full HP, so put them to 1 again.
+int crucibleRunAllyAge = 0;
+
+rule crucibleRunAllyAges
+    active
+    minInterval 1
+{{
+    int age = xsPlayerAttribute({allies}, cAttributeCurrentAge);
+
+    if (age == crucibleRunAllyAge) {{
+        return;
+    }}
+
+    crucibleRunAllyAge = age;
+{aged_calls}
 }}
 
 void crucibleRunInvulnerable(int type = -1) {{

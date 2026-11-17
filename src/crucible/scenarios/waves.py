@@ -19,7 +19,7 @@ The XS (waves.xs) decides; triggers do: XS sets a variable, a looping trigger ac
 from dataclasses import dataclass
 from pathlib import Path
 
-from crucible.datamod.shop import SEND_WAVE
+from crucible.datamod.shop import END_RUN, SEND_WAVE
 
 RUNTIME = Path(__file__).with_name("waves.xs")
 LEGION = 3
@@ -37,6 +37,7 @@ TIMER = 0  # display timer slot
 
 ORDER_VARIABLE = "crucible_wave_order"  # 1: spawn the Capital's wave; 3: send it, spawn the city states'; 4: back
 BUTTON_VARIABLE = "crucible_wave_button"  # 1: button on, 2: off
+WON_VARIABLE = "crucible_waves_won"  # 1 once the last wave is defeated
 
 Tile = tuple[int, int]
 Box = tuple[int, int, int, int]  # x1, y1, x2, y2, inclusive
@@ -195,6 +196,43 @@ def _triggers(ctx, tech: int) -> None:
     )
 
 
+def _win(ctx, end_tech: int, player: int = 1) -> None:
+    """When the last wave is defeated: a choice to win now or fight on, and an "End the run" button on the Wonder
+    from then on."""
+    ctx.var(WON_VARIABLE)
+    decision = ctx.next_decision_id()
+    end = {"type": "enable_disable_technology", "source_player": player, "technology": end_tech}
+    victory = {"type": "declare_victory", "source_player": player, "enabled": True}
+    ctx.trigger("Win: no End the run button yet", [], [end | {"enabled": 0}])
+    ctx.triggers(
+        {
+            "name": "Win: waves defeated",
+            "conditions": [{"type": "variable_value", "variable": WON_VARIABLE, "comparison": "EQUAL", "quantity": 1}],
+            "effects": [
+                end | {"enabled": 1},
+                {
+                    "type": "create_decision",
+                    "decision_id": decision,
+                    "message": f"All {WAVES} waves are defeated. End the run now, or fight on and end it later with "
+                    "End the run on the Wonder?",
+                    "message_option1": "Claim victory",
+                    "message_option2": "Keep fighting",
+                },
+            ],
+        },
+        {
+            "name": "Win: claim victory",
+            "conditions": [{"type": "decision_triggered", "decision_id": decision, "decision_option": 1}],
+            "effects": [victory],
+        },
+        {
+            "name": "Win: End the run",
+            "conditions": [{"type": "research_technology", "source_player": player, "technology": end_tech}],
+            "effects": [victory],
+        },
+    )
+
+
 def _variable_id(ctx, name: str) -> int:
     return next(v.variable_id for v in ctx.scenario.trigger_manager.variables if v.name == name)
 
@@ -218,6 +256,7 @@ def xs(ctx, tech: int) -> str:
             f"const int cCrucibleWaves = {WAVES};",
             f"const int cCrucibleWaveCounterPlayer = {TRADERS};",
             f"const int cCrucibleWaveCounterRelics = {RELICS};",
+            f"const int cCrucibleWaveWonVariable = {_variable_id(ctx, WON_VARIABLE)};",
             "bool crucibleWaveIn(vector pos = cInvalidVector, int x1 = 0, int y1 = 0, int x2 = 0, int y2 = 0) {",
             "    float x = xsVectorGetX(pos);",
             "    float y = xsVectorGetY(pos);",
@@ -236,4 +275,5 @@ def xs(ctx, tech: int) -> str:
 def add(ctx, techs: dict[str, int]) -> None:
     tech = techs[SEND_WAVE]
     _triggers(ctx, tech)
+    _win(ctx, techs[END_RUN])
     ctx.xs(xs(ctx, tech))

@@ -7,7 +7,7 @@ buildings kept by the player (not handed to the Allies, not at 1 HP), or Clubmen
 
 from dataclasses import dataclass
 
-TOWN_CENTER, BARRACKS = 109, 12
+TOWN_CENTER, BARRACKS, WONDER = 109, 12, 276
 
 
 @dataclass(frozen=True)
@@ -72,7 +72,23 @@ CLUBMEN = Upgrade(
     5,
     1,
 )
-UPGRADES = (VILLAGERS, HOUSES, GRANARY, STORAGE_PIT, BARRACKS_UPGRADE, CLUBMEN)
+BOON_SLOTS = Upgrade(
+    "meta_boon_slots",
+    "More boons",
+    "Each decision offers one more boon (up to 5).",
+    WONDER,
+    1,
+    4,
+)
+BOON_SPEED = Upgrade(
+    "meta_boon_speed",
+    "Faster boons",
+    "Boons research faster: instant at the fifth level.",
+    WONDER,
+    2,
+    5,
+)
+UPGRADES = (VILLAGERS, HOUSES, GRANARY, STORAGE_PIT, BARRACKS_UPGRADE, CLUBMEN, BOON_SLOTS, BOON_SPEED)
 
 BEGIN = "hub_begin"  # the data mod's manifest key of "Begin the Crucible"
 BEGIN_BUTTON = 11  # on the Town Center

@@ -174,17 +174,38 @@ int crucibleShopBoon(int category = 0, int rarity = 0) {
     return (-1);
 }
 
+// A meta upgrade's level, read when needed (the bank loads it at the start); 0 without one.
+int crucibleShopMeta(int variable = -1) {
+    if (variable < 0) {
+        return (0);
+    }
+
+    return (xsTriggerVariable(variable));
+}
+
 // One boon of the category on each slot. Boons stack on a slot: the one on top researches, then the next shows.
 void crucibleShopOffer(int category = 0) {
     int offered = 0;
+    int slots = cCrucibleSlots + crucibleShopMeta(cCrucibleSlotsVariable);
+    int speed = crucibleShopMeta(cCrucibleSpeedVariable);
+    int time = cCrucibleBoonTime * (cCrucibleSpeedTiers - speed) / cCrucibleSpeedTiers;
 
-    for (slot = 0; < cCrucibleSlots) {
+    if (slots > cCrucibleMaxSlots) {
+        slots = cCrucibleMaxSlots;
+    }
+
+    if (time < 0) {
+        time = 0;
+    }
+
+    for (slot = 0; < slots) {
         int rarity = crucibleShopRarity(category);
 
         if (rarity >= 0) {
             int boon = crucibleShopBoon(category, rarity);
             int tech = xsArrayGetInt(crucibleBoonTech, boon);
 
+            xsEffectAmount(cModifyTech, tech, cAttrSetTime, time, 1);
             xsEffectAmount(cModifyTech, tech, cAttrSetLocation, cCrucibleWonder, 1);
             xsEffectAmount(cModifyTech, tech, cAttrSetButton, slot + 1, 1);
             xsArraySetInt(crucibleBoonTaken, boon, 1);

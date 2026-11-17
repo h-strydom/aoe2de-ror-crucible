@@ -16,11 +16,13 @@ from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
 from crucible import meta
+from crucible.bonuses.compile.targets import with_ages
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import SEND_WAVE
-from crucible.scenarios import datamod_check, run_meta, run_xs, waves
+from crucible.scenarios import boon_list, datamod_check, run_meta, run_rules, run_xs, waves
 from crucible.scenarios.maps import asset
+from crucible.shop import pool as shop_pool
 from crucible.shop import scenario as shop
 from crucible.shop.config import ShopConfig
 
@@ -102,7 +104,8 @@ def _hand_over(s) -> list[int]:
 
 def build(out: Path, techs: dict[str, int]) -> Path:
     """`techs`: the Crucible data mod's manifest."""
-    units = source_dat().civs[Style.GREEK].units
+    data = source_dat()
+    units = data.civs[Style.GREEK].units
     o = SESSIONS.open(asset("arena"))
     s = o.scenario
 
@@ -118,7 +121,9 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             options_set(o.handle, {"victory_condition": "CUSTOM"})
             player_set(o.handle, Faction.PLAYER, {"initial_player_view_x": 110, "initial_player_view_y": 110})
 
-            allied = _hand_over(s)
+            _hand_over(s)
+            run_rules.tier_one_towers(s, Faction.ALLIES)
+            allied = sorted({u.unit_const for u in s.unit_manager.units[Faction.ALLIES]})
 
             for k, (x, y) in enumerate(VILLAGERS):
                 villager = VILLAGER_MALE if k % 2 == 0 else VILLAGER_FEMALE
@@ -126,11 +131,29 @@ def build(out: Path, techs: dict[str, int]) -> Path:
 
             walls = {t: units[t].hit_points for t in allied if units[t].class_ in WALL_CLASSES}
             buildings = [t for t in allied if t not in walls]
+            aged = sorted({later for t in buildings for later in with_ages(data, t)})  # what the Allies' ages make them
             city_states = sorted({u.unit_const for u in s.unit_manager.units[Faction.CITY_STATES]})
+            gaia = data.civs[0].units
+            fish = sorted(
+                {u.unit_const for u in s.unit_manager.units[0] if gaia[u.unit_const].class_ in run_rules.FISH_CLASSES}
+            )
 
             ctx = blocks.Ctx(s)
-            ctx.xs(run_xs.start(walls, buildings, city_states, allies=Faction.ALLIES, invulnerable=Faction.CITY_STATES))
-            shop.add(ctx, ShopConfig(), techs)  # before the waves: their XS opens it when a wave is defeated
+            ctx.xs(
+                run_xs.start(
+                    walls,
+                    buildings,
+                    city_states,
+                    allies=Faction.ALLIES,
+                    invulnerable=Faction.CITY_STATES,
+                    aged=aged,
+                )
+            )
+            ctx.xs(run_rules.fish_xs(fish))
+            run_rules.add(ctx, player=Faction.PLAYER, allies=Faction.ALLIES)
+            config = ShopConfig()
+            shop.add(ctx, config, techs, slots=meta.BOON_SLOTS.key, speed=meta.BOON_SPEED.key)  # before the waves
+            boon_list.add(ctx, shop_pool.boons(config), techs, player=Faction.PLAYER)
             waves.add(ctx, techs)
             town_center = next(u for u in s.unit_manager.units[Faction.PLAYER] if u.unit_const == TOWN_CENTER)
             run_meta.add(

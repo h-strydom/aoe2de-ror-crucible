@@ -35,13 +35,19 @@ def variable_id(ctx, name: str) -> int:
     return next(v.variable_id for v in ctx.scenario.trigger_manager.variables if v.name == name)
 
 
-def xs(config: ShopConfig, techs: dict[str, int], choices_variable: int) -> str:
+def xs(config: ShopConfig, techs: dict[str, int], choices_variable: int, **meta) -> str:
+    """`meta`: the meta upgrades' trigger variables (see xs_data)."""
     boons = shop_pool.boons(config)
-    data = xs_data(config, techs, boons, shop_pool.categories(config, boons), choices_variable)
+    data = xs_data(config, techs, boons, shop_pool.categories(config, boons), choices_variable, **meta)
 
     return data + "\n" + RUNTIME.read_text(encoding="utf-8")
 
 
-def add(ctx, config: ShopConfig, techs: dict[str, int]) -> None:
+def add(ctx, config: ShopConfig, techs: dict[str, int], *, slots: str | None = None, speed: str | None = None) -> None:
+    """`slots` and `speed`: the names of the meta upgrades' trigger variables (more boons, faster boons), if any."""
     _triggers(ctx, techs)
-    ctx.xs(xs(config, techs, variable_id(ctx, CHOICES_VARIABLE)))
+    meta = {
+        "slots_variable": variable_id(ctx, ctx.var(slots)) if slots else -1,
+        "speed_variable": variable_id(ctx, ctx.var(speed)) if speed else -1,
+    }
+    ctx.xs(xs(config, techs, variable_id(ctx, CHOICES_VARIABLE), **meta))

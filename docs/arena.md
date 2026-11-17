@@ -60,6 +60,11 @@ upgrade adds 6 more just south of them.
 
 Meta upgrades will hand more of these buildings to the player at the start (later: from the campaign bank).
 
+The Allies' towers are the tier the player has unlocked: Watch Towers for now. The player never builds walls (RoR has
+no gates), and towers only come with meta upgrades, so none yet. The player starts with City Watch researched. The
+Allies age up when the player does: their buildings take the new age's look, still at 1 HP. Fish (not whales) hold
+twice their food, as fishing ships don't move on to the next fish they can see.
+
 **Ages.** The City States (2) start in the Iron Age (eye candy). The Legion (3) starts in the Stone Age and ages up with
 the waves: its bases around the map get stronger too, so leaving them makes them more dangerous.
 
@@ -99,7 +104,8 @@ defeated waves to 9 ("Defeat 9 waves (n/9)"), and chat names each one as it fall
 the middle tile of each row matters as a reference.
 
 **Boons.** Each wave defeated gives one decision in the shop (`shop/`): two boon categories on the Wonder, then a
-boon of the one picked on each boon slot. For now every boon (but drawbacks) can come up.
+boon of the one picked on each boon slot. For now every boon (but drawbacks) can come up. Each boon researched gets a
+line in the Objectives panel (the Scouts text can't change during a game).
 
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's
@@ -112,7 +118,8 @@ pick).
 raids more frequent and harder. The 5 minute wave timer never changes.
 
 **Win and lose.**
-- win: wave 9 has spawned and every wave is cleared
+- win: once the 9th wave is defeated, a choice: claim victory, or keep fighting; from then on "End the run" on the
+  Wonder ends it whenever the player likes
 - lose: the player's Wonder is destroyed
 
 ## Open

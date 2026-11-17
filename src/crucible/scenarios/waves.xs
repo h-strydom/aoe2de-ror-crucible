@@ -98,6 +98,10 @@ void crucibleWaveCountDefeated() {
                 xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterRelics, crucibleWaveDefeatedCount);
                 xsChatData("Wave %d defeated", wave);
                 crucibleShopOpen();  // a decision: two boon categories on the Wonder
+
+                if (crucibleWaveDefeatedCount == cCrucibleWaves) {
+                    xsSetTriggerVariable(cCrucibleWaveWonVariable, 1);  // win now or fight on
+                }
             }
         }
     }

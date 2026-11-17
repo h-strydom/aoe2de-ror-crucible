@@ -3,6 +3,7 @@
 The Wonder's 15 buttons are three rows of five:
   row 1 (1-5): boons on offer (they stack);
   row 3, columns 1-2 (11, 12): the two boon categories to choose between after a wave;
+  row 2, column 1 (6): "End the run", once the waves are defeated;
   row 2, column 5 (10): "Send next wave", which a script turns on when a wave is in position.
 
 A choice is a free, near-instant tech that a script renames to the category it stands for. One pair serves every
@@ -20,6 +21,8 @@ CHOICE_BUTTONS = (11, 12)
 NEXT_WAVE_BUTTON = 10
 CHOICE_TIME = 1
 SEND_WAVE = "send_wave"  # its manifest key
+END_RUN = "end_run"  # "End the run", once the waves are defeated
+END_RUN_BUTTON = 6
 
 
 def choice_key(number: int) -> str:
@@ -55,5 +58,16 @@ def add(mod: DataMod) -> None:
         icon=icon_id(Icon.TECHNOLOGY, mod.data),
         location=WONDER,
         button=NEXT_WAVE_BUTTON,
+        research_time=CHOICE_TIME,
+    )
+    mod.manifest[END_RUN] = mod.new_tech(
+        "Crucible end run",
+        effect=mod.new_effect("Crucible end run", []),
+        title="End the run",
+        description="You have defeated the waves: claim your victory and end the run.",
+        tooltip="Research <b>End the run<b>\nYou have defeated the waves: claim your victory and end the run.",
+        icon=icon_id(Icon.TECHNOLOGY, mod.data),
+        location=WONDER,
+        button=END_RUN_BUTTON,
         research_time=CHOICE_TIME,
     )

@@ -2,6 +2,7 @@
 
 from crucible.bonuses.model import Category, Modifier, Rarity
 from crucible.datamod.shop import BOON_BUTTONS, choice_key
+from crucible.datamod.upgrades import RESEARCH_TIME as BOON_TIME
 from crucible.datamod.upgrades import WONDER
 from crucible.shop.config import ShopConfig
 
@@ -19,8 +20,14 @@ def xs_data(
     pool: list[Modifier],
     categories: list[Category],
     choices_variable: int,
+    *,
+    slots_variable: int = -1,
+    speed_variable: int = -1,
+    speed_tiers: int = 5,
 ) -> str:
-    """`techs` is the data mod's manifest; `choices_variable` is the trigger variable that re-enables the choices."""
+    """`techs` is the data mod's manifest; `choices_variable` is the trigger variable that re-enables the choices.
+    `slots_variable` (more boons per decision) and `speed_variable` (out of `speed_tiers`: shorter research, instant
+    at the last) are the trigger variables of meta upgrades, read at each offer; -1 for none."""
     sets = [
         *(f"    xsArraySetInt(crucibleBoonTech, {b}, {techs[m.id]});" for b, m in enumerate(pool)),
         *(f"    xsArraySetInt(crucibleBoonRarity, {b}, {RARITIES.index(m.rarity)});" for b, m in enumerate(pool)),
@@ -48,6 +55,11 @@ const int cCrucibleWonder = {WONDER};
 const int cCrucibleChoice1 = {techs[choice_key(1)]};
 const int cCrucibleChoice2 = {techs[choice_key(2)]};
 const int cCrucibleChoicesVariable = {choices_variable};
+const int cCrucibleMaxSlots = {len(BOON_BUTTONS)};
+const int cCrucibleSlotsVariable = {slots_variable};
+const int cCrucibleSpeedVariable = {speed_variable};
+const int cCrucibleSpeedTiers = {speed_tiers};
+const int cCrucibleBoonTime = {BOON_TIME};
 
 int crucibleBoonTech = -1;
 int crucibleBoonRarity = -1;
