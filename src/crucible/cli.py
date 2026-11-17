@@ -34,11 +34,10 @@ def main(argv: list[str] | None = None) -> int:
         "campaign",
         help="build the data mod, crucible_hub, crucible_run and the Crucible campaign that plays them in turn",
     )
-    campaign.add_argument("--install", action="store_true", help="install the scenarios and the campaign")
     campaign.add_argument(
-        "--install-mod",
+        "--install",
         action="store_true",
-        help="also install the data mod as a local mod (it clashes with the published one: unsubscribe first)",
+        help="install the data mod (as a local mod: it clashes with the published one), the scenarios and the campaign",
     )
     package = sub.add_parser("package", help="the data mod as a zip for the official mod site, with its page files")
     package.add_argument("--to", type=Path, default=OUT / "package", help="where to put them (default: out/package)")
@@ -93,10 +92,9 @@ def main(argv: list[str] | None = None) -> int:
         built = crucible_campaign.build(OUT, *scenarios)
         print(folder, *scenarios, built, sep="\n")
 
-        if args.install_mod:
+        if args.install:
             print(f"installed: {build.install(folder)}")
 
-        if args.install:
             for path in (*scenarios, built):
                 print(f"installed: {game.install(path, game='ror')['installed']}")
 
