@@ -118,7 +118,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 player_set(o.handle, player, fields | ai)
 
             _diplomacy(o.handle)
-            options_set(o.handle, {"victory_condition": "CUSTOM"})
+            options_set(o.handle, {"victory_condition": "CUSTOM", "victory_conquest": False})  # only triggers end it
             player_set(o.handle, Faction.PLAYER, {"initial_player_view_x": 110, "initial_player_view_y": 110})
 
             _hand_over(s)
@@ -150,7 +150,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 )
             )
             ctx.xs(run_rules.fish_xs(fish))
-            run_rules.add(ctx, player=Faction.PLAYER, allies=Faction.ALLIES)
+            run_rules.add(ctx, player=Faction.PLAYER, allies=Faction.ALLIES, gates=run_rules.gates(data))
             config = ShopConfig()
             shop.add(ctx, config, techs, slots=meta.BOON_SLOTS.key, speed=meta.BOON_SPEED.key)  # before the waves
             boon_list.add(ctx, shop_pool.boons(config), techs, player=Faction.PLAYER)

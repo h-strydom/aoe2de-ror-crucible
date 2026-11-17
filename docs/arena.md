@@ -60,8 +60,8 @@ upgrade adds 6 more just south of them.
 
 Meta upgrades will hand more of these buildings to the player at the start (later: from the campaign bank).
 
-The Allies' towers are the tier the player has unlocked: Watch Towers for now. The player never builds walls (RoR has
-no gates), and towers only come with meta upgrades, so none yet. The player starts with City Watch researched. The
+The Allies' towers are the tier the player has unlocked: Watch Towers for now. The player never builds walls or gates
+(RoR's gates come with walls); towers are allowed. The player starts with City Watch researched. The
 Allies age up when the player does: their buildings take the new age's look, still at 1 HP. Fish (not whales) hold
 twice their food, as fishing ships don't move on to the next fish they can see.
 
@@ -99,7 +99,7 @@ the west and east of the Wonder; each side City State's lane ends beside the Cap
 is sent 5 minutes after the one before (the first at 5:00), or as soon as the player clicks; a click starts the 5
 minutes again. A sent wave that brings an age up brings it early: the player can send waves 1 and 2 at once, fight
 the Clubmen, and then meet Tool Age units at 5:00. Sending a wave doesn't clear it: a wave is cleared when every unit
-in it is dead. A timer shows the time to the next send; the objective counts
+in it is dead. The player sees each wave's units wherever they go (not the rest of the Legion). A timer shows the time to the next send; the objective counts
 defeated waves to 9 ("Defeat 9 waves (n/9)"), and chat names each one as it falls. Waves clump as they walk, so only
 the middle tile of each row matters as a reference.
 

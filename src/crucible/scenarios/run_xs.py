@@ -33,11 +33,11 @@ def start(
     invulnerable: int,
     aged: list[int] = (),
 ) -> str:
-    """`walls`: wall type -> its full HP. `aged`: the buildings' types in every age, to put back to 1 HP when the
-    Allies age up."""
+    """`walls`: wall type -> its full HP. `aged`: the buildings' types in every age (their maximum HP is 1 for the
+    Allies, so an age up keeps them at 1)."""
     wall_calls = "\n".join(f"    crucibleRunWalls({unit}, {hp});" for unit, hp in walls.items())
+    max_calls = "\n".join(f"    crucibleRunMaxOneHp({unit});" for unit in sorted({*buildings, *aged}))
     building_calls = "\n".join(f"    crucibleRunOneHp({unit});" for unit in buildings)
-    aged_calls = "\n".join(f"    crucibleRunOneHp({unit});" for unit in aged)
     invulnerable_calls = "\n".join(f"    crucibleRunInvulnerable({unit});" for unit in city_states)
 
     return f"""// ---- crucible run: start ----
@@ -55,35 +55,18 @@ void crucibleRunWalls(int type = -1, int hp = 0) {{
     }}
 }}
 
-void crucibleRunOneHp(int type = -1) {{
-    int ids = xsGetPlayerUnitIds({allies}, type, -1);
-    int id = -1;
-
-    for (i = 0; < xsArrayGetSize(ids)) {{
-        id = xsArrayGetInt(ids, i);
-
-        if (xsGetUnitProperty(id, cUnitHitpoints) > 0) {{  // never on a dying unit: that crashed the game
-            xsEffectAmount(cSetUnitAttribute, id, cHitpoints, 1, {allies});
-            xsSetUnitProperty(id, cUnitHitpoints, 1);
-        }}
-    }}
+// The Allies' buildings at 1 HP: the type's maximum for the Allies (a per-unit maximum seemed to keep a building from
+// taking its next age's look), in every age, so an age up keeps them at 1; then each one's current HP.
+void crucibleRunMaxOneHp(int type = -1) {{
+    xsEffectAmount(cSetAttribute, type, cHitpoints, 1, {allies});
 }}
 
-// The Allies age with the player: their buildings turn into the new age's, back at full HP, so put them to 1 again.
-int crucibleRunAllyAge = 0;
+void crucibleRunOneHp(int type = -1) {{
+    int ids = xsGetPlayerUnitIds({allies}, type, -1);
 
-rule crucibleRunAllyAges
-    active
-    minInterval 1
-{{
-    int age = xsPlayerAttribute({allies}, cAttributeCurrentAge);
-
-    if (age == crucibleRunAllyAge) {{
-        return;
+    for (i = 0; < xsArrayGetSize(ids)) {{
+        xsSetUnitProperty(xsArrayGetInt(ids, i), cUnitHitpoints, 1);
     }}
-
-    crucibleRunAllyAge = age;
-{aged_calls}
 }}
 
 void crucibleRunInvulnerable(int type = -1) {{
@@ -106,6 +89,7 @@ rule crucibleRunStart
     }}
 
 {wall_calls}
+{max_calls}
 {building_calls}
 {invulnerable_calls}
     xsDisableSelf();

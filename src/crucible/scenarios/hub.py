@@ -120,7 +120,8 @@ def _setup(o) -> None:
         others = [p for p in range(1, s.player_manager.active_players + 1) if p != player]
         diplomacy_set(o.handle, player, others, "ALLY")
 
-    options_set(o.handle, {"victory_condition": "CUSTOM"})
+    # everyone is allied, so a Conquest victory would be met at once
+    options_set(o.handle, {"victory_condition": "CUSTOM", "victory_conquest": False})
 
     # the villagers at the berries are the run's first four: purple from the start
     bushes = [u for u in s.unit_manager.units[0] if u.unit_const == BERRIES]

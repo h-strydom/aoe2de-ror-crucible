@@ -22,14 +22,15 @@ from pathlib import Path
 from crucible.datamod.shop import END_RUN, SEND_WAVE
 
 RUNTIME = Path(__file__).with_name("waves.xs")
-LEGION = 3
+PLAYER, LEGION = 1, 3
+VISIBLE = 0  # visibility state
 CLUBMAN = 281
 WAVE_UNIT = CLUBMAN  # what a wave is made of, for now
 PER_LANE = 3  # for now: one row of Clubmen
 SEND_TIME = 300  # seconds between sends
 MOVE, ATTACK_MOVE, LINE_FORMATION = 1, 17, 18
 MARGIN = 2  # tiles around a row that still count as on it
-SPAWN_AREAS = ((84, 0, 134, 20), (0, 84, 20, 126), (200, 94, 219, 124))  # the City States, always in sight
+SPAWN_AREAS = ((76, 0, 142, 26), (0, 84, 20, 126), (200, 94, 219, 124))  # the City States, always in sight
 WAVES = 9  # to defeat
 TRADERS, RELICS = 4, 7  # where the defeated count is kept: the Traders' relics
 COUNTER = f"<Relics Captured, {TRADERS}>"
@@ -96,6 +97,13 @@ def _walk_in(lane: Lane) -> list[dict]:
 
     return [
         *create,
+        {  # the player sees the wave's units wherever they go (not the rest of the Legion)
+            "type": "change_object_visibility",
+            "source_player": LEGION,
+            "target_player": PLAYER,
+            "area": list(spawn),
+            "visibility_state": VISIBLE,
+        },
         {"type": "task_object", "source_player": LEGION, "area": list(spawn), "action_type": LINE_FORMATION},
         {
             "type": "task_object",
