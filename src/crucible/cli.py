@@ -29,6 +29,8 @@ def main(argv: list[str] | None = None) -> int:
         choices=("save", "install"),
         help="save: copy the game's copy into the repo after editing; install: put the repo's copy in the game",
     )
+    run = sub.add_parser("run", help="build crucible_run, the arena as a game (docs/arena.md)")
+    run.add_argument("--install", action="store_true", help="install the scenario")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -63,6 +65,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"saved: {arena_scenario.save()}")
         else:
             print(f"installed: {arena_scenario.install()}")
+
+        return 0
+
+    if args.command == "run":
+        from aoe2ed import game
+
+        from crucible.scenarios import run as run_scenario
+
+        scenario = run_scenario.build(OUT)
+        print(scenario)
+
+        if args.install:
+            print(f"installed: {game.install(scenario, game='ror')['installed']}")
 
         return 0
 
