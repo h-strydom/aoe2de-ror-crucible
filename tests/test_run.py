@@ -14,7 +14,7 @@ def test_run_hands_the_base_to_the_allies(tmp_path):
         assert len(units[run.Faction.ALLIES]) > 100
         assert s.player_manager.active_players == 5
         assert s.sections["FileHeader"].unknown_numbers == [11]
-        assert "Wonder lost" in [t.name for t in s.trigger_manager.triggers]
+        assert {"Wonder lost", "Shared vision"} <= {t.name for t in s.trigger_manager.triggers}
 
         code = "\n".join(e.message for t in s.trigger_manager.triggers for e in t.effects if e.message)
         assert "crucibleRunStart" in code

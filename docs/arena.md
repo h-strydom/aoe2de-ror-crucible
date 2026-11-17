@@ -16,7 +16,7 @@ Map: 220 x 220. Compass: y = 0 is north, x = 0 is west.
 | 4 | Traders | gray (6) | Egyptian (eye candy) | neutral to everyone; the player trades with their dock and markets |
 | 5 | Allies | gray (6) | Greek | the player's ally: resources sent for objectives, units sent to help. **Not in the map yet** |
 
-Diplomacy: 1 and 5 allied; 2 and 3 allied and enemies of 1 and 5; 4 neutral to everyone.
+Diplomacy: 1 and 5 allied, sharing vision; 2 and 3 allied and enemies of 1 and 5; 4 neutral to everyone.
 All civs are the bonus-less style civs (`datamod/civs.py`).
 
 ## Places

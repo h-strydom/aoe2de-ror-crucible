@@ -112,6 +112,19 @@ def build(out: Path) -> Path:
             ctx = blocks.Ctx(s)
             ctx.xs(run_xs.start(walls, buildings, city_states, allies=Faction.ALLIES, invulnerable=Faction.CITY_STATES))
             ctx.flush_xs()
+            ctx.trigger(
+                "Shared vision",
+                [],
+                [
+                    {
+                        "type": "set_player_visibility",
+                        "source_player": source,
+                        "target_player": target,
+                        "visibility_state": 0,  # visible
+                    }
+                    for source, target in ((Faction.PLAYER, Faction.ALLIES), (Faction.ALLIES, Faction.PLAYER))
+                ],
+            )
             blocks.lose_if_destroyed(
                 ctx,
                 player=Faction.PLAYER,
