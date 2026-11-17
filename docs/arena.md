@@ -38,8 +38,8 @@ barracks and the rest.
 - the southern mining district: 69-90, 205-212
 - the south-west military district: 6-26, 198-220 (stables)
 - the south-south-east military district: 131-157, 198-215 (archery ranges)
-- four walled posts with only walls and watch towers: 92-116, 52-56; 44-52, 56-72; 162-178, 98-116; 42-56, 104-116
-  (**open**: what are these?)
+- four walled posts, walls and watch towers only: 92-116, 52-56; 44-52, 56-72; 162-178, 98-116; 42-56, 104-116.
+  Defences, not districts: they stop the player rushing the enemy (and look good). No reward, no raids.
 
 **Traders (4)**:
 - the north-west trading post, in the ocean: 2-14, 2-16 (dock)
@@ -47,34 +47,64 @@ barracks and the rest.
 
 ## Rules
 
-**Start.** The player owns only the Town Center and the Wonder. Every other building of the centre base belongs to the
-Allies (5):
-- buildings start at 1 HP: the player sees how the base will look, but the extra defences are useless
+**Start.** The player owns only the Town Center and the Wonder. Every other building of the centre base, walls
+included, belongs to the Allies (5):
+- buildings start at 1 HP: they work (a tower shoots) but one hit destroys them. The player sees how the base will
+  look, and gets defences that are free but one hit from gone
 - walls keep their normal HP but start randomly damaged: some destroyed, some heavily damaged, some fine; more damaged
   than destroyed or whole
 
 Meta upgrades will hand more of these buildings to the player at the start (later: from the campaign bank).
 
-**Waves.** The waves are the Legion's (3), spawned at the City States (2). They alternate:
-- odd waves: two large armies from the Capital (one per lane)
-- even waves: two smaller armies, one from each of the Western and Eastern City States
+**Ages.** The City States (2) start in the Iron Age (eye candy). The Legion (3) starts in the Stone Age and ages up with
+the waves: its bases around the map get stronger too, so leaving them makes them more dangerous.
 
-After each wave the shop opens (`shop/`).
+**Waves.** The waves are the Legion's (3), spawned at the City States (2), one every 5 minutes, alternating:
+- capital waves: two armies from the Capital, one per lane
+- city-state waves: two smaller armies, one from each of the Western and Eastern City States
 
-**Raids.** Each Legion outpost or district still standing sends raiding parties at the player between waves. Destroying
-it stops its raids and gives one decision reward (one more shop pick).
+After each capital and city-state pair the Legion ages up: it gets every tech of the new age, and the new age's units
+join the wave pool. Units already on the map get the techs too.
+
+| Wave | Time | Age | From | Example |
+|---|---|---|---|---|
+| 1 | 5:00 | Stone | Capital | 4 + 4 Clubmen |
+| 2 | 10:00 | Stone | city states | 6 + 4 Clubmen |
+| 3 | 15:00 | Tool (up) | Capital | Axemen, Slingers, Scouts, Bowmen join |
+| 4 | 20:00 | Tool | city states | |
+| 5 | 25:00 | Bronze (up) | Capital | Bronze Age units join |
+| 6 | 30:00 | Bronze | city states | |
+| 7 | 35:00 | Iron (up) | Capital | Iron Age units join |
+| 8 | 40:00 | Iron | city states | |
+| 9 | 45:00 | post-Iron (up) | all three | the last, massive wave |
+
+post-Iron: the last upgrades, such as Ballista to Helepolis, Catapult to Heavy Catapult, Phalangite to Centurion.
+
+**Calling a wave early.** A "Spawn next wave" button (on the Wonder) spawns the next wave now and starts the 5 minute
+timer again. A short cooldown after any wave stops the next one spawning on top of it before it has walked out. A
+called wave that brings an age up brings it early: the player can call waves 1 and 2 at once, fight the Clubmen, and
+then meet Tool Age units at 5:00. Calling a wave doesn't clear it: a wave is cleared when every unit in it is dead.
+
+**Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
+longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's
+villagers and patrol around them. Destroying a base stops all of that and gives one decision reward (one more shop
+pick).
 
 **Invulnerable.** Everything of the City States (2) can't be attacked.
 
+**Difficulty.** Higher difficulties start the Legion with bonuses or in a later age (more post-Iron waves), and make
+raids more frequent and harder. The 5 minute wave timer never changes.
+
 **Win and lose.**
-- win: every wave defeated
+- win: wave 9 has spawned and every wave is cleared
 - lose: the player's Wonder is destroyed
 
 ## Open
 
-- the four walled posts of the Legion: outposts, chokepoints, or just walls?
-- the walls of the centre base: the Allies' (with the other buildings) or the player's?
-- how many waves, their size and timing; when the first raid comes and how often
-- what a raiding party is (size, units) and what triggers it to leave
+- the waves' contents by age, and how large the last wave is
+- the cooldown after calling a wave (how long it takes a wave to walk out)
+- what a raiding party is (size, units), and how raid frequency is drawn
+- how the bases' behaviour is done: an AI (RoR ships AiBuilder_p, a scenario AI set by phases) or triggers
 - player 5: where its units appear when the Allies send help
 - what the decision reward is beyond one more shop pick
+- the example had wave 4 in the Stone Age; read as Tool, since the age up comes at wave 3
