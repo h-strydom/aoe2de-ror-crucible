@@ -35,6 +35,7 @@ BERRIES, GOLD_MINE, STONE_MINE = 59, 66, 102
 RESOURCES = (BERRIES, GOLD_MINE, STONE_MINE)
 WORK_RATE = 13
 BERRY_REACH = 3  # villagers this close to a berry bush start purple
+REVEAL_MAP = 203  # resource: 2 = the whole map visible, no fog
 
 
 def _units(s, player: int, types) -> list:
@@ -150,6 +151,8 @@ def _start(ctx, techs: dict[str, int], orders: dict[int, list[dict]]) -> None:
         for unit in VILLAGER_JOBS
     ]
     ctx.trigger("Hub: only the hub's buttons", [], off)
+    reveal = {"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": PLAYER, "quantity": 2}
+    ctx.trigger("Hub: whole map revealed", [], [reveal | {"operation": "SET"}])
     ctx.trigger("Hub: workers look busy", [], [*idle, *(e for order in orders.values() for e in order)])
     blocks.bank.load(ctx, {upgrade.key: 0 for upgrade in meta.UPGRADES}, name="Hub: load upgrades")
 

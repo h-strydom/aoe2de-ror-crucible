@@ -27,10 +27,12 @@ the player one more of it.
 | Granary | TC 3 | 1 | the Granary turns purple | the base's Granary is yours |
 | Storage Pit | TC 4 | 1 | the Storage Pit turns purple | the base's Storage Pit is yours |
 | Barracks | TC 5 | 1 | the Barracks becomes the player's | the base's Barracks (nearest the TC) is yours |
-| Clubmen | Barracks 5 | 1 | the Barracks and its 3 Clubmen turn purple | 3 Clubmen by your Barracks |
+| Clubmen | Barracks 5 | 1 | the Barracks and its 3 Clubmen turn purple | 3 Clubmen in the first melee slots |
 | Begin the Crucible | TC 11 | | ends the hub: the run starts | |
 
-Kept buildings change hands at the start of the run, before the Allies' buildings drop to 1 HP.
+Kept buildings change hands at the start of the run, before the Allies' buildings drop to 1 HP. Starting soldiers
+stand in slots by the Wonder (5 melee, 5 ranged, a scout, 3 cavalry, 1 siege); upgrades will fill more of them with
+better units.
 
 ## The bank
 
