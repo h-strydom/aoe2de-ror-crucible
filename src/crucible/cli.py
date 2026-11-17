@@ -35,6 +35,8 @@ def main(argv: list[str] | None = None) -> int:
         help="build the data mod, crucible_hub, crucible_run and the Crucible campaign that plays them in turn",
     )
     campaign.add_argument("--install", action="store_true", help="install the data mod, the scenarios and the campaign")
+    package = sub.add_parser("package", help="the data mod as a zip for the official mod site, with its page files")
+    package.add_argument("--to", type=Path, default=OUT / "package", help="where to put them (default: out/package)")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -91,6 +93,16 @@ def main(argv: list[str] | None = None) -> int:
 
             for path in (*scenarios, built):
                 print(f"installed: {game.install(path, game='ror')['installed']}")
+
+        return 0
+
+    if args.command == "package":
+        from crucible import package as mod_package
+        from crucible.bonuses import catalogue
+        from crucible.datamod import build
+
+        for kind, path in mod_package.package(build.build(list(catalogue.ALL), OUT), args.to).items():
+            print(f"{kind}: {path}")
 
         return 0
 
