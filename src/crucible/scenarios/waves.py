@@ -9,8 +9,9 @@ A lane is three rows of three tiles (marked by hand in the editor, 2026-11-17): 
 and where it attacks to.
 
 A timer shows the time to the next send. A sent wave is defeated when every unit in it is dead; an objective counts
-them to 9. Trigger text can't show a variable, but it can show a player's attribute (`<Gold Storage, 4>`), so XS keeps
-the count in the Traders' gold, which nothing else uses.
+them to 9. Trigger text can't show a variable, but it can show a player's attribute (`<Relics Captured, 4>`), so XS
+keeps the count in the Traders' relics (and gold), which nothing else uses. Which attribute name the text takes is being
+found out: a temporary objective line shows several.
 
 The XS (waves.xs) decides; triggers do: XS sets a variable, a looping trigger acts on it and sets it back to 0.
 """
@@ -29,8 +30,16 @@ SEND_TIME = 300  # seconds between sends
 MOVE, ATTACK_MOVE, LINE_FORMATION = 1, 17, 18
 MARGIN = 2  # tiles around a row that still count as on it
 WAVES = 9  # to defeat
-TRADERS, GOLD = 4, 3  # where the defeated count is kept: the Traders' gold
-COUNTER = f"<Gold Storage, {TRADERS}>"
+TRADERS, GOLD, RELICS = 4, 3, 7  # where the defeated count is kept: the Traders' relics and gold
+COUNTER = f"<Relics Captured, {TRADERS}>"
+NAME_TEST = " | ".join(  # which of these the objective text turns into a number (temporary)
+    f"{letter} <{name}, {TRADERS}>"
+    for letter, name in zip(
+        "ABCDE",
+        ("Relics Captured", "Relics Collected", "Relics", "Gold", "Gold Amount"),
+        strict=True,
+    )
+)
 TIMER = 0  # display timer slot
 
 ORDER_VARIABLE = "crucible_wave_order"  # 1: spawn the Capital's wave; 3: send it, spawn the city states'; 4: back
@@ -153,7 +162,7 @@ def _objective(ctx) -> None:
             {
                 "type": "accumulate_attribute",
                 "source_player": TRADERS,
-                "attribute": GOLD,
+                "attribute": RELICS,
                 "quantity": WAVES,
             }
         ],
@@ -162,6 +171,15 @@ def _objective(ctx) -> None:
         display_on_screen=True,
         description=text,
         short_description=text,
+    )
+    ctx.trigger(
+        "Counter name test",
+        [{"type": "player_defeated", "source_player": 0}],  # never: just a line of text
+        [],
+        display_as_objective=True,
+        description=f"Name test: {NAME_TEST}",
+        short_description=f"Name test: {NAME_TEST}",
+        description_order=1,
     )
 
 
@@ -214,7 +232,8 @@ def xs(ctx, tech: int) -> str:
             f"const int cCrucibleWaveUnit = {WAVE_UNIT};",
             f"const int cCrucibleWaves = {WAVES};",
             f"const int cCrucibleWaveCounterPlayer = {TRADERS};",
-            f"const int cCrucibleWaveCounterResource = {GOLD};",
+            f"const int cCrucibleWaveCounterGold = {GOLD};",
+            f"const int cCrucibleWaveCounterRelics = {RELICS};",
             "bool crucibleWaveIn(vector pos = cInvalidVector, int x1 = 0, int y1 = 0, int x2 = 0, int y2 = 0) {",
             "    float x = xsVectorGetX(pos);",
             "    float y = xsVectorGetY(pos);",

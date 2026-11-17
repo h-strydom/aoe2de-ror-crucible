@@ -95,7 +95,8 @@ void crucibleWaveCountDefeated() {
             if (alive == false) {
                 xsArraySetInt(crucibleWaveDefeated, wave, 1);
                 crucibleWaveDefeatedCount++;
-                xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterResource, crucibleWaveDefeatedCount);
+                xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterRelics, crucibleWaveDefeatedCount);
+                xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterGold, crucibleWaveDefeatedCount);
                 xsChatData("Wave %d defeated", wave);
             }
         }
@@ -125,7 +126,8 @@ rule crucibleWaveStart
     crucibleWaveSentIds = xsArrayCreateInt(cCrucibleWaveCapacity, -1, "crucible wave sent ids");
     crucibleWaveSentWave = xsArrayCreateInt(cCrucibleWaveCapacity, 0, "crucible wave sent wave");
     crucibleWaveDefeated = xsArrayCreateInt(1000, 0, "crucible wave defeated");
-    xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterResource, 0);
+    xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterRelics, 0);
+    xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterGold, 0);
     xsSetTriggerVariable(cCrucibleWaveOrderVariable, 1);
     xsDisableSelf();
 }
@@ -139,6 +141,7 @@ rule crucibleWaves
     if ((crucibleWaveReady == false) && crucibleWaveStaged()) {
         xsSetTriggerVariable(cCrucibleWaveButtonVariable, 1);
         crucibleWaveReady = true;
+        xsChatData("Wave %d in position: Send next wave is on the Wonder", crucibleWave);  // while the button is checked
     }
 
     if (crucibleWaveReady && (state == cTechStateReady)) {

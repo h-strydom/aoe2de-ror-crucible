@@ -3,7 +3,8 @@
 The Wonder's 15 buttons are three rows of five:
   row 1 (1-5): boons on offer (they stack);
   row 3, columns 1-2 (11, 12): the two boon categories to choose between after a wave;
-  row 3, column 5 (15): "Send next wave", which a script turns on when a wave is in position.
+  row 2, column 5 (10): "Send next wave", which a script turns on when a wave is in position (on 15 it never
+  showed, 2026-11-17; on a build page 14 and 15 don't either).
 
 A choice is a free, near-instant tech that a script renames to the category it stands for. One pair serves every
 wave: a click disables the other choice (locked in), and when the pick finishes both are re-enabled (a researched
@@ -17,7 +18,7 @@ from crucible.datamod.upgrades import WONDER
 
 BOON_BUTTONS = (1, 2, 3, 4, 5)
 CHOICE_BUTTONS = (11, 12)
-NEXT_WAVE_BUTTON = 15
+NEXT_WAVE_BUTTON = 10
 CHOICE_TIME = 1
 SEND_WAVE = "send_wave"  # its manifest key
 
