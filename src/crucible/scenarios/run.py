@@ -15,6 +15,7 @@ from aoe2ed import blocks, games
 from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
+from crucible import meta
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import choice_key
@@ -150,6 +151,22 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                     for number in (1, 2)
                 ],
             )
+            ctx.trigger(
+                "No hub buttons",  # the hub's upgrades are data mod techs on every Town Center and Barracks
+                [],
+                [
+                    {
+                        "type": "enable_disable_technology",
+                        "source_player": Faction.PLAYER,
+                        "technology": techs[key],
+                        "enabled": 0,
+                    }
+                    for key in (*(upgrade.tech for upgrade in meta.UPGRADES), meta.BEGIN)
+                ],
+            )
+
+            for area in waves.SPAWN_AREAS:
+                blocks.fog.reveal(ctx, area=area, player=Faction.PLAYER, keep=True)
             ctx.flush_xs()
             ctx.trigger(
                 "Shared vision",

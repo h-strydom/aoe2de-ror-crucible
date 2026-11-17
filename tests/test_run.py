@@ -11,7 +11,7 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         s = o.scenario
         units = s.unit_manager.units
         keeps = [u.unit_const for u in units[run.Faction.PLAYER] if u.unit_const in run.KEEPS]
-        villagers = [u for u in units[run.Faction.PLAYER] if u.unit_const not in run.KEEPS]
+        villagers = [u for u in units[run.Faction.PLAYER] if u.unit_const in (run.VILLAGER_MALE, run.VILLAGER_FEMALE)]
         assert sorted(keeps) == sorted(run.KEEPS)
         assert len(villagers) == 4
         assert s.player_manager.players[run.Faction.PLAYER].food == 200
@@ -21,7 +21,7 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         names = {t.name for t in s.trigger_manager.triggers}
         assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in", "No shop yet"} <= names
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 7", "Meta: Barracks 1"} <= names
-        assert "Meta: Clubmen" in names
+        assert {"Meta: Clubmen", "No hub buttons"} <= names
 
         messages = [e.message for t in s.trigger_manager.triggers for e in t.effects if e.message]
         code = "\n".join(m for m in messages if "{" in m)  # the scripts, not the timer's text

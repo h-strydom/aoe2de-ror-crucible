@@ -36,6 +36,7 @@ RESOURCES = (BERRIES, GOLD_MINE, STONE_MINE)
 WORK_RATE = 13
 BERRY_REACH = 3  # villagers this close to a berry bush start purple
 REVEAL_MAP = 203  # resource: 2 = the whole map visible, no fog
+GARRISON_CAPACITY = 2
 
 
 def _units(s, player: int, types) -> list:
@@ -109,7 +110,7 @@ def _setup(o) -> None:
     # villagers) and plays it
     s.player_manager.active_players = max(p for p in range(1, 9) if s.unit_manager.units[p])
     player_set(o.handle, PLAYER, {"civilization": SCENARIO_CIVS[Style.GREEK], "color": 5, "human": True})
-    player_set(o.handle, PURPLE, {"color": 5, "human": False, "ai": "immobile"})
+    player_set(o.handle, PURPLE, {"tribe_name": "Civilians", "color": 5, "human": False, "ai": "immobile"})
 
     for player in range(GRAY, s.player_manager.active_players + 1):
         player_set(o.handle, player, {"human": False, "ai": "immobile"})
@@ -150,7 +151,15 @@ def _start(ctx, techs: dict[str, int], orders: dict[int, list[dict]]) -> None:
         for player in (PURPLE, GRAY)
         for unit in VILLAGER_JOBS
     ]
-    ctx.trigger("Hub: only the hub's buttons", [], off)
+    no_bell = {  # nothing can garrison, so no town bell (or ungarrison) button
+        "type": "modify_attribute",
+        "source_player": PLAYER,
+        "object_list_unit_id": meta.TOWN_CENTER,
+        "object_attributes": GARRISON_CAPACITY,
+        "operation": "SET",
+        "quantity": 0,
+    }
+    ctx.trigger("Hub: only the hub's buttons", [], [*off, no_bell])
     reveal = {"type": "modify_resource", "tribute_list": REVEAL_MAP, "source_player": PLAYER, "quantity": 2}
     ctx.trigger("Hub: whole map revealed", [], [reveal | {"operation": "SET"}])
     ctx.trigger("Hub: workers look busy", [], [*idle, *(e for order in orders.values() for e in order)])

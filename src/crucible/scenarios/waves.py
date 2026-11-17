@@ -29,6 +29,7 @@ PER_LANE = 3  # for now: one row of Clubmen
 SEND_TIME = 300  # seconds between sends
 MOVE, ATTACK_MOVE, LINE_FORMATION = 1, 17, 18
 MARGIN = 2  # tiles around a row that still count as on it
+SPAWN_AREAS = ((84, 0, 134, 20), (0, 84, 20, 126), (200, 94, 219, 124))  # the City States, always in sight
 WAVES = 9  # to defeat
 TRADERS, RELICS = 4, 7  # where the defeated count is kept: the Traders' relics
 COUNTER = f"<Relics Captured, {TRADERS}>"
