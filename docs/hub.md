@@ -17,7 +17,7 @@ the gray ones on the stone and gold, all at work rate 0.
 
 ## Upgrades
 
-Bought on the Town Center, the Barracks and the Wonder; free and instant for now. Each level turns one gray thing purple, and the run gives
+Bought on the Town Center, the Barracks and the Wonder; free and near instant (1 s: at 0 the game researches a tech by itself) for now. Each level turns one gray thing purple, and the run gives
 the player one more of it.
 
 | Upgrade | Button | Levels | In the hub | In the run |
@@ -29,7 +29,7 @@ the player one more of it.
 | Barracks | TC 5 | 1 | the Barracks becomes the player's | the base's Barracks (nearest the TC) is yours |
 | Clubmen | Barracks 5 | 1 | the Barracks and its 3 Clubmen turn purple | 3 Clubmen in the first melee slots |
 | More boons | Wonder 1 | 4 | | each decision offers one more boon, up to 5 |
-| Faster boons | Wonder 2 | 5 | | boons research faster: 48, 36, 24, 12 s, then instant (from 60) |
+| Faster boons | Wonder 2 | 5 | | boons research faster: 48, 36, 24, 12 s, then 1 s (from 60) |
 | Begin the Crucible | TC 11 | | ends the hub: the run starts | |
 
 Kept buildings change hands at the start of the run, before the Allies' buildings drop to 1 HP. Starting soldiers
