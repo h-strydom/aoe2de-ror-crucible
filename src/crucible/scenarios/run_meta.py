@@ -16,6 +16,9 @@ from crucible import meta
 
 VILLAGER_MALE, VILLAGER_FEMALE = 83, 293
 HOUSE, GRANARY, STORAGE_PIT, CLUBMAN = 70, 68, 562, 281
+AGE_TECHS = ((1, 101), (2, 102), (3, 103))  # (the age reached, its tech): Tool, Bronze, Iron
+UPGRADE_UNIT = 3  # effect command
+CURRENT_AGE = 6  # resource
 SLOTS = {  # where starting soldiers stand: tiles, in the order they fill
     "melee": ((104, 114), (105, 114), (105, 115), (104, 115), (103, 114)),
     "ranged": ((105, 117), (105, 118), (104, 118), (104, 117), (103, 118)),
@@ -35,8 +38,60 @@ def _at_least(key: str, level: int) -> list[dict]:
     return [{"type": "variable_value", "variable": key, "comparison": "LARGER_OR_EQUAL", "quantity": level}]
 
 
-def add(ctx, s, *, player: int, allies: int, town_center: tuple[float, float], villagers) -> None:
-    """`villagers`: where each extra villager starts (tile centres), in order."""
+def age_chains(data) -> dict[int, dict[int, int]]:
+    """A building's Age1 unit -> the unit each age makes it ({1: Age2, 2: Age3, 3: Age4}), read from the age techs
+    (ids aren't in age order: the Barracks is 12, 498, 132)."""
+    chains: dict[int, dict[int, int]] = {}
+
+    for age, tech in AGE_TECHS:
+        for command in data.effects[data.techs[tech].effect_id].effect_commands:
+            if command.type == UPGRADE_UNIT:
+                chains.setdefault(command.a, {})[age] = command.b
+
+    return chains
+
+
+def _ages(ctx, kept: list, chains: dict[int, dict[int, int]], player: int) -> None:
+    """A building given to the player keeps the look it had (AoE's rule), so at each age the player reaches, each kept
+    building is replaced, on its own tile, by that age's."""
+    for age, _ in AGE_TECHS:
+        effects = []
+
+        for unit in kept:
+            chain = {0: unit.unit_const, **chains.get(unit.unit_const, {})}
+            before = max((a for a in chain if a < age), default=0)
+
+            if age in chain:
+                tile = [int(unit.x), int(unit.y), int(unit.x), int(unit.y)]
+                effects.append(
+                    {
+                        "type": "replace_object",
+                        "source_player": player,
+                        "target_player": player,
+                        "object_list_unit_id": chain[before],
+                        "object_list_unit_id_2": chain[age],
+                        "area": tile,
+                    }
+                )
+
+        ctx.trigger(
+            f"Meta: kept buildings to age {age}",
+            [{"type": "accumulate_attribute", "source_player": player, "attribute": CURRENT_AGE, "quantity": age}],
+            effects,
+        )
+
+
+def add(
+    ctx,
+    s,
+    *,
+    player: int,
+    allies: int,
+    town_center: tuple[float, float],
+    villagers,
+    chains: dict[int, dict[int, int]],
+) -> None:
+    """`villagers`: where each extra villager starts (tile centres), in order. `chains`: age_chains()."""
     blocks.bank.load(ctx, {upgrade.key: 0 for upgrade in meta.UPGRADES}, name="Meta: load upgrades")
 
     for level, (x, y) in enumerate(villagers[: meta.VILLAGERS.levels], start=1):
@@ -54,12 +109,15 @@ def add(ctx, s, *, player: int, allies: int, town_center: tuple[float, float], v
             ],
         )
 
+    kept = []
+
     for key, building in KEPT.items():
         upgrade = next(u for u in meta.UPGRADES if u.key == key)
         candidates = sorted(
             (u for u in s.unit_manager.units[allies] if u.unit_const == building),
             key=lambda u: dist((u.x, u.y), town_center),
         )
+        kept += candidates[: upgrade.levels]
 
         for level, unit in enumerate(candidates[: upgrade.levels], start=1):
             ctx.trigger(
@@ -75,6 +133,7 @@ def add(ctx, s, *, player: int, allies: int, town_center: tuple[float, float], v
                 ],
             )
 
+    _ages(ctx, kept, chains, player)
     clubmen = [
         {"type": "create_object", "object_list_unit_id": CLUBMAN, "source_player": player, "location": list(tile)}
         for tile in SLOTS["melee"][: meta.CLUBMEN_PER_LEVEL]

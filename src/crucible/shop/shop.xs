@@ -194,8 +194,8 @@ void crucibleShopOffer(int category = 0) {
         slots = cCrucibleMaxSlots;
     }
 
-    if (time < 0) {
-        time = 0;
+    if (time < 1) {
+        time = 1;  // at 0 the game researches a tech by itself
     }
 
     for (slot = 0; < slots) {

@@ -163,6 +163,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 allies=Faction.ALLIES,
                 town_center=(town_center.x, town_center.y),
                 villagers=META_VILLAGERS,
+                chains=run_meta.age_chains(data),
             )
             ctx.trigger(
                 "No hub buttons",  # the hub's upgrades are data mod techs on every Town Center and Barracks
