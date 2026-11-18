@@ -16,6 +16,7 @@ from crucible import meta
 
 VILLAGER_MALE, VILLAGER_FEMALE = 83, 293
 HOUSE, GRANARY, STORAGE_PIT, CLUBMAN = 70, 68, 562, 281
+LOOKS_ONLY = (HOUSE,)  # kept by a change of hands (no buttons to lose); the rest are created anew
 AGE_TECHS = ((1, 101), (2, 102), (3, 103))  # (the age reached, its tech): Tool, Bronze, Iron
 UPGRADE_UNIT = 3  # effect command
 CURRENT_AGE = 6  # resource
@@ -51,9 +52,35 @@ def age_chains(data) -> dict[int, dict[int, int]]:
     return chains
 
 
+def _keep(unit, allies: int, player: int) -> list[dict]:
+    """The effects that make one of the Allies' buildings the player's. A building given to a player keeps the look of
+    the age it had (AoE's rule), so a working one (Barracks, Granary, Storage Pit) is removed and created anew for the
+    player, on its tile, and so ages up like one the player built. (Replacing it with the next age's unit lost its
+    buttons: units train at the Age1 Barracks, 12, not at the Age2 one.) A house only looks, so it changes hands and
+    _ages replaces it at each age."""
+    if unit.unit_const in LOOKS_ONLY:
+        return [
+            {
+                "type": "change_ownership",
+                "source_player": allies,
+                "target_player": player,
+                "selected_object_ids": [unit.reference_id],
+            }
+        ]
+
+    return [
+        {"type": "remove_object", "source_player": allies, "selected_object_ids": [unit.reference_id]},
+        {
+            "type": "create_object",
+            "object_list_unit_id": unit.unit_const,
+            "source_player": player,
+            "location": [int(unit.x), int(unit.y)],
+        },
+    ]
+
+
 def _ages(ctx, kept: list, chains: dict[int, dict[int, int]], player: int) -> None:
-    """A building given to the player keeps the look it had (AoE's rule), so at each age the player reaches, each kept
-    building is replaced, on its own tile, by that age's."""
+    """At each age the player reaches, each kept house is replaced, on its own tile, by that age's."""
     for age, _ in AGE_TECHS:
         effects = []
 
@@ -117,21 +144,11 @@ def add(
             (u for u in s.unit_manager.units[allies] if u.unit_const == building),
             key=lambda u: dist((u.x, u.y), town_center),
         )
-        kept += candidates[: upgrade.levels]
+        if building in LOOKS_ONLY:
+            kept += candidates[: upgrade.levels]
 
         for level, unit in enumerate(candidates[: upgrade.levels], start=1):
-            ctx.trigger(
-                f"Meta: {upgrade.title} {level}",
-                _at_least(key, level),
-                [
-                    {
-                        "type": "change_ownership",
-                        "source_player": allies,
-                        "target_player": player,
-                        "selected_object_ids": [unit.reference_id],
-                    }
-                ],
-            )
+            ctx.trigger(f"Meta: {upgrade.title} {level}", _at_least(key, level), _keep(unit, allies, player))
 
     _ages(ctx, kept, chains, player)
     clubmen = [
