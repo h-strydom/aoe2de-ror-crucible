@@ -51,11 +51,28 @@ def upgrades(data: DatFile) -> dict[int, set[int]]:
     return found
 
 
+def upgraded_from(data: DatFile, unit: int) -> list[int]:
+    """The units that upgrade into `unit`, at any distance (the Axeman, 531: the Clubman, 281)."""
+    chains, found, todo = upgrades(data), [], [unit]
+
+    while todo:
+        later = todo.pop()
+
+        for earlier in sorted(a for a, bs in chains.items() if later in bs):
+            if earlier not in found and earlier != unit:
+                found.append(earlier)
+                todo.append(earlier)
+
+    return found
+
+
 def with_ages(data: DatFile, unit: int) -> list[int]:
-    """A building and the versions the ages upgrade it to (RoR's Market is 84, then 116 and 137); a unit alone,
-    as its upgrades are targets of their own."""
+    """A building and the versions the ages upgrade it to (RoR's Market is 84, then 116 and 137). A unit and the units
+    that upgrade into it: an upgrade doesn't make new units, it gives the old ones the new unit's stats under their old
+    id (Clubmen researching Axe stay 281 with the Axeman's stats), so a boon aimed at the Axeman alone (531) never
+    reached them; aimed at both, it does whenever it's bought (bought before Axe, Clubmen get it too)."""
     if data.civs[1].units[unit].type != BUILDING:
-        return [unit]
+        return [unit, *upgraded_from(data, unit)]
 
     chains, found, todo = upgrades(data), [unit], [unit]
 
@@ -70,7 +87,8 @@ def with_ages(data: DatFile, unit: int) -> list[int]:
 
 def selectors(m: Modifier, data: DatFile) -> list[Selector]:
     """The targets and groups, each as the (unit, class) an effect command takes."""
-    found = [(unit, -1) for target in m.targets for unit in with_ages(data, object_id(target))]
+    units = [unit for target in m.targets for unit in with_ages(data, object_id(target))]
+    found = [(unit, -1) for unit in dict.fromkeys(units)]  # a line's targets share their earlier units
 
     for group in m.groups:
         if group in CLASSES:

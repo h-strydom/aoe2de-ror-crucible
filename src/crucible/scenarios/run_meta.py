@@ -52,31 +52,36 @@ def age_chains(data) -> dict[int, dict[int, int]]:
     return chains
 
 
-def _keep(unit, allies: int, player: int) -> list[dict]:
-    """The effects that make one of the Allies' buildings the player's. A building given to a player keeps the look of
-    the age it had (AoE's rule), so a working one (Barracks, Granary, Storage Pit) is removed and created anew for the
-    player, on its tile, and so ages up like one the player built. (Replacing it with the next age's unit lost its
-    buttons: units train at the Age1 Barracks, 12, not at the Age2 one.) A house only looks, so it changes hands and
-    _ages replaces it at each age."""
+def _keep(ctx, name: str, conditions: list[dict], unit, allies: int, player: int) -> None:
+    """Make one of the Allies' buildings the player's. A building given to a player keeps the look of the age it had
+    (AoE's rule), so a working one (Barracks, Granary, Storage Pit) is removed and, a second later (in the same moment
+    the tile still counted as taken: the Granary never came back), created anew for the player on its tile, to age up
+    like one the player built. (Replacing it with the next age's unit lost its buttons: units train at the Age1
+    Barracks, 12, not at the Age2 one.) A house only looks, so it changes hands and _ages replaces it at each age."""
     if unit.unit_const in LOOKS_ONLY:
-        return [
-            {
-                "type": "change_ownership",
-                "source_player": allies,
-                "target_player": player,
-                "selected_object_ids": [unit.reference_id],
-            }
-        ]
+        move = {
+            "type": "change_ownership",
+            "source_player": allies,
+            "target_player": player,
+            "selected_object_ids": [unit.reference_id],
+        }
+        ctx.trigger(name, conditions, [move])
 
-    return [
-        {"type": "remove_object", "source_player": allies, "selected_object_ids": [unit.reference_id]},
-        {
-            "type": "create_object",
-            "object_list_unit_id": unit.unit_const,
-            "source_player": player,
-            "location": [int(unit.x), int(unit.y)],
-        },
-    ]
+        return
+
+    placed = f"{name} placed"
+    remove = {"type": "remove_object", "source_player": allies, "selected_object_ids": [unit.reference_id]}
+    create = {
+        "type": "create_object",
+        "object_list_unit_id": unit.unit_const,
+        "source_player": player,
+        "location": [int(unit.x), int(unit.y)],
+    }
+    later = {"type": "activate_trigger", "trigger_id": placed}
+    ctx.triggers(
+        {"name": name, "conditions": conditions, "effects": [remove, later]},
+        {"name": placed, "enabled": False, "conditions": [{"type": "timer", "timer": 1}], "effects": [create]},
+    )
 
 
 def _ages(ctx, kept: list, chains: dict[int, dict[int, int]], player: int) -> None:
@@ -148,7 +153,7 @@ def add(
             kept += candidates[: upgrade.levels]
 
         for level, unit in enumerate(candidates[: upgrade.levels], start=1):
-            ctx.trigger(f"Meta: {upgrade.title} {level}", _at_least(key, level), _keep(unit, allies, player))
+            _keep(ctx, f"Meta: {upgrade.title} {level}", _at_least(key, level), unit, allies, player)
 
     _ages(ctx, kept, chains, player)
     clubmen = [

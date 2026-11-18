@@ -118,8 +118,7 @@ pick).
 raids more frequent and harder. The 5 minute wave timer never changes.
 
 **Win and lose.**
-- win: once the 9th wave is defeated, a choice: claim victory, or keep fighting; from then on "End the run" on the
-  Wonder ends it whenever the player likes
+- win: once the 9th wave is defeated, a choice: claim victory, or keep fighting; asked again after every wave
 - lose: the player's Wonder is destroyed
 
 ## Open
