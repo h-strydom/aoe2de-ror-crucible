@@ -23,8 +23,9 @@ itself) for now.
 
 - A place is the player's, marked **(!)**, while it has an upgrade on offer; with none it turns purple and loses the
   mark (the Town Center and the Wonder stay the player's: Begin the Crucible and the boons live there).
-- Under each place a flag's caption per upgrade on offer counts it: "4/10 villagers"; a line goes once it's maxed.
-- The Wonder's first line counts towards the next tier: "0/5 until Tier 2", then "0/10 until Tier 3".
+- Each upgrade's button counts it, renamed live by XS: "Villager (4/10)". (Captions on flags under a building
+  showed nothing.)
+- The Wonder's caption counts towards the next tier: "(!) 0/5 until Tier 2", then "0/10 until Tier 3".
 - **Tier 2** opens once 5 tier 1 levels are bought; tier 3 (nothing yet) at 10 tier 2 levels.
 - An XS rule works out what's on offer every second and signals changes through trigger variables to looping
   triggers (XS can't enable techs, change owners or captions).
@@ -50,11 +51,11 @@ itself) for now.
 | Bowmen | 2 | Archery Range 1 | 3 | 3, 1, 1 Bowmen turn purple | Bowmen in the ranged slots |
 | Scout | 2 | Stable 1 | 1 | the Scout turns purple | a Scout in its slot |
 | Storage Pit upgrades | 2 | Storage Pit 1 | 1 | | Tool Working and the three Leather Armors |
-| Watch Tower | 2 | Granary 1 | 1 | | Watch Towers can be built |
+| Watch Tower | 2 | Granary 1 | 1 | | the base's towers are yours, and Watch Towers can be built |
 | Walls | 2 | Granary 2 | 1 | | the base's walls are yours, still damaged |
 | Begin the Crucible | | TC 11 | | ends the hub: the run starts | |
 
-Axemen needs the Clubmen. Kept buildings change hands at the start of the run, before the Allies' buildings drop to
+Axemen needs the Clubmen. An unlocked tech still waits for its own prerequisites (its age, its building). Kept buildings change hands at the start of the run, before the Allies' buildings drop to
 1 HP. Starting soldiers stand in slots by the Wonder (5 melee, 5 ranged, a scout, 3 cavalry, 1 siege).
 
 A decision at every start offers to reset all progress: it clears the bank at once and shows from the next start

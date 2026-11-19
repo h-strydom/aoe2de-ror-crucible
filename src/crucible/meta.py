@@ -265,7 +265,7 @@ STORAGE_PIT_TECHS = Upgrade(
 TOWER = Upgrade(
     "meta_tower",
     "Watch Tower",
-    "Watch Towers can be built.",
+    "Start each run with your base's towers, and Watch Towers can be built.",
     "granary",
     1,
     1,

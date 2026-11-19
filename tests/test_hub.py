@@ -23,9 +23,7 @@ def test_hub_has_a_trigger_per_level(tmp_path, techs):
             assert {f"Hub: {upgrade.title} bought", f"Hub: {upgrade.title} not on offer"} <= names
             assert f"Hub: {upgrade.title} on offer at {upgrade.levels - 1}" in names
         assert {"Hub: Villager 6", "Hub: House 7", "Hub: Axemen 2", "Hub: Bowmen 3", "Hub: begin the Crucible"} <= names
-        assert {"No data mod", "Hub: reset progress", "Hub: tier line 14", "Hub: granary on offer"} <= names
-        flags = [u for u in units[0] if u.unit_const == hub.FLAG]
-        assert len(flags) == len(meta.UPGRADES) + 1  # a count line each, and the Wonder's tier line
+        assert {"No data mod", "Hub: reset progress", "Hub: Wonder caption 14 1", "Hub: granary on offer"} <= names
 
         messages = [e.message for t in s.trigger_manager.triggers for e in t.effects if e.message]
         code = "\n".join(m for m in messages if "{" in m)

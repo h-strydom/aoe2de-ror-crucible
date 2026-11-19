@@ -8,7 +8,10 @@ Starting soldiers stand in slots by the Wonder, placed by hand (2026-11-17): Clu
 Axemen take their place and add two; Bowmen fill the ranged slots, the Scout its own.
 
 Other upgrades unlock techs locked by run_rules (unlocks()), or hand the player the base's walls (still damaged:
-run_xs rolls them after).
+run_xs rolls them after) or towers (the Watch Tower upgrade: they're Watch Towers, run_rules.tier_one_towers).
+
+A tech is switched back on only once its own prerequisites are met: Enable/Disable Technology skips them, so a tech
+switched on at the start could be researched in any age.
 """
 
 from math import dist
@@ -20,6 +23,7 @@ from crucible import meta
 VILLAGER_MALE, VILLAGER_FEMALE = 83, 293
 HOUSE, CLUBMAN, AXEMAN, BOWMAN, SCOUT = 70, 281, 531, 4, 448
 WALLS = (72, 117, 155)  # Small, Medium, Fortified Wall
+TOWERS = (79, 234, 235, 236)  # Watch, Sentry, Guard, Ballista Tower
 LOOKS_ONLY = (HOUSE,)  # kept by a change of hands (no buttons to lose); the rest are created anew
 AGE_TECHS = ((1, 101), (2, 102), (3, 103))  # (the age reached, its tech): Tool, Bronze, Iron
 UPGRADE_UNIT = 3  # effect command
@@ -45,14 +49,20 @@ BRONZE_AGE, AXE, WATCH_TOWER = 102, 63, 16  # techs
 STORAGE_PIT_ROW = (46, 40, 41, 42)  # its Tool Age techs: Tool Working, Leather Armor for soldiers, archers, cavalry
 
 
-def unlocks(market_techs: list[int]) -> dict[str, tuple[int, ...]]:
-    """Upgrade -> the techs it unlocks. `market_techs`: run_rules.techs_at(data, meta.MARKET)."""
-    return {
+def unlocks(data, market_techs: list[int]) -> dict[str, dict[int, list[int]]]:
+    """Upgrade -> each tech it unlocks -> that tech's prerequisites (all needed: RoR's counts match).
+    `market_techs`: run_rules.techs_at(data, meta.MARKET)."""
+    techs = {
         meta.BRONZE_AGE.key: (BRONZE_AGE,),
         meta.AXE.key: (AXE,),
         meta.MARKET_TECHS.key: tuple(market_techs),
         meta.STORAGE_PIT_TECHS.key: STORAGE_PIT_ROW,
         meta.TOWER.key: (WATCH_TOWER,),
+    }
+
+    return {
+        key: {tech: [r for r in data.techs[tech].required_techs if r >= 0] for tech in found}
+        for key, found in techs.items()
     }
 
 
@@ -144,7 +154,7 @@ def add(
     town_center: tuple[float, float],
     villagers,
     chains: dict[int, dict[int, int]],
-    unlocked: dict[str, tuple[int, ...]],
+    unlocked: dict[str, dict[int, list[int]]],
 ) -> None:
     """`villagers`: where each extra villager starts (tile centres), in order. `chains`: age_chains(). `unlocked`:
     unlocks()."""
@@ -184,20 +194,21 @@ def add(
 
     for key, techs in unlocked.items():
         upgrade = next(u for u in meta.UPGRADES if u.key == key)
-        ctx.trigger(
-            f"Meta: {upgrade.title} unlocked",
-            _at_least(key, 1),
-            [
-                {"type": "enable_disable_technology", "source_player": player, "technology": tech, "enabled": 1}
-                for tech in techs
-            ],
-        )
 
-    walls = [
-        {"type": "change_ownership", "source_player": allies, "target_player": player, "object_list_unit_id": wall}
-        for wall in WALLS
-    ]
-    ctx.trigger("Meta: walls", _at_least(meta.WALLS.key, 1), walls)
+        for tech, required in techs.items():
+            ctx.trigger(
+                f"Meta: {upgrade.title} unlocks {tech}",
+                _at_least(key, 1)
+                + [{"type": "research_technology", "source_player": player, "technology": r} for r in required],
+                [{"type": "enable_disable_technology", "source_player": player, "technology": tech, "enabled": 1}],
+            )
+
+    for upgrade, types in ((meta.WALLS, WALLS), (meta.TOWER, TOWERS)):
+        moves = [
+            {"type": "change_ownership", "source_player": allies, "target_player": player, "object_list_unit_id": u}
+            for u in types
+        ]
+        ctx.trigger(f"Meta: {upgrade.label}", _at_least(upgrade.key, 1), moves)
 
 
 def _create(unit: int, player: int, tiles) -> list[dict]:

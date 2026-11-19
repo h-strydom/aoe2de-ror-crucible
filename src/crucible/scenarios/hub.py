@@ -7,8 +7,8 @@ the Tool Age) are gray: what can still be bought.
 Upgrades are researched at places (meta.PLACES). A place is the player's, marked "(!)", while it has an upgrade on
 offer; once it has none it turns purple (player 2) and loses the mark. An upgrade is on offer while its tier is open
 (meta.TIERS: so many bought from the tier before), its place is bought, what it requires is bought and it has levels
-left. Each place lists its upgrades on offer with a count line ("4/10 villagers"), each line the caption of a flag
-below it; the Wonder's first line counts towards the next tier ("0/5 until Tier 2").
+left. Its button counts it ("Villager (4/10)", renamed live by XS); the Wonder's caption counts towards the next tier
+("(!) 0/5 until Tier 2"). (Captions on flags, a line each under a building, showed nothing: 2026-11-19.)
 
 An XS rule works out what's on offer every second and signals each change through a trigger variable; looping
 triggers act on it (Enable/Disable Technology, Change Ownership, Change Object Caption: XS can do none of them).
@@ -47,8 +47,6 @@ WORK_RATE = 13
 BERRY_REACH = 3  # villagers this close to a berry bush start purple
 REVEAL_MAP = 203  # resource: 2 = the whole map visible, no fog
 GARRISON_CAPACITY = 2
-FLAG = 600  # Flag A: carries a count line's caption
-LINE_STEP = 0.5  # tiles between count lines, down the screen (a step in x and y)
 MARK = "(!)"
 RESET_VARIABLE = "hub_reset"
 TIER_VARIABLE = "hub_tier"
@@ -199,32 +197,6 @@ def _setup(o) -> None:
     s.unit_manager.change_ownership(near, PURPLE)
 
 
-def _flags(s, places: dict[str, object]) -> dict[str, list[int]]:
-    """Place -> the flags carrying its count lines (the Wonder's first: the tier line), stepping down the screen from
-    the building's lowest corner."""
-    found = {}
-
-    for p in meta.PLACES:
-        building = places[p.key]
-        lines = len([u for u in meta.UPGRADES if u.place == p.key]) + (p.unit == WONDER)
-        half = 2 if p.unit == WONDER else 1.5
-        found[p.key] = [
-            s.unit_manager.add_unit(
-                player=GAIA,
-                unit_const=FLAG,
-                x=building.x + half + k * LINE_STEP,
-                y=building.y + half + k * LINE_STEP,
-            ).reference_id
-            for k in range(lines)
-        ]
-
-    return found
-
-
-def _caption(refs: list[int], text: str) -> dict:
-    return {"type": "change_object_caption", "source_player": GAIA, "selected_object_ids": refs, "message": text}
-
-
 def _tile(unit) -> list[int]:
     return [int(unit.x), int(unit.y), int(unit.x), int(unit.y)]
 
@@ -286,11 +258,14 @@ def _start(ctx, techs: dict[str, int], orders: dict[int, list[dict]], places: di
     blocks.bank.load(ctx, {upgrade.key: 0 for upgrade in meta.UPGRADES}, name="Hub: load upgrades")
 
 
-def _upgrade(ctx, upgrade: meta.Upgrade, tech: int, levels: list[list[dict]], line: int) -> None:
-    """`levels`: the effects of each level (_plan). `line`: the flag of its count line."""
+def _upgrade(ctx, upgrade: meta.Upgrade, tech: int, levels: list[list[dict]]) -> None:
+    """`levels`: the effects of each level (_plan).
+
+    Bought, the tech is switched on and off again: on resets it from researched (the bought trigger would otherwise
+    fire every second until it's reset: a level bought counted twice), off keeps it hidden until XS offers the next
+    level."""
     key, state = upgrade.key, _state_variable(upgrade)
     enable = {"type": "enable_disable_technology", "source_player": PLAYER, "technology": tech}
-    most = upgrade.count(upgrade.levels)
     ctx.var(state)
     ctx.triggers(
         {
@@ -299,20 +274,14 @@ def _upgrade(ctx, upgrade: meta.Upgrade, tech: int, levels: list[list[dict]], li
             "effects": [
                 {"type": "change_variable", "variable": key, "operation": "ADD", "quantity": 1},
                 {"type": "store_key_value", "variable": key, "message": key},
+                enable | {"enabled": 1},
+                enable | {"enabled": 0},
             ],
             "looping": True,
         },
-        _on(state, 1, f"Hub: {upgrade.title} not on offer", [enable | {"enabled": 0}, _caption([line], "")]),
+        _on(state, 1, f"Hub: {upgrade.title} not on offer", [enable | {"enabled": 0}]),
         *(
-            _on(
-                state,
-                level + 2,
-                f"Hub: {upgrade.title} on offer at {level}",
-                [
-                    enable | {"enabled": 1},  # a research takes the button away: this brings it back for the next
-                    _caption([line], f"{upgrade.count(level)}/{most} {upgrade.label}"),
-                ],
-            )
+            _on(state, level + 2, f"Hub: {upgrade.title} on offer at {level}", [enable | {"enabled": 1}])
             for level in range(upgrade.levels)
         ),
     )
@@ -360,14 +329,20 @@ def _tier_lines() -> list[str]:
     return [*lines, ""]
 
 
-def _tier_triggers(ctx, line: int) -> None:
+def _wonder_triggers(ctx, wonder) -> None:
+    """The Wonder's caption: the mark while it has an upgrade on offer, and the tier line. XS sends state
+    2 * tier line + (0 marked, 1 not)."""
     ctx.var(TIER_VARIABLE)
-    ctx.triggers(
-        *(
-            _on(TIER_VARIABLE, n + 1, f"Hub: tier line {n}", [_caption([line], text)])
-            for n, text in enumerate(_tier_lines())
-        )
-    )
+    where = {"object_list_unit_id": WONDER, "area": _tile(wonder)}
+    effects = []
+
+    for n, line in enumerate(_tier_lines()):
+        for unmarked in (0, 1):
+            text = " ".join(part for part in ("" if unmarked else MARK, line) if part)
+            caption = {"type": "change_object_caption", "source_player": PLAYER, "message": text, **where}
+            effects.append(_on(TIER_VARIABLE, 2 * n + unmarked + 1, f"Hub: Wonder caption {n} {unmarked}", [caption]))
+
+    ctx.triggers(*effects)
 
 
 def _reset(ctx) -> None:
@@ -416,11 +391,20 @@ def _reset(ctx) -> None:
 XS_HELPERS = """// ---- crucible hub: what's on offer ----
 int crucibleHubLast = -1;  // per upgrade, then per place, then the tier line: the last value sent
 
-// Signal `value` (as value + 1: 0 means nothing new) when it isn't what was last sent.
-void crucibleHubSend(int index = 0, int variable = -1, int value = 0) {
-    if (xsArrayGetInt(crucibleHubLast, index) != value) {
-        xsArraySetInt(crucibleHubLast, index, value);
-        xsSetTriggerVariable(variable, value + 1);
+// Signal `value` (as value + 1: 0 means nothing new) when it isn't what was last sent; whether it was sent.
+bool crucibleHubSend(int index = 0, int variable = -1, int value = 0) {
+    if (xsArrayGetInt(crucibleHubLast, index) == value) {
+        return (false);
+    }
+    xsArraySetInt(crucibleHubLast, index, value);
+    xsSetTriggerVariable(variable, value + 1);
+    return (true);
+}
+
+// The same, whether sent or not.
+void crucibleHubSignal(int index = 0, int variable = -1, int value = 0) {
+    if (crucibleHubSend(index, variable, value)) {
+        return;
     }
 }
 
@@ -442,13 +426,24 @@ int crucibleHubPlace(bool offered = false) {
 """
 
 
-def xs(ctx) -> str:
+def _counts(n: int, upgrade: meta.Upgrade) -> str:
+    """XS: the count an upgrade's button shows at a level."""
+    body = "".join(
+        f"    if (level == {level}) {{\n        return ({upgrade.count(level)});\n    }}\n"
+        for level in range(upgrade.levels)
+    )
+
+    return f"int crucibleHubCount{n}(int level = 0) {{\n{body}    return ({upgrade.count(upgrade.levels)});\n}}\n"
+
+
+def xs(ctx, techs: dict[str, int]) -> str:
     """The rule that works out what's on offer (module docstring)."""
-    upgrades, places = meta.UPGRADES, meta.PLACES
+    upgrades, places = meta.UPGRADES, [p for p in meta.PLACES if p.key != "wonder"]  # the Wonder: with the tier
     level = {u.key: f"l{n}" for n, u in enumerate(upgrades)}
     first, second = meta.TIERS
     lines = [
         XS_HELPERS,
+        *(_counts(n, u) for n, u in enumerate(upgrades)),
         "// The tier line: so many bought towards tier 2, then towards tier 3, then none.",
         "int crucibleHubTier(int tier1 = 0, int tier2 = 0) {",
         f"    if (tier1 < {first}) {{",
@@ -504,18 +499,23 @@ def xs(ctx) -> str:
     lines.append("")
 
     for n, u in enumerate(upgrades):
-        variable = _variable_id(ctx, _state_variable(u))
-        lines.append(f"    crucibleHubSend({n}, {variable}, crucibleHubState(o{n}, {level[u.key]}));")
+        variable, most = _variable_id(ctx, _state_variable(u)), u.count(u.levels)
+        name = f'"{u.title} (" + crucibleHubCount{n}({level[u.key]}) + "/{most})"'
+        lines.append(f"    if (crucibleHubSend({n}, {variable}, crucibleHubState(o{n}, {level[u.key]}))) {{")
+        lines.append(f"        xsSetTechName({techs[u.tech]}, 1, {name});")
+        lines.append("    }")
 
     for k, p in enumerate(places):
         offered = " || ".join(f"o{n}" for n, u in enumerate(upgrades) if u.place == p.key) or "false"
         variable = _variable_id(ctx, _place_variable(p))
-        send = f"crucibleHubSend({len(upgrades) + k}, {variable}, crucibleHubPlace({offered}));"
+        send = f"crucibleHubSignal({len(upgrades) + k}, {variable}, crucibleHubPlace({offered}));"
         opened = place_open(p)
         lines.append(f"    {send}" if opened == "true" else f"    if ({opened}) {{ {send} }}")
 
     tier = _variable_id(ctx, TIER_VARIABLE)
-    lines.append(f"    crucibleHubSend({len(upgrades) + len(places)}, {tier}, crucibleHubTier(tier1, tier2));")
+    wonder = " || ".join(f"o{n}" for n, u in enumerate(upgrades) if u.place == "wonder")
+    state = f"2 * crucibleHubTier(tier1, tier2) + crucibleHubPlace({wonder})"
+    lines.append(f"    crucibleHubSignal({len(upgrades) + len(places)}, {tier}, {state});")
     lines.append("}")
 
     return "\n".join(lines) + "\n"
@@ -531,26 +531,24 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             _setup(o)
             orders = _work(s)
             plan, places = _plan(s, orders), _places(s)
-            flags = _flags(s, places)
             ctx = blocks.Ctx(s)
             _start(ctx, techs, orders, places)
             _reset(ctx)
-            _tier_triggers(ctx, flags["wonder"][0])
+            _wonder_triggers(ctx, places["wonder"])
 
             for upgrade in meta.UPGRADES:
-                on_place = [u for u in meta.UPGRADES if u.place == upgrade.place]
-                line = flags[upgrade.place][on_place.index(upgrade) + (upgrade.place == "wonder")]
-                _upgrade(ctx, upgrade, techs[upgrade.tech], plan.get(upgrade.key, []), line)
+                _upgrade(ctx, upgrade, techs[upgrade.tech], plan.get(upgrade.key, []))
 
             for place in meta.PLACES:
-                _place_triggers(ctx, place, places[place.key], techs)
+                if place.key != "wonder":
+                    _place_triggers(ctx, place, places[place.key], techs)
 
             ctx.trigger(
                 "Hub: begin the Crucible",
                 [{"type": "research_technology", "source_player": PLAYER, "technology": techs[meta.BEGIN]}],
                 [{"type": "declare_victory", "source_player": PLAYER, "enabled": True}],
             )
-            ctx.xs(xs(ctx))
+            ctx.xs(xs(ctx, techs))
             datamod_check.add(ctx, techs[meta.BEGIN], player=PLAYER)
             ctx.flush_xs()
 
