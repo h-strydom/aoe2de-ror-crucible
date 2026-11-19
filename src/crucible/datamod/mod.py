@@ -103,6 +103,21 @@ class DataMod:
 
         return len(self.data.techs) - 1
 
+    def copy_unit(self, source: int) -> int:
+        """Add a copy of unit `source` to every civ under a new id (the next free one); returns the id. The copy looks
+        and acts like the source, but techs and triggers can tell it apart."""
+        new = len(self.data.civs[0].units)
+
+        for civ in self.data.civs:
+            unit = copy.deepcopy(civ.units[source]) if civ.units[source] else None
+
+            if unit:
+                unit.id = unit.copy_id = unit.base_id = new
+
+            civ.units.append(unit)
+
+        return new
+
     def write(self, out: Path) -> Path:
         """Write the mod folder under `out` (replacing an older build); returns it."""
         folder = out / MOD

@@ -145,12 +145,19 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                     buildings,
                     city_states,
                     allies=Faction.ALLIES,
+                    player=Faction.PLAYER,
                     invulnerable=Faction.CITY_STATES,
                     aged=aged,
                 )
             )
             ctx.xs(run_rules.fish_xs(fish))
-            run_rules.add(ctx, player=Faction.PLAYER, allies=Faction.ALLIES, gates=run_rules.gates(data))
+            run_rules.add(
+                ctx,
+                player=Faction.PLAYER,
+                allies=Faction.ALLIES,
+                gates=run_rules.gates(data),
+                locked=run_rules.locked(data),
+            )
             config = ShopConfig()
             shop.add(ctx, config, techs, slots=meta.BOON_SLOTS.key, speed=meta.BOON_SPEED.key)  # before the waves
             boon_list.add(ctx, shop_pool.boons(config), techs, player=Faction.PLAYER)
@@ -164,6 +171,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 town_center=(town_center.x, town_center.y),
                 villagers=META_VILLAGERS,
                 chains=run_meta.age_chains(data),
+                unlocked=run_meta.unlocks(run_rules.techs_at(data, meta.MARKET)),
             )
             ctx.trigger(
                 "No hub buttons",  # the hub's upgrades are data mod techs on every Town Center and Barracks

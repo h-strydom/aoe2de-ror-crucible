@@ -58,10 +58,15 @@ included, belongs to the Allies (5):
 The player starts with standard resources (200 food, 200 wood, 150 stone) and 4 villagers by the Town Center; a meta
 upgrade adds 6 more just south of them.
 
-Meta upgrades will hand more of these buildings to the player at the start (later: from the campaign bank).
+Meta upgrades (docs/hub.md) hand more of these buildings to the player at the start.
+
+The player's tech tree out of the box: everything of the Stone Age (villagers, House, Barracks and Clubman, Granary,
+Storage Pit, Dock and Fishing Boat), and in the Tool Age only the Slinger, the Archery Range and Bowman, the Stable
+and Scout, the Scout Ship, Light Transport and Trade Boat, the Market and Farm. No techs but Tool Age itself: every
+other tech, Bronze Age included, is a meta upgrade.
 
 The Allies' towers are the tier the player has unlocked: Watch Towers for now. The player never builds walls or gates
-(RoR's gates come with walls); towers are allowed. The player starts with City Watch researched. The
+(RoR's gates come with walls); Watch Towers come with a meta upgrade. The player starts with City Watch researched. The
 Allies age up when the player does: their buildings take the new age's look, still at 1 HP. Fish (not whales) hold
 twice their food, as fishing ships don't move on to the next fish they can see.
 

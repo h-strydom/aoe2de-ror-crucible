@@ -1,5 +1,6 @@
-"""The hub's techs: one per meta upgrade (meta.py), and "Begin the Crucible". Free and near instant (1 s) for now;
-the hub's triggers decide what a research does."""
+"""The hub's techs: one per meta upgrade (meta.py), and "Begin the Crucible", free and near instant (1 s) for now; the
+hub's triggers decide what a research does. And the hub's own copies of the Town Center and Barracks (meta.PLACES), so
+the second ones offer only their own upgrades."""
 
 from crucible import meta
 from crucible.bonuses.model import Icon
@@ -12,6 +13,10 @@ RESEARCH_TIME = 1  # as quick as it gets: at 0 the game researches a tech by its
 def add(mod: DataMod) -> None:
     icon = icon_id(Icon.TECHNOLOGY, mod.data)
 
+    for place in meta.PLACES:
+        if place.copy_of >= 0:
+            mod.manifest[place.copy_key] = mod.copy_unit(place.copy_of)
+
     for upgrade in meta.UPGRADES:
         mod.manifest[upgrade.tech] = mod.new_tech(
             f"Crucible {upgrade.tech}",
@@ -20,7 +25,7 @@ def add(mod: DataMod) -> None:
             description=upgrade.description,
             tooltip=f"Research <b>{upgrade.title}<b> (<cost>)\n{upgrade.description}",
             icon=icon,
-            location=upgrade.building,
+            location=meta.location(meta.place(upgrade.place), mod.manifest),
             button=upgrade.button,
             research_time=RESEARCH_TIME,
         )

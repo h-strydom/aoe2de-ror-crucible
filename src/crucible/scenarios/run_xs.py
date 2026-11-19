@@ -1,4 +1,5 @@
-"""The XS crucible_run starts with: the Allies' buildings to 1 HP, their walls randomly damaged, the City States made
+"""The XS crucible_run starts with: the Allies' buildings to 1 HP, the base's walls randomly damaged (the Allies', or
+the player's with the Walls upgrade), the City States made
 invulnerable. It runs once, at 2 seconds: after the meta upgrades have taken the player's buildings back.
 """
 
@@ -30,19 +31,22 @@ def start(
     city_states: list[int],
     *,
     allies: int,
+    player: int,
     invulnerable: int,
     aged: list[int] = (),
 ) -> str:
     """`walls`: wall type -> its full HP. `aged`: the buildings' types in every age (their maximum HP is 1 for the
     Allies, so an age up keeps them at 1)."""
-    wall_calls = "\n".join(f"    crucibleRunWalls({unit}, {hp});" for unit, hp in walls.items())
+    wall_calls = "\n".join(
+        f"    crucibleRunWalls({owner}, {unit}, {hp});" for owner in (allies, player) for unit, hp in walls.items()
+    )
     max_calls = "\n".join(f"    crucibleRunMaxOneHp({unit});" for unit in sorted({*buildings, *aged}))
     building_calls = "\n".join(f"    crucibleRunOneHp({unit});" for unit in buildings)
     invulnerable_calls = "\n".join(f"    crucibleRunInvulnerable({unit});" for unit in city_states)
 
     return f"""// ---- crucible run: start ----
-void crucibleRunWalls(int type = -1, int hp = 0) {{
-    int ids = xsGetPlayerUnitIds({allies}, type, -1);
+void crucibleRunWalls(int owner = -1, int type = -1, int hp = 0) {{
+    int ids = xsGetPlayerUnitIds(owner, type, -1);
     int id = -1;
     int roll = 0;
     int percent = 0;
