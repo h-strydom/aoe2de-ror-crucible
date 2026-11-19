@@ -53,6 +53,11 @@ def buttons(tests: list[str]) -> dict[str, int]:
     return {boon: button for name in tests for boon, button in TESTS[name].BUTTONS.items()}
 
 
+def datamods(tests: list[str]) -> tuple:
+    """What the picked tests add to the data mod themselves (a test module's optional datamod(mod))."""
+    return tuple(TESTS[name].datamod for name in tests if hasattr(TESTS[name], "datamod"))
+
+
 def build(out: Path, techs: dict[str, int], tests: list[str]) -> Path:
     """`techs` is the data mod's manifest (what each boon and choice is as a tech)."""
     o = SESSIONS.new(SIZE, game="ror")

@@ -36,6 +36,7 @@ class DataMod:
         self.data = data
         self.strings = Strings()
         self.manifest: dict[str, int] = {}  # what each part added, by its own key (e.g. a modifier id -> tech id)
+        self.files: dict[str, bytes] = {}  # more files to ship, by their path in the mod (e.g. widgetui pictures)
 
     @classmethod
     def from_ror(cls) -> "DataMod":
@@ -130,6 +131,11 @@ class DataMod:
         self.data.save(str(dat))
 
         self.strings.write(folder)
+
+        for path, data in self.files.items():
+            (folder / path).parent.mkdir(parents=True, exist_ok=True)
+            (folder / path).write_bytes(data)
+
         (folder / MANIFEST).write_text(json.dumps(self.manifest, indent=2), encoding="utf-8")
         (folder / "info.json").write_text(
             json.dumps(

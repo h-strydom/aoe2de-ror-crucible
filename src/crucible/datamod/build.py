@@ -11,14 +11,23 @@ from crucible.datamod import civs, hub, shop, upgrades
 from crucible.datamod.mod import MANIFEST, MOD, DataMod
 
 
-def build(modifiers: list[Modifier], out: Path, *, buttons: dict[str, int] | None = None) -> Path:
+def build(
+    modifiers: list[Modifier],
+    out: Path,
+    *,
+    buttons: dict[str, int] | None = None,
+    extra: tuple = (),
+) -> Path:
     """Write the mod folder under `out`; returns it. `buttons` places boons on the Wonder from the start (see
-    upgrades.add)."""
+    upgrades.add). `extra`: more parts, each called with the mod (a check test's own techs or files)."""
     mod = DataMod.from_ror()
     civs.strip_bonuses(mod)
     upgrades.add(mod, modifiers, buttons)
     shop.add(mod)
     hub.add(mod)
+
+    for part in extra:
+        part(mod)
 
     return mod.write(out)
 

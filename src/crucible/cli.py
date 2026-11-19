@@ -56,7 +56,12 @@ def main(argv: list[str] | None = None) -> int:
         if unknown:
             parser.error(f"unknown tests {unknown}; registered: {sorted(TESTS)}")
 
-        folder = build.build(check_scenario.boons(tests), OUT, buttons=check_scenario.buttons(tests))
+        folder = build.build(
+            check_scenario.boons(tests),
+            OUT,
+            buttons=check_scenario.buttons(tests),
+            extra=check_scenario.datamods(tests),
+        )
         techs = build.manifest(folder)
         scenario = check_scenario.build(OUT, techs, tests)
         print(f"tests: {', '.join(tests)}")
