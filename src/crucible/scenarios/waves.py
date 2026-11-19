@@ -38,7 +38,7 @@ TIMER = 0  # display timer slot
 
 ORDER_VARIABLE = "crucible_wave_order"  # 1: spawn the Capital's wave; 3: send it, spawn the city states'; 4: back
 BUTTON_VARIABLE = "crucible_wave_button"  # 1: button on, 2: off
-WON_VARIABLE = "crucible_waves_won"  # 1: ask whether to claim victory (every wave defeated from the last on)
+WON_VARIABLE = "crucible_waves_won"  # 1: the last wave is defeated (asks whether to claim victory)
 
 Tile = tuple[int, int]
 Box = tuple[int, int, int, int]  # x1, y1, x2, y2, inclusive
@@ -205,25 +205,26 @@ def _triggers(ctx, tech: int) -> None:
 
 
 def _win(ctx, player: int = 1) -> None:
-    """From the last wave defeated on, each wave defeated asks: claim victory, or keep fighting."""
+    """When the last wave is defeated: the choice to claim victory or keep fighting, asked once. It stays up until
+    answered, so the player can fight on and claim victory whenever they like. (Asked again after every wave by a
+    looping trigger, it never showed.)"""
     ctx.var(WON_VARIABLE)
     decision = ctx.next_decision_id()
     ctx.triggers(
-        _on(
-            WON_VARIABLE,
-            1,
-            "Win: claim victory or fight on",
-            [
+        {
+            "name": "Win: claim victory or fight on",
+            "conditions": [{"type": "variable_value", "variable": WON_VARIABLE, "comparison": "EQUAL", "quantity": 1}],
+            "effects": [
                 {
                     "type": "create_decision",
                     "decision_id": decision,
-                    "message": f"{WAVES} waves are defeated. End the run now, or keep fighting (you'll be asked again "
-                    "after the next wave)?",
+                    "message": f"{WAVES} waves are defeated. Claim victory whenever you like: until then, keep "
+                    "fighting.",
                     "message_option1": "Claim victory",
                     "message_option2": "Keep fighting",
                 },
             ],
-        ),
+        },
         {
             "name": "Win: claim victory",
             "conditions": [{"type": "decision_triggered", "decision_id": decision, "decision_option": 1}],

@@ -85,7 +85,7 @@ KEEPS = (TOWN_CENTER, WONDER)  # what the player starts with
 
 def _diplomacy(handle: str) -> None:
     others = [f for f in Faction if f != Faction.TRADERS]
-    diplomacy_set(handle, Faction.TRADERS, others, "NEUTRAL")
+    diplomacy_set(handle, Faction.TRADERS, others, "ALLY")  # neutral ground: everyone's ally
     diplomacy_set(handle, Faction.PLAYER, [Faction.ALLIES], "ALLY")
     diplomacy_set(handle, Faction.CITY_STATES, [Faction.LEGION], "ALLY")
 

@@ -13,10 +13,10 @@ Map: 220 x 220. Compass: y = 0 is north, x = 0 is west.
 | 1 | Player | purple (5) | Greek | the human; base in the middle |
 | 2 | City States | orange (7) | Roman | every unit and building invulnerable; where the waves spawn |
 | 3 | Legion | red (1) | Roman | the main enemy: the waves and the destroyable bases around the map |
-| 4 | Traders | gray (6) | Egyptian (eye candy) | neutral to everyone; the player trades with their dock and markets |
+| 4 | Traders | gray (6) | Egyptian (eye candy) | allied with everyone (neutral ground); the player trades with their dock and markets |
 | 5 | Allies | gray (6) | Greek | the player's ally: resources sent for objectives, units sent to help. **Not in the map yet** |
 
-Diplomacy: 1 and 5 allied, sharing vision; 2 and 3 allied and enemies of 1 and 5; 4 neutral to everyone.
+Diplomacy: 1 and 5 allied, sharing vision; 2 and 3 allied and enemies of 1 and 5; 4 allied with everyone.
 Vision: 2, 3 and 4 see the whole map; 1 and 5 have fog.
 All civs are the bonus-less style civs (`datamod/civs.py`).
 
@@ -118,7 +118,7 @@ pick).
 raids more frequent and harder. The 5 minute wave timer never changes.
 
 **Win and lose.**
-- win: once the 9th wave is defeated, a choice: claim victory, or keep fighting; asked again after every wave
+- win: once the 9th wave is defeated, a choice: claim victory, or keep fighting; asked once and left up until answered
 - lose: the player's Wonder is destroyed
 
 ## Open
