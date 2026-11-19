@@ -5,4 +5,6 @@ paragraph (session.scenario, and session.handle for aoe2ed's tools).
 Standing rule: delete a test's module once it's confirmed in game.
 """
 
-TESTS = {module.NAME: module for module in ()}  # none waiting to be confirmed
+from crucible.scenarios.checks import captions
+
+TESTS = {module.NAME: module for module in (captions,)}
