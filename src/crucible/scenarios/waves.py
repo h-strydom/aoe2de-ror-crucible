@@ -205,9 +205,9 @@ def _triggers(ctx, tech: int) -> None:
 
 
 def _win(ctx, player: int = 1) -> None:
-    """When the last wave is defeated: the choice to claim victory or keep fighting, asked once. It stays up until
-    answered, so the player can fight on and claim victory whenever they like. (Asked again after every wave by a
-    looping trigger, it never showed.)"""
+    """When the last wave is defeated: a Claim victory choice, its only button, asked once. It stays up until clicked,
+    so the player fights on and claims victory whenever they like. (Asked again after every wave by a looping
+    trigger, it never showed.)"""
     ctx.var(WON_VARIABLE)
     decision = ctx.next_decision_id()
     ctx.triggers(
@@ -221,7 +221,7 @@ def _win(ctx, player: int = 1) -> None:
                     "message": f"{WAVES} waves are defeated. Claim victory whenever you like: until then, keep "
                     "fighting.",
                     "message_option1": "Claim victory",
-                    "message_option2": "Keep fighting",
+                    "message_option2": "",
                 },
             ],
         },

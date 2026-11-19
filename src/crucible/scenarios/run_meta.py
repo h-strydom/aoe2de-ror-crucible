@@ -19,8 +19,6 @@ HOUSE, GRANARY, STORAGE_PIT, CLUBMAN = 70, 68, 562, 281
 LOOKS_ONLY = (HOUSE,)  # kept by a change of hands (no buttons to lose); the rest are created anew
 AGE_TECHS = ((1, 101), (2, 102), (3, 103))  # (the age reached, its tech): Tool, Bronze, Iron
 UPGRADE_UNIT = 3  # effect command
-GAIA = 0
-HALF = 1.5  # half a kept working building's side: the Barracks, Granary and Storage Pit are 3x3
 CURRENT_AGE = 6  # resource
 SLOTS = {  # where starting soldiers stand: tiles, in the order they fill
     "melee": ((104, 114), (105, 114), (105, 115), (104, 115), (103, 114)),
@@ -56,12 +54,10 @@ def age_chains(data) -> dict[int, dict[int, int]]:
 
 def _keep(ctx, name: str, conditions: list[dict], unit, allies: int, player: int) -> None:
     """Make one of the Allies' buildings the player's. A building given to a player keeps the look of the age it had
-    (AoE's rule), so a working one (Barracks, Granary, Storage Pit) is removed and, a second later (in the same moment
-    the tile still counted as taken: the Granary never came back), created anew for the player on its tile, to age up
-    like one the player built. (Replacing it with the next age's unit lost its buttons: units train at the Age1
-    Barracks, 12, not at the Age2 one.) Gaia objects on its footprint go first: a building isn't created where
-    anything stands (the arena's Granary has two berry bushes under it). A house only looks, so it changes hands and
-    _ages replaces it at each age."""
+    (AoE's rule), so a working one (Barracks, Granary, Storage Pit) is removed and, a second later, created anew for the
+    player on its tile, to age up like one the player built. Nothing else may stand on that tile: a building isn't
+    created over anything (a berry bush under the arena's Granary kept it from coming back, so the bush is gone). (Replacing it with the next age's unit lost its buttons: units train at the Age1
+    Barracks, 12, not at the Age2 one.) A house only looks, so it changes hands and _ages replaces it at each age."""
     if unit.unit_const in LOOKS_ONLY:
         move = {
             "type": "change_ownership",
@@ -81,14 +77,9 @@ def _keep(ctx, name: str, conditions: list[dict], unit, allies: int, player: int
         "source_player": player,
         "location": [int(unit.x), int(unit.y)],
     }
-    clear = {
-        "type": "remove_object",
-        "source_player": GAIA,
-        "area": [int(unit.x - HALF), int(unit.y - HALF), int(unit.x + HALF) - 1, int(unit.y + HALF) - 1],
-    }
     later = {"type": "activate_trigger", "trigger_id": placed}
     ctx.triggers(
-        {"name": name, "conditions": conditions, "effects": [remove, clear, later]},
+        {"name": name, "conditions": conditions, "effects": [remove, later]},
         {"name": placed, "enabled": False, "conditions": [{"type": "timer", "timer": 1}], "effects": [create]},
     )
 
