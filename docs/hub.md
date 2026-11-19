@@ -23,10 +23,9 @@ itself) for now.
 
 - A place is the player's, marked **(!)**, while it has an upgrade on offer; with none it turns purple and loses the
   mark (the Town Center and the Wonder stay the player's: Begin the Crucible and the boons live there).
-- The place's caption lists a count line per upgrade on offer under the mark: "4/10 villagers"; a line goes once
-  it's maxed. The Wonder's also counts towards the next tier: "0/5 until Tier 2", then "0/10 until Tier 3".
-  Captions are fixed text (no live values), so each place has a trigger per combination of its lines (982 in all)
-  and XS picks one. The buttons count too: "Villager (4/10)".
+- Each upgrade's button counts it: the icon shows "4/10" and the name "Villager (4/10)". The count icons are the data
+  mod's own pictures (`datamod/count_icons.py`), swapped in by Change Technology Icon as each level comes on offer.
+- The Wonder's caption counts towards the next tier: "(!)" over "0/5 until Tier 2", then "0/10 until Tier 3".
 - **Tier 2** opens once 5 tier 1 levels are bought; tier 3 (nothing yet) at 10 tier 2 levels.
 - An XS rule works out what's on offer every second and signals changes through trigger variables to looping
   triggers (XS can't enable techs, change owners or captions).
