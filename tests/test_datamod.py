@@ -56,7 +56,7 @@ def test_every_icon_has_a_source():
 
 def test_check_scenario_builds_every_test(tmp_path):
     tests = list(TESTS)
-    folder = build.build(check.boons(tests), tmp_path, buttons=check.buttons(tests))
+    folder = build.build(check.boons(tests), tmp_path, buttons=check.buttons(tests), extra=check.datamods(tests))
     techs = build.manifest(folder)
 
     path = check.build(tmp_path, techs, tests)
