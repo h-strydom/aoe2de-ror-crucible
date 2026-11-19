@@ -77,8 +77,9 @@ def _keep(ctx, name: str, conditions: list[dict], unit, allies: int, player: int
     """Make one of the Allies' buildings the player's. A building given to a player keeps the look of the age it had
     (AoE's rule), so a working one (Barracks, Granary, Storage Pit) is removed and, a second later, created anew for the
     player on its tile, to age up like one the player built. Nothing else may stand on that tile: a building isn't
-    created over anything (a berry bush under the arena's Granary kept it from coming back, so the bush is gone). (Replacing it with the next age's unit lost its buttons: units train at the Age1
-    Barracks, 12, not at the Age2 one.) A house only looks, so it changes hands and _ages replaces it at each age."""
+    created over anything (a berry bush under the arena's Granary kept it from coming back, so the bush is gone).
+    (Replacing it with the next age's unit lost its buttons: units train at the Age1 Barracks, 12, not at the Age2
+    one.) A house only looks, so it changes hands and _ages replaces it at each age."""
     if unit.unit_const in LOOKS_ONLY:
         move = {
             "type": "change_ownership",
