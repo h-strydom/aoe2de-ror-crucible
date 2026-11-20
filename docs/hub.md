@@ -49,12 +49,12 @@ itself) for now.
 | Stable | 2 | tier 2 TC 5 | 1 | the Stable is bought | the base's Stable is yours |
 | Axemen upgrade | 2 | second Barracks 1 | 1 | the Clubmen become 3 Axemen | Axe can be researched; Axemen instead of the Clubmen |
 | Axemen | 2 | second Barracks 2 | 1 | 2 more Axemen turn purple | 2 more Axemen |
-| Market upgrades | 2 | Market 1 | 1 | | the Market's techs can be researched |
+| Market upgrades | 2 | Market 1 | 1 | | the Market's Tool Age techs can be researched (Bronze Age ones: later) |
 | Bowmen | 2 | Archery Range 1 | 2 | 3, then 2 Bowmen turn purple | Bowmen in the ranged slots |
 | Scout | 2 | Stable 1 | 1 | the Scout turns purple | a Scout in its slot |
 | Storage Pit upgrades | 2 | Storage Pit 1 | 1 | | Tool Working and the three Leather Armors |
 | Watch Tower | 2 | Granary 1 | 1 | | the base's towers are yours, and Watch Towers can be built |
-| Walls | 2 | Granary 2 | 1 | | the base's walls are yours, still damaged |
+| Walls | 2 | Granary 2 | 1 | | the base's walls are yours (Small Walls), still damaged |
 
 The Axemen upgrade needs the Clubmen; Axemen need the Axemen upgrade. An unlocked tech still waits for its own prerequisites (its age, its building). Kept buildings change hands at the start of the run, before the Allies' buildings drop to
 1 HP. Starting soldiers stand in slots by the Wonder (5 melee, 5 ranged, a scout, 3 cavalry, 1 siege).

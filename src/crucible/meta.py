@@ -207,7 +207,7 @@ AXEMEN = Upgrade(
 MARKET_TECHS = Upgrade(
     "meta_market_techs",
     "Market upgrades",
-    "The Market's upgrades can be researched.",
+    "The Market's Tool Age upgrades can be researched: Wood Working, Domestication, Stone and Gold Mining.",
     "market",
     1,
     1,

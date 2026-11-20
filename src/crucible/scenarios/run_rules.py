@@ -1,6 +1,7 @@
 """Rules of crucible_run beyond the factions and waves (docs/arena.md):
 
-- the Allies' towers are the tier the player has unlocked: Watch Towers for now (meta upgrades will raise it);
+- the Allies' towers and walls are the tier the player has unlocked: Watch Towers and Small Walls for now (meta
+  upgrades will raise it);
 - the player's tech tree: the Stone Age and part of the Tool Age (ALLOWED), no techs but Tool Age; meta upgrades
   unlock the rest (run_meta);
 - the player never builds walls or gates (RoR's gates come with walls);
@@ -28,6 +29,11 @@ ALLOWED = (  # what the player can build or train out of the box
     # Ship, Light Transport, Trade Boat, Market, Farm
 )
 NOT_LOCKED = (TOOL_AGE, CITY_WATCH)
+
+
+def tool_age_techs(data, techs: list[int]) -> list[int]:
+    """Those of `techs` that need the Tool Age (and no later age)."""
+    return [tech for tech in techs if TOOL_AGE in data.techs[tech].required_techs]
 
 
 def techs_at(data, building: int) -> list[int]:
@@ -58,10 +64,12 @@ def locked(data) -> tuple[list[int], list[int]]:
 
 
 def tier_one_towers(s, allies: int) -> None:
-    """The Allies' towers become Watch Towers."""
+    """The Allies' towers become Watch Towers, their walls Small Walls."""
     for unit in s.unit_manager.units[allies]:
         if unit.unit_const in TOWERS:
             unit.unit_const = WATCH_TOWER
+        elif unit.unit_const in WALLS:
+            unit.unit_const = WALLS[0]
 
 
 def gates(data) -> list[int]:

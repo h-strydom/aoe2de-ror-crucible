@@ -3,7 +3,7 @@ the player's with the Walls upgrade), the City States made
 invulnerable. It runs once, at 2 seconds: after the meta upgrades have taken the player's buildings back.
 """
 
-START = 2  # seconds
+START = 3  # seconds: after the kept buildings, towers and walls are made anew (about 1-2 s)
 
 # how a wall starts: (chance in percent, lowest and highest HP in percent of its full HP); more damaged than destroyed
 # or whole

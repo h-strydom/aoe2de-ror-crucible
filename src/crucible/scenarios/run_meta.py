@@ -8,8 +8,9 @@ Starting soldiers stand in slots by the Wonder, placed by hand (2026-11-17): Clu
 (Axemen instead with the Axemen upgrade), 2 more Axemen the other two; Bowmen fill the ranged slots, the Scout its own.
 
 Other upgrades (and the Bronze Age, given at tier 3) unlock techs locked by run_rules (unlocks()), or hand the player
-the base's walls (still damaged: run_xs rolls them after) or towers (the Watch Tower upgrade: they're Watch Towers,
-run_rules.tier_one_towers).
+the base's walls (Small Walls, still damaged: run_xs rolls them after) or towers (the Watch Tower upgrade: they're
+Watch Towers, run_rules.tier_one_towers). Like kept buildings, they're made anew for the player: a unit that changes
+hands keeps its old owner's stats, so the player's boons (tower population, building line of sight) missed them.
 
 A tech is switched back on only once its own prerequisites are met: Enable/Disable Technology skips them, so a tech
 switched on at the start could be researched in any age.
@@ -102,18 +103,26 @@ def _keep(ctx, name: str, conditions: list[dict], unit, allies: int, player: int
 
         return
 
+    _remake(ctx, name, conditions, [unit], allies, player)
+
+
+def _remake(ctx, name: str, conditions: list[dict], units: list, allies: int, player: int) -> None:
+    """Remove the Allies' `units`, then a second later create the same for the player on their tiles."""
     placed = f"{name} placed"
-    remove = {"type": "remove_object", "source_player": allies, "selected_object_ids": [unit.reference_id]}
-    create = {
-        "type": "create_object",
-        "object_list_unit_id": unit.unit_const,
-        "source_player": player,
-        "location": [int(unit.x), int(unit.y)],
-    }
+    remove = {"type": "remove_object", "source_player": allies, "selected_object_ids": [u.reference_id for u in units]}
+    create = [
+        {
+            "type": "create_object",
+            "object_list_unit_id": unit.unit_const,
+            "source_player": player,
+            "location": [int(unit.x), int(unit.y)],
+        }
+        for unit in units
+    ]
     later = {"type": "activate_trigger", "trigger_id": placed}
     ctx.triggers(
         {"name": name, "conditions": conditions, "effects": [remove, later]},
-        {"name": placed, "enabled": False, "conditions": [{"type": "timer", "timer": 1}], "effects": [create]},
+        {"name": placed, "enabled": False, "conditions": [{"type": "timer", "timer": 1}], "effects": create},
     )
 
 
@@ -203,11 +212,8 @@ def add(
             )
 
     for upgrade, types in ((meta.WALLS, WALLS), (meta.TOWER, TOWERS)):
-        moves = [
-            {"type": "change_ownership", "source_player": allies, "target_player": player, "object_list_unit_id": u}
-            for u in types
-        ]
-        ctx.trigger(f"Meta: {upgrade.label}", _at_least(upgrade.key, 1), moves)
+        units = [u for u in s.unit_manager.units[allies] if u.unit_const in types]
+        _remake(ctx, f"Meta: {upgrade.label}", _at_least(upgrade.key, 1), units, allies, player)
 
 
 def _create(unit: int, player: int, tiles) -> list[dict]:

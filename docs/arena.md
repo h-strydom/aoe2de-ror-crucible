@@ -65,10 +65,10 @@ Storage Pit, Dock and Fishing Boat), and in the Tool Age only the Slinger, the A
 and Scout, the Scout Ship, Light Transport and Trade Boat, the Market and Farm. No techs but Tool Age itself: every
 other tech is a meta upgrade (the Bronze Age comes with reaching tier 3 in the hub).
 
-The Allies' towers are the tier the player has unlocked: Watch Towers for now. The player never builds walls or gates
-(RoR's gates come with walls); Watch Towers come with a meta upgrade. The player starts with City Watch researched. The
-Allies age up when the player does: their buildings take the new age's look, still at 1 HP. Fish (not whales) hold
-twice their food, as fishing ships don't move on to the next fish they can see.
+The Allies' towers and walls are the tier the player has unlocked: Watch Towers and Small Walls for now. The player
+never builds walls or gates (RoR's gates come with walls); Watch Towers come with a meta upgrade. The player starts with
+City Watch researched. The Allies age up when the player does: their buildings take the new age's look, still at 1 HP.
+Fish (not whales) hold twice their food, as fishing ships don't move on to the next fish they can see.
 
 **Ages.** The City States (2) start in the Iron Age (eye candy). The Legion (3) starts in the Stone Age and ages up with
 the waves: its bases around the map get stronger too, so leaving them makes them more dangerous.
