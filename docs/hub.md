@@ -25,7 +25,10 @@ itself) for now.
   mark (the Town Center and the Wonder stay the player's: Begin the Crucible and the boons live there).
 - Each upgrade's button counts it: the icon shows "4/10" and the name "Villager (4/10)". The count icons are the data
   mod's own pictures (`datamod/count_icons.py`), swapped in by Change Technology Icon as each level comes on offer.
-- The Wonder's caption counts towards the next tier: "(!)" over "0/5 until Tier 2", then "0/10 until Tier 3".
+- An objective counts towards the next tier: "0/5 upgrades until Tier 2"; once met, "0/10 upgrades until Tier 3"
+  starts. The counts live in players 3 and 4's relics (objective text can show a player's resource, not a variable).
+- Reaching **tier 3** gives the Bronze Age (it can be researched in the run): not bought, stored by the tier 3
+  objective.
 - **Tier 2** opens once 5 tier 1 levels are bought; tier 3 (nothing yet) at 10 tier 2 levels.
 - An XS rule works out what's on offer every second and signals changes through trigger variables to looping
   triggers (XS can't enable techs, change owners or captions).
@@ -40,7 +43,6 @@ itself) for now.
 | Clubmen | 1 | Barracks 5 | 1 | 3 Clubmen turn purple | 3 Clubmen in the first melee slots |
 | More boons | 1 | Wonder 1 | 4 | | each decision offers one more boon, up to 5 |
 | Faster boons | 1 | Wonder 2 | 5 | | boons research faster: 48, 36, 24, 12 s, then 1 s |
-| Bronze Age | 2 | tier 2 TC 1 | 1 | | Bronze Age can be researched |
 | Second Barracks | 2 | tier 2 TC 2 | 1 | the second Barracks is bought | the base's second Barracks is yours |
 | Market | 2 | tier 2 TC 3 | 1 | the Market is bought | the base's Market is yours |
 | Archery Range | 2 | tier 2 TC 4 | 1 | the Archery Range is bought | the base's Archery Range is yours |

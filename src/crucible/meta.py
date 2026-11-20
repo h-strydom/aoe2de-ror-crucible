@@ -149,16 +149,6 @@ BOON_SPEED = Upgrade(
 )
 
 # tier 2: a full Tool Age (without walls)
-BRONZE_AGE = Upgrade(
-    "meta_bronze_age",
-    "Bronze Age",
-    "The Bronze Age can be researched at the Town Center.",
-    "town_center_2",
-    1,
-    1,
-    tier=2,
-    label="Bronze Age",
-)
 SECOND_BARRACKS = Upgrade(
     "meta_barracks_2",
     "Second Barracks",
@@ -292,7 +282,6 @@ UPGRADES = (  # Clubmen before Axemen: the hub swaps the Clubmen for Axemen
     CLUBMEN,
     BOON_SLOTS,
     BOON_SPEED,
-    BRONZE_AGE,
     SECOND_BARRACKS,
     MARKET_UPGRADE,
     ARCHERY_RANGE_UPGRADE,
@@ -306,6 +295,21 @@ UPGRADES = (  # Clubmen before Axemen: the hub swaps the Clubmen for Axemen
     TOWER,
     WALLS,
 )
+
+
+@dataclass(frozen=True)
+class Reward:
+    """Given, not bought: reaching `tier` stores 1 under `key` (the hub's tier objective does it)."""
+
+    key: str
+    title: str
+    tier: int
+
+
+BRONZE_AGE = Reward("meta_bronze_age", "Bronze Age", 3)  # the Bronze Age can be researched in the run
+REWARDS = (BRONZE_AGE,)
+KEYS = tuple(k.key for k in (*UPGRADES, *REWARDS))  # everything kept in the bank
+TITLES = {k.key: k.title for k in (*UPGRADES, *REWARDS)}
 
 BEGIN = "hub_begin"  # the data mod's manifest key of "Begin the Crucible"
 BEGIN_BUTTON = 11  # on the Town Center

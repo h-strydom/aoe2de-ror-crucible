@@ -63,7 +63,7 @@ Meta upgrades (docs/hub.md) hand more of these buildings to the player at the st
 The player's tech tree out of the box: everything of the Stone Age (villagers, House, Barracks and Clubman, Granary,
 Storage Pit, Dock and Fishing Boat), and in the Tool Age only the Slinger, the Archery Range and Bowman, the Stable
 and Scout, the Scout Ship, Light Transport and Trade Boat, the Market and Farm. No techs but Tool Age itself: every
-other tech, Bronze Age included, is a meta upgrade.
+other tech is a meta upgrade (the Bronze Age comes with reaching tier 3 in the hub).
 
 The Allies' towers are the tier the player has unlocked: Watch Towers for now. The player never builds walls or gates
 (RoR's gates come with walls); Watch Towers come with a meta upgrade. The player starts with City Watch researched. The

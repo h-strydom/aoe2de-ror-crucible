@@ -7,8 +7,9 @@ the Allies' buildings drop to 1 HP (run_xs waits for it).
 Starting soldiers stand in slots by the Wonder, placed by hand (2026-11-17): Clubmen fill the first three melee slots,
 Axemen take their place and add two; Bowmen fill the ranged slots, the Scout its own.
 
-Other upgrades unlock techs locked by run_rules (unlocks()), or hand the player the base's walls (still damaged:
-run_xs rolls them after) or towers (the Watch Tower upgrade: they're Watch Towers, run_rules.tier_one_towers).
+Other upgrades (and the Bronze Age, given at tier 3) unlock techs locked by run_rules (unlocks()), or hand the player
+the base's walls (still damaged: run_xs rolls them after) or towers (the Watch Tower upgrade: they're Watch Towers,
+run_rules.tier_one_towers).
 
 A tech is switched back on only once its own prerequisites are met: Enable/Disable Technology skips them, so a tech
 switched on at the start could be researched in any age.
@@ -158,7 +159,7 @@ def add(
 ) -> None:
     """`villagers`: where each extra villager starts (tile centres), in order. `chains`: age_chains(). `unlocked`:
     unlocks()."""
-    blocks.bank.load(ctx, {upgrade.key: 0 for upgrade in meta.UPGRADES}, name="Meta: load upgrades")
+    blocks.bank.load(ctx, dict.fromkeys(meta.KEYS, 0), name="Meta: load upgrades")
 
     for level, (x, y) in enumerate(villagers[: meta.VILLAGERS.levels], start=1):
         unit = VILLAGER_MALE if level % 2 else VILLAGER_FEMALE
@@ -193,11 +194,9 @@ def add(
     _soldiers(ctx, player)
 
     for key, techs in unlocked.items():
-        upgrade = next(u for u in meta.UPGRADES if u.key == key)
-
         for tech, required in techs.items():
             ctx.trigger(
-                f"Meta: {upgrade.title} unlocks {tech}",
+                f"Meta: {meta.TITLES[key]} unlocks {tech}",
                 _at_least(key, 1)
                 + [{"type": "research_technology", "source_player": player, "technology": r} for r in required],
                 [{"type": "enable_disable_technology", "source_player": player, "technology": tech, "enabled": 1}],
