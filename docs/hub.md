@@ -23,13 +23,13 @@ itself) for now.
 
 - A place is the player's, marked **(!)**, while it has an upgrade on offer; with none it turns purple and loses the
   mark (the Town Center and the Wonder stay the player's: Begin the Crucible and the boons live there).
-- Each upgrade's button counts it: the icon shows "4/10" and the name "Villager (4/10)". The count icons are the data
+- Each upgrade's button counts its levels: the icon shows "2/6" and the name "Villager (2/6)". The count icons are the data
   mod's own pictures (`datamod/count_icons.py`), swapped in by Change Technology Icon as each level comes on offer.
-- An objective counts towards the next tier: "0/5 upgrades until Tier 2"; once met, "0/10 upgrades until Tier 3"
+- An objective counts towards the next tier: "0/5 upgrades until Tier 2"; once met, "0/10 more upgrades until Tier 3"
   starts. The counts live in players 3 and 4's relics (objective text can show a player's resource, not a variable).
 - Reaching **tier 3** gives the Bronze Age (it can be researched in the run): not bought, stored by the tier 3
   objective.
-- **Tier 2** opens once 5 tier 1 levels are bought; tier 3 (nothing yet) at 10 tier 2 levels.
+- **Tier 2** opens once 5 levels are bought; tier 3 (nothing yet) at 10 more, from any tier.
 - An XS rule works out what's on offer every second and signals changes through trigger variables to looping
   triggers (XS can't enable techs, change owners or captions).
 
@@ -47,17 +47,17 @@ itself) for now.
 | Market | 2 | tier 2 TC 3 | 1 | the Market is bought | the base's Market is yours |
 | Archery Range | 2 | tier 2 TC 4 | 1 | the Archery Range is bought | the base's Archery Range is yours |
 | Stable | 2 | tier 2 TC 5 | 1 | the Stable is bought | the base's Stable is yours |
-| Axe | 2 | second Barracks 1 | 1 | | Axe can be researched |
-| Axemen | 2 | second Barracks 2 | 2 | the Clubmen become 3 Axemen, then 2 more | Axemen instead of the Clubmen, then 2 more |
+| Axemen upgrade | 2 | second Barracks 1 | 1 | the Clubmen become 3 Axemen | Axe can be researched; Axemen instead of the Clubmen |
+| Axemen | 2 | second Barracks 2 | 1 | 2 more Axemen turn purple | 2 more Axemen |
 | Market upgrades | 2 | Market 1 | 1 | | the Market's techs can be researched |
-| Bowmen | 2 | Archery Range 1 | 3 | 3, 1, 1 Bowmen turn purple | Bowmen in the ranged slots |
+| Bowmen | 2 | Archery Range 1 | 2 | 3, then 2 Bowmen turn purple | Bowmen in the ranged slots |
 | Scout | 2 | Stable 1 | 1 | the Scout turns purple | a Scout in its slot |
 | Storage Pit upgrades | 2 | Storage Pit 1 | 1 | | Tool Working and the three Leather Armors |
 | Watch Tower | 2 | Granary 1 | 1 | | the base's towers are yours, and Watch Towers can be built |
 | Walls | 2 | Granary 2 | 1 | | the base's walls are yours, still damaged |
 | Begin the Crucible | | TC 11 | | ends the hub: the run starts | |
 
-Axemen needs the Clubmen. An unlocked tech still waits for its own prerequisites (its age, its building). Kept buildings change hands at the start of the run, before the Allies' buildings drop to
+The Axemen upgrade needs the Clubmen; Axemen need the Axemen upgrade. An unlocked tech still waits for its own prerequisites (its age, its building). Kept buildings change hands at the start of the run, before the Allies' buildings drop to
 1 HP. Starting soldiers stand in slots by the Wonder (5 melee, 5 ranged, a scout, 3 cavalry, 1 siege).
 
 A decision at every start offers to reset all progress: it clears the bank at once and shows from the next start

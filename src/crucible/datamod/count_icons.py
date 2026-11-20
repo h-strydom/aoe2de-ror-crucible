@@ -1,5 +1,5 @@
-"""Count icons for the hub's buttons: a picture per count an upgrade can show ("4/10"), so a button shows how far its
-upgrade has gone.
+"""Count icons for the hub's buttons: a picture per count an upgrade can show (levels bought of its levels, "2/6"),
+so a button shows how far its upgrade has gone.
 
 RoR finds a tech's picture by its icon number: `widgetui/icons.json` maps the number to a material name,
 `widgetui/morematerials.json` the material to a texture file. The mod ships copies of both (made from the game's own
@@ -31,8 +31,8 @@ def key(label: str) -> str:
 
 
 def label(upgrade: meta.Upgrade, level: int) -> str:
-    """What the button shows with `level` bought: "4/10"."""
-    return f"{upgrade.count(level)}/{upgrade.count(upgrade.levels)}"
+    """What the button shows with `level` bought: "2/6"."""
+    return f"{level}/{upgrade.levels}"
 
 
 def labels() -> list[str]:

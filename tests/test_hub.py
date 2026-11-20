@@ -22,7 +22,14 @@ def test_hub_has_a_trigger_per_level(tmp_path, techs):
         for upgrade in meta.UPGRADES:
             assert {f"Hub: {upgrade.title} bought", f"Hub: {upgrade.title} not on offer"} <= names
             assert f"Hub: {upgrade.title} on offer at {upgrade.levels - 1}" in names
-        assert {"Hub: Villager 6", "Hub: House 7", "Hub: Axemen 2", "Hub: Bowmen 3", "Hub: begin the Crucible"} <= names
+        assert {
+            "Hub: Villager 6",
+            "Hub: House 7",
+            "Hub: Axemen upgrade 1",
+            "Hub: Axemen 1",
+            "Hub: Bowmen 2",
+            "Hub: begin the Crucible",
+        } <= names
         assert {"No data mod", "Hub: reset progress", "Hub: Tier 2", "Hub: Tier 3", "Hub: wonder on offer"} <= names
         assert {"Hub: town_center on offer", "Hub: granary on offer"} <= names
 

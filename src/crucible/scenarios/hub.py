@@ -6,9 +6,9 @@ the Tool Age) are gray: what can still be bought.
 
 Upgrades are researched at places (meta.PLACES). A place is the player's, marked "(!)", while it has an upgrade on
 offer; once it has none it turns purple (player 2) and loses the mark. An upgrade is on offer while its tier is open
-(meta.TIERS: so many bought from the tier before), its place is bought, what it requires is bought and it has levels
-left. Its button counts it: the icon shows "4/10" (the data mod's count icons, swapped in by trigger) and the name
-"Villager (4/10)" (renamed live by XS). An objective counts towards the next tier ("0/5 upgrades until Tier 2");
+(meta.TIERS: so many more levels bought, from any tier), its place is bought, what it requires is bought and it has
+levels left. Its button counts its levels: the icon shows "2/6" (the data mod's count icons, swapped in by trigger) and
+the name "Villager (2/6)" (renamed live by XS). An objective counts towards the next tier ("0/5 upgrades until Tier 2");
 once it's met, the next tier's objective starts. Objective text can't show a variable but can show a player's relics
 (`<Relics Captured, 3>`), so XS keeps each tier's count in its own player's relics (TIER_COUNTERS), capped at what the
 tier needs. Reaching a tier can give a reward (meta.REWARDS: the Bronze Age at tier 3), stored by the objective that
@@ -146,14 +146,16 @@ def _plan(s, orders: dict[int, list[dict]]) -> dict[str, list[list[dict]]]:
         "source_player": PURPLE,
         "selected_object_ids": [u.reference_id for u in clubmen],
     }
-    axemen_levels = levels(axemen, meta.AXEMEN.amounts, GRAY_2)
-    axemen_levels[0] = [no_clubmen, *axemen_levels[0]]  # the starting Clubmen become Axemen
+    upgraded = levels(axemen, meta.AXE.amounts, GRAY_2)
+    upgraded[0] = [no_clubmen, *upgraded[0]]  # the starting Clubmen become Axemen
+    more = levels(axemen[sum(meta.AXE.amounts) :], meta.AXEMEN.amounts, GRAY_2)
 
     return {
         meta.VILLAGERS.key: levels(villagers, (1,) * len(villagers), GRAY),
         meta.HOUSES.key: levels(houses, (1,) * len(houses), GRAY),
         meta.CLUBMEN.key: levels(clubmen, (len(clubmen),), GRAY),
-        meta.AXEMEN.key: axemen_levels,
+        meta.AXE.key: upgraded,
+        meta.AXEMEN.key: more,
         meta.BOWMEN.key: levels(_by_id(_units(s, GRAY_2, (BOWMAN,))), meta.BOWMEN.amounts, GRAY_2),
         meta.SCOUT.key: levels(_units(s, GRAY_2, (SCOUT,)), (1,), GRAY_2),
     }
@@ -348,7 +350,8 @@ def _tier_objectives(ctx) -> None:
     for n, (name, need) in enumerate(zip(names, meta.TIERS, strict=True)):
         rewards = [r for r in meta.REWARDS if r.tier == n + 2]
         given = "".join(f" ({r.title})" for r in rewards)
-        text = f"<Relics Captured, {TIER_COUNTERS[n]}>/{need} upgrades until Tier {n + 2}{given}"
+        more = " more" if n else ""
+        text = f"<Relics Captured, {TIER_COUNTERS[n]}>/{need}{more} upgrades until Tier {n + 2}{given}"
         later = [{"type": "activate_trigger", "trigger_id": names[n + 1]}] if n + 1 < len(names) else []
         later += [
             effect
@@ -456,16 +459,6 @@ int crucibleHubPlace(bool offered = false) {
 """
 
 
-def _counts(n: int, upgrade: meta.Upgrade) -> str:
-    """XS: the count an upgrade's button shows at a level."""
-    body = "".join(
-        f"    if (level == {level}) {{\n        return ({upgrade.count(level)});\n    }}\n"
-        for level in range(upgrade.levels)
-    )
-
-    return f"int crucibleHubCount{n}(int level = 0) {{\n{body}    return ({upgrade.count(upgrade.levels)});\n}}\n"
-
-
 def xs(ctx, techs: dict[str, int]) -> str:
     """The rule that works out what's on offer (module docstring)."""
     upgrades = meta.UPGRADES
@@ -474,8 +467,10 @@ def xs(ctx, techs: dict[str, int]) -> str:
     first = meta.TIERS[0]
     lines = [
         XS_HELPERS,
-        *(_counts(n, u) for n, u in enumerate(upgrades)),
-        "int crucibleHubAtMost(int value = 0, int most = 0) {",
+        "int crucibleHubBetween(int value = 0, int least = 0, int most = 0) {",
+        "    if (value < least) {",
+        "        return (least);",
+        "    }",
         "    if (value > most) {",
         "        return (most);",
         "    }",
@@ -502,12 +497,11 @@ def xs(ctx, techs: dict[str, int]) -> str:
     ]
     lines += [f"    int {level[u.key]} = xsTriggerVariable({_variable_id(ctx, u.key)});" for u in upgrades]
 
-    for tier in (1, 2):
-        lines.append(f"    int tier{tier} = {' + '.join(level[u.key] for u in upgrades if u.tier == tier)};")
-
-    lines.append(f"    bool tier2open = (tier1 >= {first});")
+    lines.append(f"    int bought = {' + '.join(level[u.key] for u in upgrades)};")
+    lines.append(f"    bool tier2open = (bought >= {first});")
     lines += [
-        f"    xsSetPlayerAttribute({TIER_COUNTERS[n]}, {RELICS}, crucibleHubAtMost(tier{n + 1}, {need}));"
+        f"    xsSetPlayerAttribute({TIER_COUNTERS[n]}, {RELICS}, "
+        f"crucibleHubBetween(bought - {sum(meta.TIERS[:n])}, 0, {need}));"
         for n, need in enumerate(meta.TIERS)
     ]
 
@@ -531,8 +525,8 @@ def xs(ctx, techs: dict[str, int]) -> str:
     lines.append("")
 
     for n, u in enumerate(upgrades):
-        variable, most = _variable_id(ctx, _state_variable(u)), u.count(u.levels)
-        name = f'"{u.title} (" + crucibleHubCount{n}({level[u.key]}) + "/{most})"'
+        variable = _variable_id(ctx, _state_variable(u))
+        name = f'"{u.title} (" + {level[u.key]} + "/{u.levels})"'
         lines.append(f"    if (crucibleHubSend({n}, {variable}, s{n})) {{")
         lines.append(f"        xsSetTechName({techs[u.tech]}, 1, {name});")
         lines.append("    }")

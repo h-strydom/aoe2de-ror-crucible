@@ -1,8 +1,8 @@
 """Meta upgrades: bought in the hub, kept in the campaign bank, applied at the start of every run.
 
 Out of the box the run's player has the Stone Age and part of the Tool Age (run_rules: no techs but Tool Age, few
-units); everything else is bought here. Upgrades come in tiers: a tier opens once enough of the one before is bought
-(TIERS).
+units); everything else is bought here. Upgrades come in tiers: a tier opens once enough upgrades are bought, from
+any tier (TIERS).
 
 Each upgrade is researched at a place in the hub: a building of the player's (the Town Center, the Wonder) or one
 bought by another upgrade (the Granary, the second Barracks). In the run, a level gives the player one more of
@@ -14,7 +14,7 @@ from dataclasses import dataclass
 TOWN_CENTER, BARRACKS, WONDER, GRANARY, STORAGE_PIT = 109, 12, 276, 68, 562
 MARKET, ARCHERY_RANGE, STABLE = 84, 87, 101
 TOWN_CENTER_AGE2, BARRACKS_AGE2 = 71, 498  # what the hub's tier 2 copies look like (Tool Age)
-TIERS = (5, 10)  # upgrades bought from tier 1 to open tier 2, from tier 2 to open tier 3
+TIERS = (5, 10)  # more levels bought (from any tier) to open each tier after the first: 5 for tier 2, 10 more for 3
 
 
 @dataclass(frozen=True)
@@ -40,22 +40,15 @@ class Upgrade:
     description: str
     place: str  # a Place's key
     button: int
-    levels: int  # how many times it can be bought
+    levels: int  # how many times it can be bought: the button counts levels ("0/2"), not what they give
     tier: int = 1
-    label: str = ""  # the hub's count line: "<have>/<most> <label>"
-    base: int = 0  # how many the run has without it
-    amounts: tuple[int, ...] = ()  # how many each level adds (1 each if empty)
+    label: str = ""  # a short name for trigger names
+    amounts: tuple[int, ...] = ()  # soldiers: how many each level adds
     requires: tuple[tuple[str, int], ...] = ()  # (upgrade, level) bought first
 
     @property
     def tech(self) -> str:
         return f"hub_{self.key}"
-
-    def count(self, level: int) -> int:
-        """What the count line shows at `level`."""
-        amounts = self.amounts or (1,) * self.levels
-
-        return self.base + sum(amounts[:level])
 
 
 PLACES = (
@@ -80,7 +73,6 @@ VILLAGERS = Upgrade(
     1,
     6,
     label="villagers",
-    base=4,
 )
 HOUSES = Upgrade(
     "meta_houses",
@@ -136,7 +128,6 @@ BOON_SLOTS = Upgrade(
     1,
     4,
     label="boons per decision",
-    base=1,
 )
 BOON_SPEED = Upgrade(
     "meta_boon_speed",
@@ -191,25 +182,27 @@ STABLE_UPGRADE = Upgrade(
 )
 AXE = Upgrade(
     "meta_axe",
-    "Axe",
-    "Axe (Clubmen to Axemen) can be researched at the Barracks.",
+    "Axemen upgrade",
+    "Axe (Clubmen to Axemen) can be researched at the Barracks, and your 3 starting Clubmen are Axemen.",
     "barracks_2",
     1,
     1,
     tier=2,
     label="Axe",
+    amounts=(3,),
+    requires=(("meta_clubmen", 1),),
 )
 AXEMEN = Upgrade(
     "meta_axemen",
     "Axemen",
-    "Your starting Clubmen are Axemen; the second level adds 2 more.",
+    "Start each run with 2 more Axemen.",
     "barracks_2",
     2,
-    2,
+    1,
     tier=2,
     label="Axemen",
-    amounts=(3, 2),
-    requires=(("meta_clubmen", 1),),
+    amounts=(2,),
+    requires=(("meta_axe", 1),),
 )
 MARKET_TECHS = Upgrade(
     "meta_market_techs",
@@ -224,13 +217,13 @@ MARKET_TECHS = Upgrade(
 BOWMEN = Upgrade(
     "meta_bowmen",
     "Bowmen",
-    "Start each run with Bowmen: 3, then one more per level.",
+    "Start each run with 3 Bowmen; the second level adds 2 more.",
     "archery_range",
     1,
-    3,
+    2,
     tier=2,
     label="Bowmen",
-    amounts=(3, 1, 1),
+    amounts=(3, 2),
 )
 SCOUT = Upgrade(
     "meta_scout",
@@ -273,7 +266,7 @@ WALLS = Upgrade(
     label="walls",
 )
 
-UPGRADES = (  # Clubmen before Axemen: the hub swaps the Clubmen for Axemen
+UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for Axemen
     VILLAGERS,
     HOUSES,
     GRANARY_UPGRADE,

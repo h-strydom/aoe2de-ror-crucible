@@ -4,8 +4,8 @@ more of something (meta.py). Outside the Crucible campaign nothing is loaded, so
 Buildings kept come from the base the Allies were handed, nearest the Town Center first; they change hands before
 the Allies' buildings drop to 1 HP (run_xs waits for it).
 
-Starting soldiers stand in slots by the Wonder, placed by hand (2026-11-17): Clubmen fill the first three melee slots,
-Axemen take their place and add two; Bowmen fill the ranged slots, the Scout its own.
+Starting soldiers stand in slots by the Wonder, placed by hand (2026-11-17): Clubmen fill the first three melee slots
+(Axemen instead with the Axemen upgrade), 2 more Axemen the other two; Bowmen fill the ranged slots, the Scout its own.
 
 Other upgrades (and the Bronze Age, given at tier 3) unlock techs locked by run_rules (unlocks()), or hand the player
 the base's walls (still damaged: run_xs rolls them after) or towers (the Watch Tower upgrade: they're Watch Towers,
@@ -218,21 +218,16 @@ def _create(unit: int, player: int, tiles) -> list[dict]:
 
 
 def _soldiers(ctx, player: int) -> None:
-    """Clubmen in the first three melee slots, unless they're Axemen; the second Axemen level fills the other two.
-    Bowmen: 3, then one more per level; the Scout."""
+    """3 Clubmen in the first melee slots, Axemen with the Axemen upgrade; 2 more Axemen in the next two. Bowmen: 3,
+    then 2 more; the Scout."""
     melee, ranged = SLOTS["melee"], SLOTS["ranged"]
-    no_axemen = [{"type": "variable_value", "variable": meta.AXEMEN.key, "comparison": "LESS", "quantity": 1}]
-    ctx.trigger(
-        "Meta: Clubmen",
-        _at_least(meta.CLUBMEN.key, 1) + no_axemen,
-        _create(CLUBMAN, player, melee[: meta.CLUBMEN_PER_LEVEL]),
-    )
-    done = 0
-
-    for level, amount in enumerate(meta.AXEMEN.amounts, start=1):
-        tiles, done = melee[done : done + amount], done + amount
-        ctx.trigger(f"Meta: Axemen {level}", _at_least(meta.AXEMEN.key, level), _create(AXEMAN, player, tiles))
-
+    clubmen = _at_least(meta.CLUBMEN.key, 1)
+    no_axe = [{"type": "variable_value", "variable": meta.AXE.key, "comparison": "LESS", "quantity": 1}]
+    first = melee[: meta.CLUBMEN_PER_LEVEL]
+    ctx.trigger("Meta: Clubmen", clubmen + no_axe, _create(CLUBMAN, player, first))
+    ctx.trigger("Meta: Clubmen as Axemen", clubmen + _at_least(meta.AXE.key, 1), _create(AXEMAN, player, first))
+    more = melee[len(first) : len(first) + meta.AXEMEN.amounts[0]]
+    ctx.trigger("Meta: Axemen", _at_least(meta.AXEMEN.key, 1), _create(AXEMAN, player, more))
     done = 0
 
     for level, amount in enumerate(meta.BOWMEN.amounts, start=1):
