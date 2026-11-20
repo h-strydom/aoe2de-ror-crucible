@@ -22,7 +22,7 @@ Researched at places: buildings of the player's. Free and near instant (1 s: at 
 itself) for now.
 
 - A place is the player's, marked **(!)**, while it has an upgrade on offer; with none it turns purple and loses the
-  mark (the Town Center and the Wonder stay the player's: Begin the Crucible and the boons live there).
+  mark (the Town Center and the Wonder stay the player's: a player owning nothing is defeated).
 - Each upgrade's button counts its levels: the icon shows "2/6" and the name "Villager (2/6)". The count icons are the data
   mod's own pictures (`datamod/count_icons.py`), swapped in by Change Technology Icon as each level comes on offer.
 - An objective counts towards the next tier: "0/5 upgrades until Tier 2"; once met, "0/10 more upgrades until Tier 3"
@@ -55,13 +55,13 @@ itself) for now.
 | Storage Pit upgrades | 2 | Storage Pit 1 | 1 | | Tool Working and the three Leather Armors |
 | Watch Tower | 2 | Granary 1 | 1 | | the base's towers are yours, and Watch Towers can be built |
 | Walls | 2 | Granary 2 | 1 | | the base's walls are yours, still damaged |
-| Begin the Crucible | | TC 11 | | ends the hub: the run starts | |
 
 The Axemen upgrade needs the Clubmen; Axemen need the Axemen upgrade. An unlocked tech still waits for its own prerequisites (its age, its building). Kept buildings change hands at the start of the run, before the Allies' buildings drop to
 1 HP. Starting soldiers stand in slots by the Wonder (5 melee, 5 ranged, a scout, 3 cavalry, 1 siege).
 
-A decision at every start offers to reset all progress: it clears the bank at once and shows from the next start
-(restart the mission).
+A decision at every start stays open while the player shops: **Reset everything** clears the bank at once and shows
+from the next start (restart the mission; a one-button decision still offers to save and win), **Save and win** ends
+the hub in a victory, which starts the run (purchases are stored as they're made). No Begin button.
 
 ## The bank
 

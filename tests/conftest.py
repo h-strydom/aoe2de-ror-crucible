@@ -9,7 +9,7 @@ from crucible.datamod.shop import SEND_WAVE, choice_key
 @pytest.fixture
 def techs() -> dict[str, int]:
     """A stand-in for the data mod's manifest: every tech a scenario looks up, the boons too."""
-    keys = [SEND_WAVE, choice_key(1), choice_key(2), meta.BEGIN, *(u.tech for u in meta.UPGRADES)]
+    keys = [SEND_WAVE, choice_key(1), choice_key(2), *(u.tech for u in meta.UPGRADES)]
     keys += [m.id for m in catalogue.ALL] + [p.copy_key for p in meta.PLACES if p.copy_of >= 0]
     keys += [count_icons.key(label) for label in count_icons.labels()]
 

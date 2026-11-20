@@ -183,7 +183,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                         "technology": techs[key],
                         "enabled": 0,
                     }
-                    for key in (*(upgrade.tech for upgrade in meta.UPGRADES), meta.BEGIN)
+                    for key in (upgrade.tech for upgrade in meta.UPGRADES)
                 ],
             )
 

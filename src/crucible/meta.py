@@ -304,8 +304,6 @@ REWARDS = (BRONZE_AGE,)
 KEYS = tuple(k.key for k in (*UPGRADES, *REWARDS))  # everything kept in the bank
 TITLES = {k.key: k.title for k in (*UPGRADES, *REWARDS)}
 
-BEGIN = "hub_begin"  # the data mod's manifest key of "Begin the Crucible"
-BEGIN_BUTTON = 11  # on the Town Center
 CLUBMEN_PER_LEVEL = 3
 
 

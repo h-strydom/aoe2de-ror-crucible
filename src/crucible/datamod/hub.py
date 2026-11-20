@@ -30,14 +30,3 @@ def add(mod: DataMod) -> None:
             research_time=RESEARCH_TIME,
         )
 
-    mod.manifest[meta.BEGIN] = mod.new_tech(
-        f"Crucible {meta.BEGIN}",
-        effect=mod.new_effect(f"Crucible {meta.BEGIN}", []),
-        title="Begin the Crucible",
-        description="Leave the camp and start a run.",
-        tooltip="Research <b>Begin the Crucible<b>\nLeave the camp and start a run.",
-        icon=icon,
-        location=meta.TOWN_CENTER,
-        button=meta.BEGIN_BUTTON,
-        research_time=RESEARCH_TIME,
-    )

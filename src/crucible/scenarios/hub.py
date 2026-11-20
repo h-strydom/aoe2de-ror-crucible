@@ -22,8 +22,9 @@ Workers look busy but gather nothing: purple villagers on the berries, gray ones
 rate 0.
 
 Upgrades are kept in the campaign bank (only inside the Crucible campaign; a standalone hub forgets them). The hub
-loads them at the start, so a return shows everything already bought. "Begin the Crucible" ends the hub in a victory,
-which starts the run. A decision at the start can reset every upgrade (it takes effect on the next start).
+loads them at the start, so a return shows everything already bought. A decision at the start, left open while the
+player shops, either resets every upgrade (it takes effect on the next start) or saves and wins: the victory starts
+the run.
 """
 
 from math import dist
@@ -323,7 +324,7 @@ def _place_triggers(ctx, place: meta.Place, building, techs: dict[str, int]) -> 
     where = {"object_list_unit_id": meta.location(place, techs), "area": _tile(building)}
     mark = {"type": "change_object_caption", "source_player": PLAYER, **where}
 
-    if place.owner == "player":  # always the player's: the Begin button is on the Town Center
+    if place.owner == "player":  # always the player's: a player owning nothing would be defeated
         on, off = [mark | {"message": MARK}], [mark | {"message": ""}]
     else:
         moves = {
@@ -379,10 +380,12 @@ def _tier_objectives(ctx) -> None:
 
 
 def _reset(ctx) -> None:
-    """A decision at every start: reset every upgrade to nothing bought. The bank is cleared at once; the hub shows it
-    from its next start (everything already bought stays in view until then, nothing more can be bought)."""
+    """A decision at every start, left open while the player shops: reset every upgrade to nothing bought, or save and
+    win (the hub ends and the run starts; every purchase is stored as it's made). A reset clears the bank at once; the
+    hub shows it from its next start (everything already bought stays in view, nothing more can be bought), and a
+    one-button decision still offers to save and win."""
     ctx.var(RESET_VARIABLE)
-    decision = ctx.next_decision_id()
+    decision, after_reset = ctx.next_decision_id(), ctx.next_decision_id()
     zero = [
         effect
         for key in meta.KEYS
@@ -391,17 +394,18 @@ def _reset(ctx) -> None:
             {"type": "store_key_value", "variable": key, "message": key},
         )
     ]
+    win = [{"type": "declare_victory", "source_player": PLAYER, "enabled": True}]
     ctx.triggers(
         {
-            "name": "Hub: reset progress?",
+            "name": "Hub: reset or win?",
             "conditions": [],
             "effects": [
                 {
                     "type": "create_decision",
                     "decision_id": decision,
-                    "message": "Reset all your progress? Every upgrade bought is lost.",
+                    "message": "Reset all your progress (every upgrade bought is lost), or save and start the run?",
                     "message_option1": "Reset everything",
-                    "message_option2": "Keep my progress",
+                    "message_option2": "Save and win",
                 }
             ],
         },
@@ -416,7 +420,24 @@ def _reset(ctx) -> None:
                     "source_player": PLAYER,
                     "message": "Progress reset. Restart the mission (menu, Restart) to start over.",
                 },
+                {
+                    "type": "create_decision",
+                    "decision_id": after_reset,
+                    "message": "Progress reset. Start the run with nothing?",
+                    "message_option1": "Save and win",
+                    "message_option2": "",
+                },
             ],
+        },
+        {
+            "name": "Hub: save and win",
+            "conditions": [{"type": "decision_triggered", "decision_id": decision, "decision_option": 2}],
+            "effects": win,
+        },
+        {
+            "name": "Hub: save and win after a reset",
+            "conditions": [{"type": "decision_triggered", "decision_id": after_reset, "decision_option": 1}],
+            "effects": win,
         },
     )
 
@@ -564,13 +585,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             for place in meta.PLACES:
                 _place_triggers(ctx, place, places[place.key], techs)
 
-            ctx.trigger(
-                "Hub: begin the Crucible",
-                [{"type": "research_technology", "source_player": PLAYER, "technology": techs[meta.BEGIN]}],
-                [{"type": "declare_victory", "source_player": PLAYER, "enabled": True}],
-            )
             ctx.xs(xs(ctx, techs))
-            datamod_check.add(ctx, techs[meta.BEGIN], player=PLAYER)
+            datamod_check.add(ctx, techs[meta.UPGRADES[0].tech], player=PLAYER)
             ctx.flush_xs()
 
         out.mkdir(parents=True, exist_ok=True)

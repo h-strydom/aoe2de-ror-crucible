@@ -28,7 +28,7 @@ def test_hub_has_a_trigger_per_level(tmp_path, techs):
             "Hub: Axemen upgrade 1",
             "Hub: Axemen 1",
             "Hub: Bowmen 2",
-            "Hub: begin the Crucible",
+            "Hub: save and win",
         } <= names
         assert {"No data mod", "Hub: reset progress", "Hub: Tier 2", "Hub: Tier 3", "Hub: wonder on offer"} <= names
         assert {"Hub: town_center on offer", "Hub: granary on offer"} <= names
