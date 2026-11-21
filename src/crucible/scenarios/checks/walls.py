@@ -112,7 +112,7 @@ BUILT = (  # name, guarded: [(unit, x, y)] placed exactly, attackers, spawn cent
         "F",
         [("bowman", 54.5 + n % 2 * 2, 99.5 + n // 2 * 2) for n in range(4)]
         + [(POCKET[n % 3], x + 0.5, y + 0.5) for n, (x, y) in enumerate(blocks((55, 100)))],
-        (("short_swordsman", 3), ("scout", 2), ("axeman", 3)),
+        (("short_swordsman", 5), ("scout", 3), ("axeman", 6)),
         (55, 114),
         (55, 100),
     ),

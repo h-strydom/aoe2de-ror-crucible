@@ -3,16 +3,21 @@
 An attack-move picks units and buildings it can reach; a wall in the way is never chosen, so a melee unit facing a
 closed wall (or a tower walled in all round) stands there. Every INTERVAL seconds the rule looks at each melee unit
 of the attacker: a unit that hasn't moved and isn't hurting its target (no target, or one whose HP didn't drop) for
-two checks in a row is stuck. A stuck unit is ordered to attack the nearest wall or gate of a victim within REACH
-tiles, else the nearest building or tower (houses walling in a tower or archers), never the target it can't reach,
-else to attack-move on to where it was first headed.
+STUCK_CHECKS checks in a row is stuck. A stuck unit breaks a way through: a wall or gate a unit near it is already
+breaking (so they open one gap together), else the nearest wall or gate of a victim within REACH tiles, else the
+nearest building or tower (houses walling in a tower or archers), never the target it can't reach; with nothing to
+break, it attack-moves on to where it was first headed.
+
+Once the piece it was sent at falls, the unit attack-moves on at once: left alone, the game has it attack the next
+piece of wall beside the gap, and it chews along the wall instead of walking through (walls check, 2026-11-21). The
+same if it turns on another piece of wall by itself.
 
 Unit ids are the scenario's reference ids (`xsGetPlayerUnitIds`); orders go through `xsTaskUnits`, the editor's
 Task Object.
 """
 
-INTERVAL = 2  # seconds between checks
-REACH = 4  # tiles: how far a stuck unit looks for a wall to break
+INTERVAL = 1  # seconds between checks
+REACH = 4  # tiles: how far a stuck unit looks for a wall to break, or a unit breaking one to join
 MOVED = 0.3  # tiles: less than this between checks is standing still
 STUCK_CHECKS = 2  # checks in a row before it acts
 TRACKED = 500  # units it can follow at once
@@ -26,13 +31,14 @@ def xs(attacker: int, victims: tuple[int, ...], *, prefix: str = "crucibleBreake
     """The rule for `attacker`'s melee units against `victims`' walls. `chat`: say each order in the chat (checks)."""
     p = prefix
     walls = "\n".join(
-        f"    best = {p}Nearest({v}, {CLASS + c}, x, y, best, -1);" for v in victims for c in WALL_CLASSES
+        f"        best = {p}Nearest({v}, {CLASS + c}, x, y, best, -1);" for v in victims for c in WALL_CLASSES
     )
     buildings = "\n".join(
         f"        best = {p}Nearest({v}, {CLASS + c}, x, y, best, skip);" for v in victims for c in BUILDING_CLASSES
     )
+    wall_test = " || ".join(f"(c == {c}) || (c == {CLASS + c})" for c in WALL_CLASSES)
     classes = "\n".join(f"    {p}Class({CLASS + c});" for c in MELEE_CLASSES)
-    say = (lambda text: f'    xsChatData("{text}", id);') if chat else (lambda text: "")
+    say = (lambda text, indent="    ": f'{indent}xsChatData("{text}", id);') if chat else (lambda text, indent="": "")
 
     return f"""// ---- crucible: wall-breaker (player {attacker}) ----
 int {p}Ids = -1;  // the units followed, and what was last seen of each
@@ -41,9 +47,24 @@ int {p}Y = -1;
 int {p}Hp = -1;  // its target's HP
 int {p}Stuck = -1;
 int {p}Goal = -1;  // where it was first headed
+int {p}Piece = -1;  // the wall or building it was sent to break, -1 if none
 int {p}Count = 0;
 int {p}One = -1;  // a one-unit array for xsTaskUnits
 float {p}BestDistance = 0.0;
+
+bool {p}IsWall(int id = -1) {{
+    if (id < 0) {{
+        return (false);
+    }}
+
+    int c = xsGetUnitClass(id);
+
+    return ({wall_test});
+}}
+
+bool {p}Standing(int id = -1) {{
+    return ((id >= 0) && xsDoesUnitExist(id) && (xsGetUnitHitpoints(id) > 0.0));
+}}
 
 // The nearest of `owner`'s units of `type` within REACH of (x, y), but `skip`, or `best` if none is nearer.
 int {p}Nearest(int owner = -1, int type = -1, float x = 0.0, float y = 0.0, int best = -1, int skip = -1) {{
@@ -59,6 +80,31 @@ int {p}Nearest(int owner = -1, int type = -1, float x = 0.0, float y = 0.0, int 
         if ((id != skip) && (d <= {REACH * REACH}.0) && ((best < 0) || (d < {p}BestDistance))) {{
             best = id;
             {p}BestDistance = d;
+        }}
+    }}
+
+    return (best);
+}}
+
+// A piece another unit within REACH of (x, y) is breaking, still standing; -1 if none.
+int {p}Shared(float x = 0.0, float y = 0.0, int self = -1) {{
+    int best = -1;
+    {p}BestDistance = 0.0;
+
+    for (i = 0; < {p}Count) {{
+        int piece = xsArrayGetInt({p}Piece, i);
+        int other = xsArrayGetInt({p}Ids, i);
+
+        if ((i != self) && {p}Standing(piece) && {p}Standing(other)) {{
+            vector at = xsGetUnitPosition(other);
+            float dx = xsVectorGetX(at) - x;
+            float dy = xsVectorGetY(at) - y;
+            float d = dx * dx + dy * dy;
+
+            if ((d <= {REACH * REACH}.0) && ((best < 0) || (d < {p}BestDistance))) {{
+                best = piece;
+                {p}BestDistance = d;
+            }}
         }}
     }}
 
@@ -90,27 +136,38 @@ int {p}Index(int id = -1) {{
     xsArraySetFloat({p}Hp, k, -1.0);
     xsArraySetInt({p}Stuck, k, 0);
     xsArraySetVector({p}Goal, k, goal);
+    xsArraySetInt({p}Piece, k, -1);
     {p}Count = {p}Count + 1;
 
     return (k);
 }}
 
+void {p}MoveOn(int id = -1, int k = 0) {{
+    xsArraySetInt({p}One, 0, id);
+    xsTaskUnits({p}One, cActionTypeAttackMove, xsArrayGetVector({p}Goal, k));
+    xsArraySetInt({p}Piece, k, -1);
+}}
+
 // `skip`: the unit's own target, which it can't reach (a tower walled in by houses).
 void {p}Act(int id = -1, int k = 0, float x = 0.0, float y = 0.0, int skip = -1) {{
-    int best = -1;
-    {p}BestDistance = 0.0;
+    int best = {p}Shared(x, y, k);
+
+    if (best < 0) {{
+        {p}BestDistance = 0.0;
 {walls}
+    }}
+
     if (best < 0) {{
 {buildings}
     }}
 
-    xsArraySetInt({p}One, 0, id);
-
     if (best >= 0) {{
+        xsArraySetInt({p}One, 0, id);
         xsTaskUnits({p}One, cActionTypeDefault, xsGetUnitPosition(best), best);
-{say("Breaker: unit %d attacks a wall")}
+        xsArraySetInt({p}Piece, k, best);
+{say("Breaker: unit %d breaks a wall")}
     }} else {{
-        xsTaskUnits({p}One, cActionTypeAttackMove, xsArrayGetVector({p}Goal, k));
+        {p}MoveOn(id, k);
 {say("Breaker: unit %d moves on")}
     }}
 }}
@@ -132,6 +189,7 @@ void {p}Class(int type = -1) {{
         float dx = x - xsArrayGetFloat({p}X, k);
         float dy = y - xsArrayGetFloat({p}Y, k);
         int target = xsGetUnitTargetUnitId(id);
+        int piece = xsArrayGetInt({p}Piece, k);
         float hp = -1.0;
 
         if (target >= 0) {{
@@ -146,7 +204,14 @@ void {p}Class(int type = -1) {{
             stuck = xsArrayGetInt({p}Stuck, k) + 1;
         }}
 
-        if (stuck >= {STUCK_CHECKS}) {{
+        if ((piece >= 0) && ({p}Standing(piece) == false)) {{
+            {p}MoveOn(id, k);  // its gap is open: through it, not along the wall
+{say("Breaker: unit %d goes through", "            ")}
+            stuck = 0;
+        }} else if ((target != piece) && {p}IsWall(target)) {{
+            {p}MoveOn(id, k);  // it turned on another piece of wall by itself
+            stuck = 0;
+        }} else if (stuck >= {STUCK_CHECKS}) {{
             {p}Act(id, k, x, y, target);
             stuck = 0;
         }}
@@ -169,6 +234,7 @@ rule {p}Rule
         {p}Hp = xsArrayCreateFloat({TRACKED}, -1.0, "{p}Hp");
         {p}Stuck = xsArrayCreateInt({TRACKED}, 0, "{p}Stuck");
         {p}Goal = xsArrayCreateVector({TRACKED}, vector(-1.0, -1.0, -1.0), "{p}Goal");
+        {p}Piece = xsArrayCreateInt({TRACKED}, -1, "{p}Piece");
         {p}One = xsArrayCreateInt(1, -1, "{p}One");
     }}
 
