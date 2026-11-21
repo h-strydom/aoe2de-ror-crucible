@@ -4,7 +4,8 @@ from the game.
 On the map: for each tier, the units its commands change (with the earlier units of a line: the Clubman for an
 Axeman boon), owned by the player that gets that tier, each labelled with what it should now be: the caption over
 it (if units show one) and its name, e.g. "Sumerians 1 Common: HP 25 -> 30". Click a unit to compare. The tiers are
-spread over players 2 to 8 so no two on a player change a value another's label shows (assign()): every label's
+spread over players 2 to 8 so no two on a player change a value another's label shows, or the same tech's cost
+(assign()): every label's
 "before" is the unit's own base value (the Greek civ's, bonus-less, Stone Age).
 
 In the log: XS researches the tier techs one at a time and reads every value their commands change, just before and
@@ -206,8 +207,9 @@ class Step:
         return f"{self.boon.civ.value.title()} {self.boon.number} {self.tier.title}"
 
 
-def _affected(step: Step, data: DatFile) -> set[tuple[int, int, int]]:
-    """Every (unit, attribute, class) its commands change: a class command changes every unit of the class."""
+def _affected(step: Step, data: DatFile) -> set[tuple]:
+    """Every (unit, attribute, class) its commands change (a class command changes every unit of the class), and every
+    tech cost or time: cuts are added from the base cost, so two on a player go below 0 and stop there."""
     units = data.civs[PLAYER_CIV].units
     found = set()
 
@@ -216,6 +218,8 @@ def _affected(step: Step, data: DatFile) -> set[tuple[int, int, int]]:
             unit, unit_class = r.command[1], r.command[2]
             ids = [unit] if unit >= 0 else [i for i, u in enumerate(units) if u and u.class_ == unit_class]
             found |= {(i, *r.args[1:]) for i in ids}
+        elif r.kind == "tech":
+            found.add(("tech", *r.args))
 
     return found
 
@@ -228,7 +232,9 @@ def assign(steps: list[Step], data: DatFile) -> list[Step]:
 
     for step in steps:
         changed = _affected(step, data)
-        shown = {r.args for r in step.reads if r.kind == "object"}
+        shown = {r.args for r in step.reads if r.kind == "object"} | {
+            ("tech", *r.args) for r in step.reads if r.kind == "tech"
+        }
         player = next((p for p, (c, s) in taken.items() if not (c & shown) and not (s & changed)), None)
 
         if player is None:
