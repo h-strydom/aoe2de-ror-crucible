@@ -102,3 +102,9 @@ def test_styles_lose_their_bonuses_and_get_every_tech(tmp_path):
         assert civ.team_bonus_id == -1
 
     assert {data.civs[style].icon_set for style in civs.Style} == {0, 1, 2, 3, 4}  # one per architecture style
+
+
+def test_wonder_buttons_dont_overlap():
+    taken = [*shop.BOON_BUTTONS, *shop.CHOICE_BUTTONS, shop.NEXT_WAVE_BUTTON]
+    assert len(taken) == len(set(taken)) and max(taken) <= 15
+    assert shop.NEXT_WAVE_BUTTON == 15 and tuple(range(1, 11)) == shop.BOON_BUTTONS

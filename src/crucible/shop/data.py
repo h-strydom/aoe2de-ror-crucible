@@ -3,7 +3,7 @@
 from crucible.bonuses.model import Civ
 from crucible.boons.model import AXES, Boon, Category, Tier
 from crucible.datamod.boons import key
-from crucible.datamod.shop import BOON_BUTTONS, choice_key
+from crucible.datamod.shop import BOON_BUTTONS, MAX_OFFERED, choice_key
 from crucible.datamod.upgrades import RESEARCH_TIME as BOON_TIME
 from crucible.datamod.upgrades import WONDER
 from crucible.shop.config import ShopConfig
@@ -59,13 +59,14 @@ const int cCrucibleBoons = {len(pool)};
 const int cCrucibleTiers = {tiers};
 const int cCrucibleCategories = {len(categories)};
 const int cCrucibleTierUps = {len(config.tier_ups)};
-const int cCrucibleSlots = {min(config.slots, len(BOON_BUTTONS))};
+const int cCrucibleSlots = {min(config.slots, MAX_OFFERED)};
 const int cCrucibleChoices = {config.choices};
 const int cCrucibleWonder = {WONDER};
 const int cCrucibleChoice1 = {techs[choice_key(1)]};
 const int cCrucibleChoice2 = {techs[choice_key(2)]};
 const int cCrucibleChoicesVariable = {choices_variable};
-const int cCrucibleMaxSlots = {len(BOON_BUTTONS)};
+const int cCrucibleMaxSlots = {MAX_OFFERED};
+const int cCrucibleButtons = {len(BOON_BUTTONS)};
 const int cCrucibleSlotsVariable = {slots_variable};
 const int cCrucibleSpeedVariable = {speed_variable};
 const int cCrucibleSpeedTiers = {speed_tiers};

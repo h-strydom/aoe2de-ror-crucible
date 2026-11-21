@@ -1,12 +1,13 @@
 """The waves of crucible_run (docs/arena.md, docs/evolving-waves.md): staged at a City State, then sent down the road.
 
 A wave spawns at the map edge and walks, in line formation, to a staging row inside the spawn base. Once it is in
-position the "Send next wave" button on the Wonder comes on. When the difficulty's time since the last send is up (5,
-3 or 2 minutes), or when the player clicks, it marches out in formation, attack-moving straight down the road to the
-player's base, and the next wave spawns and walks in. Wave 0 comes at once and is sent as soon as it's staged; then
-waves alternate: the Capital's two lanes, then one lane from each of the other City States. They never end: the run
-ends when the Wonder falls. A sent unit standing idle (no target, not moving: the road's end, or a tower it took
-down) is sent on to the Wonder.
+position (every unit out of its spawn rows and either on the staging row or standing still: a big group's formation is
+wider than the row) the "Send next wave" button on the Wonder comes on. When the difficulty's time since the last
+send is up (5, 3 or 2 minutes), or when the player clicks, it marches out in formation, attack-moving straight down the
+road to the player's base, and the next wave spawns and walks in. Wave 0 comes at once and is sent as soon as it's
+staged; then waves alternate: the Capital's two lanes, then one lane from each of the other City States. They never
+end: the run ends when the Wonder falls. A sent unit standing idle (no target, not moving: the road's end, or a tower
+it took down) is sent on to the Wonder.
 
 What a wave brings evolves (wave_table): each lane's army takes a step before it spawns; the XS reads the difficulty
 (xsGetDifficulty), rolls each lane's archetype, steps and spawns each group with xsCreateUnit, keeping the ids it gets
@@ -39,6 +40,7 @@ MOVE, ATTACK_MOVE, LINE_FORMATION = 1, 17, 18
 MARGIN = 2  # tiles around a row that still count as on it
 DEPTH = 6  # tiles from the spawn row a group spawns in (rows of COLUMNS)
 COLUMNS = 7
+SIDE_MARGIN = 3  # tiles beside a lane's middle a spawn row reaches (COLUMNS * SPACING / 2, rounded up)
 SPACING = 0.8  # tiles between units in a spawn row
 ROW_SPACING = 0.9
 LINES = 4  # lines per family at most
@@ -92,6 +94,17 @@ class Lane:
         inner = tuple((x + dx * DEPTH, y + dy * DEPTH) for x, y in self.spawn)
 
         return _box(self.spawn + inner, MARGIN)
+
+    @property
+    def spawn_rows(self) -> Box:
+        """The rows a group spawns in (DEPTH deep and 2 more for big groups, as wide as its columns): a unit still here
+        hasn't walked in."""
+        dx, dy = self.direction
+        inner = tuple((x + dx * (DEPTH + 1), y + dy * (DEPTH + 1)) for x, y in self.spawn)
+        x1, y1, x2, y2 = _box(self.spawn + inner)
+        side = SIDE_MARGIN
+
+        return (x1 - side * abs(dy), y1 - side * abs(dx), x2 + side * abs(dy), y2 + side * abs(dx))
 
 
 def _row(x: int | range, y: int | range) -> tuple[Tile, Tile, Tile]:
@@ -252,9 +265,12 @@ def _variable_id(ctx, name: str) -> int:
 
 
 def _staged() -> str:
-    calls = " || ".join(f"crucibleWaveIn(pos, {', '.join(map(str, lane.staged))})" for lane in LANES)
+    def test(name: str, which: str) -> str:
+        calls = " || ".join(f"crucibleWaveIn(pos, {', '.join(map(str, getattr(lane, which)))})" for lane in LANES)
 
-    return f"bool crucibleWaveStagedAt(vector pos = cInvalidVector) {{\n    return ({calls});\n}}\n"
+        return f"bool {name}(vector pos = cInvalidVector) {{\n    return ({calls});\n}}\n"
+
+    return test("crucibleWaveStagedAt", "staged") + test("crucibleWaveInSpawnRows", "spawn_rows")
 
 
 def _ints(name: str, values: list[int], default: int = -1) -> list[str]:

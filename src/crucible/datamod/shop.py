@@ -1,9 +1,9 @@
 """The Wonder as the shop: its buttons, and the techs that aren't boons.
 
 The Wonder's 15 buttons are three rows of five:
-  row 1 (1-5): boons on offer (they stack);
+  rows 1-2 (1-10): boons on offer, each on a free button; they stack only once all ten hold one;
   row 3, columns 1-2 (11, 12): the two boon categories to choose between after a wave;
-  row 2, column 5 (10): "Send next wave", which a script turns on when a wave is in position.
+  row 3, column 5 (15): "Send next wave", which a script turns on when a wave is in position.
 
 A choice is a free, near-instant tech that a script renames to the category it stands for. One pair serves every
 wave: a click disables the other choice (locked in), and when the pick finishes both are re-enabled (a researched
@@ -15,9 +15,10 @@ from crucible.datamod.icons import icon_id
 from crucible.datamod.mod import DataMod
 from crucible.datamod.upgrades import WONDER
 
-BOON_BUTTONS = (1, 2, 3, 4, 5)
+BOON_BUTTONS = tuple(range(1, 11))
+MAX_OFFERED = 5  # boons per decision at most (the More boons upgrade)
 CHOICE_BUTTONS = (11, 12)
-NEXT_WAVE_BUTTON = 10
+NEXT_WAVE_BUTTON = 15
 CHOICE_TIME = 1
 SEND_WAVE = "send_wave"  # its manifest key
 
@@ -49,9 +50,9 @@ def add(mod: DataMod) -> None:
         "Crucible send wave",
         effect=mod.new_effect("Crucible send wave", []),
         title="Send next wave",
-        description="Send the waiting wave now. The next one walks in, and comes 5 minutes after this one.",
-        tooltip="Research <b>Send next wave<b>\nSend the waiting wave now. The next one walks in, and comes 5 minutes "
-        "after this one.",
+        description="Send the waiting wave now. The next one walks in, and comes the usual time after this one.",
+        tooltip="Research <b>Send next wave<b>\nSend the waiting wave now. The next one walks in, and comes the usual "
+        "time after this one.",
         icon=icon_id(Icon.TECHNOLOGY, mod.data),
         location=WONDER,
         button=NEXT_WAVE_BUTTON,

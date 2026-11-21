@@ -602,11 +602,16 @@ bool crucibleWaveAlive(int id = -1) {
     return (xsGetUnitProperty(id, cUnitHitpoints) > 0);
 }
 
-// Every living unit of the current wave is on a staging row (and there is one).
+// Every living unit of the current wave has walked in: out of its spawn rows, and on a staging row or standing still
+// (a big group's formation is wider than the row). Checked once a second; the first check counts as moving.
 bool crucibleWaveStaged() {
     int walking = 0;
     int waiting = 0;
     int id = -1;
+    vector pos = cInvalidVector;
+    float dx = 0.0;
+    float dy = 0.0;
+    bool moved = false;
 
     for (i = 0; < crucibleWaveSentCount) {
         if (xsArrayGetInt(crucibleWaveSentWave, i) == crucibleWave) {
@@ -614,8 +619,14 @@ bool crucibleWaveStaged() {
 
             if (crucibleWaveAlive(id)) {
                 walking++;
+                pos = xsGetUnitPosition(id);
+                dx = xsVectorGetX(pos) - xsArrayGetFloat(crucibleWaveLastX, i);
+                dy = xsVectorGetY(pos) - xsArrayGetFloat(crucibleWaveLastY, i);
+                moved = (dx * dx + dy * dy) > 0.09;
+                xsArraySetFloat(crucibleWaveLastX, i, xsVectorGetX(pos));
+                xsArraySetFloat(crucibleWaveLastY, i, xsVectorGetY(pos));
 
-                if (crucibleWaveStagedAt(xsGetUnitPosition(id))) {
+                if ((crucibleWaveInSpawnRows(pos) == false) && (crucibleWaveStagedAt(pos) || (moved == false))) {
                     waiting++;
                 }
             }

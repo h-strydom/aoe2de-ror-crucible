@@ -51,3 +51,10 @@ def test_lanes_spawn_short_of_staging():
         sx1, sy1, sx2, sy2 = lane.spawned
         tx1, ty1, tx2, ty2 = lane.staged
         assert sx2 < tx1 or tx2 < sx1 or sy2 < ty1 or ty2 < sy1, lane.name  # a send never takes a new wave
+
+
+def test_spawn_rows_short_of_staging():
+    for lane in waves.LANES:
+        sx1, sy1, sx2, sy2 = lane.spawn_rows
+        tx1, ty1, tx2, ty2 = lane.staged
+        assert sx2 < tx1 or tx2 < sx1 or sy2 < ty1 or ty2 < sy1, lane.name  # a unit in its spawn rows isn't staged
