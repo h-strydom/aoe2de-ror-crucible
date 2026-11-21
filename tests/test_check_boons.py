@@ -3,6 +3,7 @@ import struct
 from aoe2ed import xs as xs_check
 
 from crucible.boons import catalogue
+from crucible.boons.model import TIER_COSTS, Tier
 from crucible.datamod import boons as boon_techs
 from crucible.datamod.mod import DataMod, source_dat
 from crucible.scenarios.checks import boons
@@ -71,3 +72,19 @@ def test_labels_show_the_line_and_the_numbers():
     assert {units[u].name for u in axemen.shown} == {"Axeman", "Clubman"}  # the line's earlier unit too
     assert boons.label(axemen, next(u for u in axemen.shown if units[u].name == "Clubman"), data) == "HP 40 -> 45"
     assert "melee armour 1 -> 2" in boons.label(swords, swords.shown[0], data)
+
+
+def test_every_tier_costs_its_own_price():
+    mod = DataMod.from_ror()
+    boon_techs.add(mod)
+
+    for boon in catalogue.ALL:
+        for tier in boon.tiers:
+            key = boon_techs.key(boon, tier)
+
+            if key in mod.manifest:
+                costs = [(c.type, c.amount) for c in mod.data.techs[mod.manifest[key]].resource_costs if c.amount]
+                assert costs == list(TIER_COSTS[tier].items()), key
+
+    assert not TIER_COSTS[Tier.POOR].items()  # free
+    assert TIER_COSTS[Tier.HEIRLOOM].items() == [(0, 300), (3, 300)]

@@ -2,8 +2,8 @@
 // crucibleShopOpen() after a wave (or a base) grants cCrucibleChoices choices. Each choice: two categories on the choice
 // buttons, from different tag axes (a combat boon, a Stable boon); a click locks in (the other is disabled); when the
 // pick finishes, each boon slot on row 1 gets a random boon of that category, at its lowest tier or, by the tier-up
-// roll, a better one at the same price; boons stack on a slot, and the next choice (if any are left) appears on the
-// same buttons.
+// roll, a better one (at that tier's price); boons stack on a slot, and the next choice (if any are left) appears on
+// the same buttons.
 
 int crucibleShopState = 0;  // 0 closed, 1 choosing, 2 picked
 int crucibleShopCategory1 = -1;

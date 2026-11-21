@@ -113,8 +113,9 @@ the middle tile of each row matters as a reference.
 **Boons.** Each wave defeated (and each Legion base destroyed) gives one decision in the shop (`shop/`): two boon
 categories on the Wonder, each from a different tag axis ("Combat boons", "Stable boons", "Yamato boons"), then a random
 boon of the one picked on each boon slot. The boons are the tiered ones (`crucible.boons`): a boon comes at its lowest
-tier, or 20% of the time one tier up and 10% two tiers up (capped at its top tier), at its lowest tier's price
-(`TIER_COSTS`, `TIER_UPS`). Every boon but drawbacks can come up. Each boon tier researched gets a line in the
+tier, or 20% of the time one tier up and 10% two tiers up (capped at its top tier), each tier at its own price
+(`TIER_COSTS`: Poor free, Common 250 food, Improved 250 food 100 wood, Mastercrafted 250 food 100 gold, Legendary
+300 gold, Heirloom 300 food 300 gold; `TIER_UPS`). Every boon but drawbacks can come up. Each boon tier researched gets a line in the
 Objectives panel (the Scouts text can't change during a game).
 
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the

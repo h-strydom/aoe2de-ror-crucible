@@ -19,7 +19,7 @@ from crucible.bonuses.model import Change, Civ, Cost, Group, Icon, Stat
 
 
 class Tier(IntEnum):
-    """In order: a boon's tiers are consecutive members. Its lowest sets its price, so a higher roll is free."""
+    """In order: a boon's tiers are consecutive members. Each costs its own price (TIER_COSTS)."""
 
     POOR = 0
     COMMON = 1
@@ -33,14 +33,14 @@ class Tier(IntEnum):
         return self.name.title()
 
 
-# What a boon costs, by its lowest tier (a higher roll costs the same): one place to tune every price.
+# What a boon tier costs: one place to tune every price. A roll up costs the tier it rolled to.
 TIER_COSTS: dict[Tier, Cost] = {
-    Tier.POOR: Cost(food=150),
+    Tier.POOR: Cost(),  # free
     Tier.COMMON: Cost(food=250),
-    Tier.IMPROVED: Cost(food=200, gold=75),
-    Tier.MASTERCRAFTED: Cost(food=250, gold=150),
+    Tier.IMPROVED: Cost(food=250, wood=100),
+    Tier.MASTERCRAFTED: Cost(food=250, gold=100),
     Tier.LEGENDARY: Cost(gold=300),
-    Tier.HEIRLOOM: Cost(gold=400),
+    Tier.HEIRLOOM: Cost(food=300, gold=300),
 }
 # The shop's roll for a better tier than a boon's lowest: (tiers up, chance in percent), checked in order.
 TIER_UPS: tuple[tuple[int, int], ...] = ((2, 10), (1, 20))
@@ -241,16 +241,13 @@ class Boon(BaseModel):
 
     @property
     def lowest(self) -> Tier:
-        """Sets the price."""
+        """Where the shop's roll starts."""
         return min(self.tiers)
 
     @property
     def highest(self) -> Tier:
         return max(self.tiers)
 
-    @property
-    def cost(self) -> Cost:
-        return TIER_COSTS[self.lowest]
 
     @property
     def icon(self) -> Icon:

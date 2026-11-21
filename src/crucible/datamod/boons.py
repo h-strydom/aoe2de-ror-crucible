@@ -1,9 +1,10 @@
 """The tiered boons (crucible.boons) as hidden techs: one per boon per tier, unplaced (the shop puts the one it rolls
-on a Wonder slot). Every tier of a boon costs what its lowest does. Tiers that don't compile yet are left out."""
+on a Wonder slot). Each tier costs its own price (TIER_COSTS): a roll up costs more. Tiers that don't compile yet are
+left out."""
 
 from crucible.boons import catalogue
 from crucible.boons.compile import commands
-from crucible.boons.model import Boon, Tier
+from crucible.boons.model import TIER_COSTS, Boon, Tier
 from crucible.datamod.icons import icon_id
 from crucible.datamod.mod import NOWHERE, DataMod
 from crucible.datamod.upgrades import RESEARCH_TIME
@@ -44,7 +45,7 @@ def add(mod: DataMod) -> dict[str, str]:
                 location=NOWHERE,
                 button=0,
                 research_time=RESEARCH_TIME,
-                costs=boon.cost.items(),
+                costs=TIER_COSTS[tier].items(),
             )
 
     return skipped
