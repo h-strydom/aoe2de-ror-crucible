@@ -116,3 +116,5 @@ spawn the better unit: no line-upgrade tech is researched (stat upgrades and age
 - Simulated (2000 Hard runs): Tool around wave 6, Bronze 12, Iron 18, Post-Iron 24; about 8 units a lane at wave 10, 14
   at 20, 25 at 30, 65 at 49. Archers' main and the supports end on Bronze Age units (RoR has nothing later).
 - Open: what happens once the upgrades run out (around wave 35), and how siege and Priests mix in.
+- The Bowmen family starts at Improved Bowmen (playtest 2026-11-21): Slingers beat the player's archers, and plain
+  Bowmen made a lane easier, so ranged lanes hold Slingers until the Bronze Age.

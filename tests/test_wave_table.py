@@ -76,3 +76,9 @@ def test_big_groups_fit_their_spawn_area():
     rows = -(-biggest // waves.COLUMNS)
     assert 0.5 + (rows - 1) * waves.ROW_SPACING < waves.DEPTH + waves.MARGIN + 3
     assert (waves.COLUMNS - 1) / 2 * waves.SPACING < 1 + waves.MARGIN  # within a row's width and its margin
+
+
+def test_slingers_hold_until_bronze():
+    for family in table.FAMILIES:
+        if family.slot == Slot.RANGED and family.name != "Slingers":
+            assert family.age >= Age.BRONZE, family.name
