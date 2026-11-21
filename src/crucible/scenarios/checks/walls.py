@@ -8,7 +8,14 @@ A' the same tower and units for player 3, no breaker: expect them to stand at th
 B  a house inside two rings of wall: Swordsmen and War Elephants should break through both.
 C  a long wall with a way round its west end: Clubmen and a Scout should walk round, not break it.
 D  a house in a big walled square, a larger mixed group: they should gather on a segment or two, not spread out.
+E  a Watch Tower and two Bowmen walled in by a ring of houses: they should break a house, then kill what's inside.
+F  four Bowmen in a pocket of Barracks, Granaries and Storage Pits: they should break a building to reach them.
+
+Buildings walling (E, F) are placed on their own grid (a 2x2 house's centre on a tile corner, a 3x3's on a tile
+centre) so they touch with no gap.
 """
+
+from aoe2ed import tables
 
 from crucible.scenarios import breaker
 
@@ -68,6 +75,65 @@ SETUPS = (  # name, attacker, guarded (unit, tile), walls, attackers (unit, coun
 )
 
 
+def houses(center: Tile, k: int) -> list[Tile]:
+    """2x2 houses in a closed square ring `k` houses out from `center` (a tile corner)."""
+    cx, cy = center
+
+    return [(cx + 2 * i, cy + 2 * j) for i in range(-k, k + 1) for j in range(-k, k + 1) if max(abs(i), abs(j)) == k]
+
+
+def blocks(center: Tile) -> list[Tile]:
+    """3x3 buildings in a closed ring round `center` (a tile): eight of them, three tiles apart."""
+    cx, cy = center
+
+    return [(cx + 3 * i, cy + 3 * j) for i in (-1, 0, 1) for j in (-1, 0, 1) if (i, j) != (0, 0)]
+
+
+POCKET = ("barracks", "granary", "storage_pit")
+BUILT = (  # name, guarded: [(unit, x, y)] placed exactly, attackers, spawn centre, target
+    (
+        "E",
+        [("watch_tower", 20.0, 100.0), ("bowman", 18.0, 100.0), ("bowman", 22.0, 100.0)]
+        + [("house", float(x), float(y)) for x, y in houses((20, 100), 2)],
+        (("axeman", 4), ("cavalry", 2), ("clubman", 2)),
+        (20, 114),
+        (20, 100),
+    ),
+    (
+        "F",
+        [("bowman", 54.5 + n % 2 * 2, 99.5 + n // 2 * 2) for n in range(4)]
+        + [(POCKET[n % 3], x + 0.5, y + 0.5) for n, (x, y) in enumerate(blocks((55, 100)))],
+        (("short_swordsman", 3), ("scout", 2), ("axeman", 3)),
+        (55, 114),
+        (55, 100),
+    ),
+)
+
+
+def _attack(ctx, name: str, attacker: int, group, spawn: Tile, target: Tile) -> None:
+    from crucible.scenarios.check import add_unit
+
+    sx, sy = spawn
+    units = [kind for kind, count in group for _ in range(count)]
+
+    for n, kind in enumerate(units):
+        add_unit(ctx.scenario, kind, sx - len(units) + 2 * n, sy, player=attacker)
+
+    ctx.trigger(
+        f"Walls {name}: attack",
+        [{"type": "timer", "timer": 5}],
+        [
+            {
+                "type": "task_object",
+                "source_player": attacker,
+                "area": [sx - len(units) - 1, sy - 2, sx + len(units) + 1, sy + 2],
+                "action_type": ATTACK_MOVE,
+                "location": list(target),
+            }
+        ],
+    )
+
+
 def setup(o, ctx, techs: dict[str, int], top: int) -> str:
     from aoe2ed.tools.world import diplomacy_set
 
@@ -77,39 +143,29 @@ def setup(o, ctx, techs: dict[str, int], top: int) -> str:
     diplomacy_set(o.handle, OWNER, [BREAKER, CONTROL], "ENEMY")
     diplomacy_set(o.handle, BREAKER, [CONTROL], "ALLY")
 
-    for name, attacker, (unit, (gx, gy)), walls, group, (sx, sy) in SETUPS:
+    for name, attacker, (unit, (gx, gy)), walls, group, spawn in SETUPS:
         add_unit(s, unit, gx, gy, player=OWNER)
 
         for x, y in walls:
             add_unit(s, SMALL_WALL, x, y, player=OWNER)
 
-        units = [kind for kind, count in group for _ in range(count)]
+        _attack(ctx, name, attacker, group, spawn, (gx, gy))
 
-        for n, kind in enumerate(units):
-            add_unit(s, kind, sx - len(units) + 2 * n, sy, player=attacker)
+    for name, guarded, group, spawn, target in BUILT:
+        for unit, x, y in guarded:
+            s.unit_manager.add_unit(player=OWNER, unit_const=tables.object_id(unit.upper(), "ror"), x=x, y=y)
 
-        spawn = [sx - len(units) - 1, sy - 2, sx + len(units) + 1, sy + 2]
-        ctx.trigger(
-            f"Walls {name}: attack",
-            [{"type": "timer", "timer": 5}],
-            [
-                {
-                    "type": "task_object",
-                    "source_player": attacker,
-                    "area": spawn,
-                    "action_type": ATTACK_MOVE,
-                    "location": [gx, gy],
-                }
-            ],
-        )
+        _attack(ctx, name, BREAKER, group, spawn, target)
 
     ctx.xs(breaker.xs(BREAKER, (OWNER,), chat=True))
 
     return (
-        "WALLS (melee against walls; player 2 has the wall-breaker, player 3 doesn't): five setups, the groups "
+        "WALLS (melee against walls; player 2 has the wall-breaker, player 3 doesn't): seven setups, the groups "
         "attack-move 5 s in. A (top left): a Watch Tower walled in all round, player 2 should break in and kill it. "
         "A' (next to it): the same for player 3, no breaker: they should stand at the wall. B (top right): a house in "
         "two rings, both should be broken. C (middle left): a long wall with a way round its west end: they should "
         "walk round. D (bottom right): a house in a big walled square, a bigger group: they should gather on a "
-        "segment or two. The chat says each breaker order."
+        "segment or two. E (bottom left): a tower and two Bowmen ringed by houses: they should break a house and kill "
+        "what's inside. F (next to it): four Bowmen in a pocket of Barracks, Granaries and Storage Pits: they should "
+        "break in. The chat says each breaker order."
     )

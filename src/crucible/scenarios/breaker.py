@@ -4,7 +4,8 @@ An attack-move picks units and buildings it can reach; a wall in the way is neve
 closed wall (or a tower walled in all round) stands there. Every INTERVAL seconds the rule looks at each melee unit
 of the attacker: a unit that hasn't moved and isn't hurting its target (no target, or one whose HP didn't drop) for
 two checks in a row is stuck. A stuck unit is ordered to attack the nearest wall or gate of a victim within REACH
-tiles, else the nearest building or tower, else to attack-move on to where it was first headed.
+tiles, else the nearest building or tower (houses walling in a tower or archers), never the target it can't reach,
+else to attack-move on to where it was first headed.
 
 Unit ids are the scenario's reference ids (`xsGetPlayerUnitIds`); orders go through `xsTaskUnits`, the editor's
 Task Object.
@@ -24,9 +25,11 @@ MELEE_CLASSES = (6, 12, 47)  # infantry, cavalry (with elephants and chariots), 
 def xs(attacker: int, victims: tuple[int, ...], *, prefix: str = "crucibleBreaker", chat: bool = False) -> str:
     """The rule for `attacker`'s melee units against `victims`' walls. `chat`: say each order in the chat (checks)."""
     p = prefix
-    walls = "\n".join(f"    best = {p}Nearest({v}, {CLASS + c}, x, y, best);" for v in victims for c in WALL_CLASSES)
+    walls = "\n".join(
+        f"    best = {p}Nearest({v}, {CLASS + c}, x, y, best, -1);" for v in victims for c in WALL_CLASSES
+    )
     buildings = "\n".join(
-        f"        best = {p}Nearest({v}, {CLASS + c}, x, y, best);" for v in victims for c in BUILDING_CLASSES
+        f"        best = {p}Nearest({v}, {CLASS + c}, x, y, best, skip);" for v in victims for c in BUILDING_CLASSES
     )
     classes = "\n".join(f"    {p}Class({CLASS + c});" for c in MELEE_CLASSES)
     say = (lambda text: f'    xsChatData("{text}", id);') if chat else (lambda text: "")
@@ -42,8 +45,8 @@ int {p}Count = 0;
 int {p}One = -1;  // a one-unit array for xsTaskUnits
 float {p}BestDistance = 0.0;
 
-// The nearest of `owner`'s units of `type` within REACH of (x, y), or `best` if none is nearer.
-int {p}Nearest(int owner = -1, int type = -1, float x = 0.0, float y = 0.0, int best = -1) {{
+// The nearest of `owner`'s units of `type` within REACH of (x, y), but `skip`, or `best` if none is nearer.
+int {p}Nearest(int owner = -1, int type = -1, float x = 0.0, float y = 0.0, int best = -1, int skip = -1) {{
     int ids = xsGetPlayerUnitIds(owner, type, -1);
 
     for (i = 0; < xsArrayGetSize(ids)) {{
@@ -53,7 +56,7 @@ int {p}Nearest(int owner = -1, int type = -1, float x = 0.0, float y = 0.0, int 
         float dy = xsVectorGetY(at) - y;
         float d = dx * dx + dy * dy;
 
-        if ((d <= {REACH * REACH}.0) && ((best < 0) || (d < {p}BestDistance))) {{
+        if ((id != skip) && (d <= {REACH * REACH}.0) && ((best < 0) || (d < {p}BestDistance))) {{
             best = id;
             {p}BestDistance = d;
         }}
@@ -92,7 +95,8 @@ int {p}Index(int id = -1) {{
     return (k);
 }}
 
-void {p}Act(int id = -1, int k = 0, float x = 0.0, float y = 0.0) {{
+// `skip`: the unit's own target, which it can't reach (a tower walled in by houses).
+void {p}Act(int id = -1, int k = 0, float x = 0.0, float y = 0.0, int skip = -1) {{
     int best = -1;
     {p}BestDistance = 0.0;
 {walls}
@@ -143,7 +147,7 @@ void {p}Class(int type = -1) {{
         }}
 
         if (stuck >= {STUCK_CHECKS}) {{
-            {p}Act(id, k, x, y);
+            {p}Act(id, k, x, y, target);
             stuck = 0;
         }}
 
