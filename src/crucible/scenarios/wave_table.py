@@ -135,8 +135,13 @@ FAMILIES = (
     Family(
         "Bowmen",
         Slot.RANGED,
-        # no plain Bowmen: Slingers (which beat the player's archers) hold until the Bronze Age (playtest 2026-11-21)
-        (Line("improved_bowman", Age.BRONZE), Line("composite_bowman", Age.BRONZE, 57)),
+        # Bowmen from the Bronze Age, not the Tool: Slingers (which beat the player's archers) hold until then, and
+        # Improved and Composite come by line upgrades, not as one jump (playtests 2026-11-21)
+        (
+            Line("bowman", Age.BRONZE),
+            Line("improved_bowman", Age.BRONZE, 56),
+            Line("composite_bowman", Age.BRONZE, 57),
+        ),
     ),
     Family("Chariot Archers", Slot.RANGED, (Line("chariot_archer", Age.BRONZE),)),
     Family(
