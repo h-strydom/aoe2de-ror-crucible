@@ -65,7 +65,7 @@ def build(out: Path, techs: dict[str, int], tests: list[str]) -> Path:
 
     try:
         with games.use("ror"):
-            s.player_manager.active_players = 1
+            s.player_manager.active_players = max(getattr(TESTS[name], "PLAYERS", 1) for name in tests)
             player_set(
                 o.handle,
                 1,
@@ -80,6 +80,13 @@ def build(out: Path, techs: dict[str, int], tests: list[str]) -> Path:
                     "gold": 5000,
                 },
             )
+
+            for player in range(2, s.player_manager.active_players + 1):  # for tests that need more players
+                player_set(
+                    o.handle,
+                    player,
+                    {"civilization": "GREEK", "starting_age": "DARK", "human": False, "ai": "immobile"},
+                )
 
             options_set(o.handle, {"victory_condition": "CUSTOM"})
             ctx = blocks.Ctx(s)

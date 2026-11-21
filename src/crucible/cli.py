@@ -23,6 +23,11 @@ def main(argv: list[str] | None = None) -> int:
         help="a test to include (repeatable; all registered tests if none): see scenarios/checks/",
     )
     check.add_argument("--install", action="store_true", help="install the data mod and the scenario")
+    check.add_argument(
+        "--report",
+        action="store_true",
+        help="don't build: compare what the last play wrote with what the picked tests expect (tests with a report)",
+    )
     maps = sub.add_parser("map", help="the hand-made maps kept in assets/: the arena and meta (the hub)")
     maps.add_argument(
         "action",
@@ -55,6 +60,16 @@ def main(argv: list[str] | None = None) -> int:
 
         if unknown:
             parser.error(f"unknown tests {unknown}; registered: {sorted(TESTS)}")
+
+        if args.report:
+            techs = build.manifest(OUT / "Crucible")
+
+            for name in (n for n in tests if hasattr(TESTS[n], "report")):
+                lines = TESTS[name].report(techs)
+                summary = "all as expected" if not lines else f"{len(lines)} off"
+                print(f"{name}: {summary}", *lines, sep="\n")
+
+            return 0
 
         folder = build.build(
             check_scenario.boons(tests),
