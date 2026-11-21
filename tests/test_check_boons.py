@@ -30,18 +30,21 @@ def test_every_tier_tech_is_read_and_the_xs_checks():
 
     assert len(steps) == len([k for k in techs if k.startswith("boon ")])
     assert all(step.reads for step in steps)
-    assert {step.player for step in steps} == set(range(1, boons.PLAYERS + 1))
+    assert {step.player for step in steps} <= set(boons.TIER_PLAYERS)
+    assert boons.places(steps)  # the shown rows fit the map
     assert xs_check.check(boons.xs(steps, techs))["ok"]
 
 
 def test_report_flags_what_came_out_wrong(tmp_path):
     techs = _techs()
-    steps = boons.plan(source_dat(), techs)
+    dat = source_dat()
+    steps = boons.plan(dat, techs)
     data = b""
 
     for k, step in enumerate(steps):
-        before = [10.0] * len(step.reads)
-        after = [r.expected(10.0) for r in step.reads]
+        before = [(boons.base(dat, r) if r.kind == "object" else None) for r in step.reads]
+        before = [10.0 if b is None else float(b) for b in before]  # the labels' own values where there are any
+        after = [r.expected(b) for r, b in zip(step.reads, before, strict=True)]
 
         if k == 0:
             after[0] += 5  # one wrong value
@@ -55,3 +58,16 @@ def test_report_flags_what_came_out_wrong(tmp_path):
 
     assert len(lines) == 1
     assert lines[0].startswith(steps[0].key)
+
+
+def test_labels_show_the_line_and_the_numbers():
+    techs = _techs()
+    data = source_dat()
+    steps = boons.plan(data, techs)
+    swords = next(s for s in steps if s.key == "boon choson_2 heirloom")
+    axemen = next(s for s in steps if s.key == "boon choson_1 poor")
+    units = data.civs[2].units
+
+    assert {units[u].name for u in axemen.shown} == {"Axeman", "Clubman"}  # the line's earlier unit too
+    assert boons.label(axemen, next(u for u in axemen.shown if units[u].name == "Clubman"), data) == "HP 40 -> 45"
+    assert "melee armour 1 -> 2" in boons.label(swords, swords.shown[0], data)

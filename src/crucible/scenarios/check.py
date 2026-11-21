@@ -60,7 +60,8 @@ def datamods(tests: list[str]) -> tuple:
 
 def build(out: Path, techs: dict[str, int], tests: list[str]) -> Path:
     """`techs` is the data mod's manifest (what each boon and choice is as a tech)."""
-    o = SESSIONS.new(SIZE, game="ror")
+    size = max(SIZE, *(getattr(TESTS[name], "SIZE", SIZE) for name in tests))  # a test may need a bigger map
+    o = SESSIONS.new(size, game="ror")
     s = o.scenario
 
     try:
@@ -92,7 +93,7 @@ def build(out: Path, techs: dict[str, int], tests: list[str]) -> Path:
             ctx = blocks.Ctx(s)
 
             add_unit(s, "wonder", 6, 8)
-            add_unit(s, "town_center", SIZE - 8, SIZE - 8)
+            add_unit(s, "town_center", size - 8, size - 8)
             sections = [TESTS[name].setup(o, ctx, techs, top=4 + k * STRIP) for k, name in enumerate(tests)]
             ctx.flush_xs()
 
