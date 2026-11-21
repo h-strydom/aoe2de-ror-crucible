@@ -52,7 +52,7 @@ barracks and the rest.
 included, belongs to the Allies (5):
 - 3 seconds in, once the meta upgrades have kept the player's share (and the 2 houses every run starts with), the
   Allies' other buildings are removed, out of the way; their walls and towers stay
-- towers start at 10-50% of their HP
+- towers start at 40-75% of their HP
 - walls keep their normal HP but start randomly damaged: some destroyed, some heavily damaged, some fine; more damaged
   than destroyed or whole. The camp's Fortified Walls stay Fortified and the Allies'
 
@@ -80,7 +80,7 @@ get stronger too, so leaving them makes them more dangerous).
 
 **Waves.** The waves are the Legion's (3), spawned at the City States (2), one every 5 minutes (docs/waves.md;
 the numbers are in `scenarios/wave_table.py`). Wave 0 comes at once from the Capital and is sent as soon as it's in
-position (Clubmen only, no ranged units); killing it gives a free choice of Poor boons. A sent unit standing
+position (Clubmen only, no ranged units); killing it puts a free Poor boon (any category) on each boon slot. A sent unit standing
 idle (the road's end, or a tower it took down) is sent on to the Wonder. Then they alternate:
 - capital waves (1, 3, 5, 7): two groups from the Capital, one per lane
 - city-state waves (2, 4, 6, 8): one group from each of the Western and Eastern City States

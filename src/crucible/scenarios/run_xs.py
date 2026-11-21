@@ -3,7 +3,7 @@ the Walls or Watch Tower upgrade), the City States made invulnerable. It runs on
 have taken the player's buildings back. (The Allies' other buildings are removed then too: run.py.)
 """
 
-TOWER_HP = (10, 50)  # a tower starts between these, in percent of its full HP
+TOWER_HP = (40, 75)  # a tower starts between these, in percent of its full HP (10-50 was too low, 2026-11-21)
 
 START = 3  # seconds: after the kept buildings, towers and walls are made anew (about 1-2 s)
 
