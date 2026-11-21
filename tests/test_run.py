@@ -26,7 +26,9 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert {"Meta: starting building 70 2", "Allies: camp buildings cleared"} <= names
         assert any(u.unit_const == run.KEEPER for u in units[run.Faction.ALLIES])
         assert {"Meta: Clubmen", "No hub buttons", "No data mod", "No data mod: defeat"} <= names
-        assert "Player: no walls or gates" in names and not any(n.startswith("Win: ") for n in names)
+        assert {"Player: no walls or gates", "Win: claim victory offered", "Win: claim victory"} <= names
+        cleared = next(t for t in s.trigger_manager.triggers if t.name == "Allies: camp buildings cleared")
+        assert cleared.effects and all(e.effect_type == 14 for e in cleared.effects)  # killed: rubble, not removed
         assert {f"Base: {name}" for name, _ in bases.BASES} <= names  # an optional objective per Legion base
         assert {"Allies: age 3", "Meta: Granary 1 placed"} <= names
         assert any(n.startswith("Boon: ") for n in names)

@@ -32,7 +32,7 @@ REVEAL_MAP = 203  # resource: 2 = the whole map visible, no fog
 VILLAGER_MALE, VILLAGER_FEMALE = 83, 293
 STANDARD_RESOURCES = {"food": 200, "wood": 200, "gold": 0, "stone": 150}  # Return of Rome's standard start
 VILLAGERS = ((107.5, 122.5), (108.5, 122.5), (110.5, 119.5), (110.5, 120.5))  # by the Town Center
-META_VILLAGERS = tuple((x + 0.5, y + 0.5) for x in (104, 105) for y in (126, 127, 128))  # just south: meta unlocks
+META_VILLAGERS = tuple((x + 0.5, y + 0.5) for x in (104, 105) for y in (127, 128, 129))  # just south: meta unlocks
 
 
 class Faction(IntEnum):
@@ -163,12 +163,12 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 )
             )
             ctx.xs(run_rules.fish_xs(fish))
-            ctx.trigger(  # the Allies' houses, Granary, Temple and the rest in the camp: out of the way
+            ctx.trigger(  # the Allies' houses, Granary, Temple and the rest in the camp: destroyed (rubble a while)
                 "Allies: camp buildings cleared",
                 [{"type": "timer", "timer": run_xs.START}],
                 [
                     {
-                        "type": "remove_object",
+                        "type": "kill_object",
                         "source_player": Faction.ALLIES,
                         "object_list_unit_id": t,
                         "area": list(camp),

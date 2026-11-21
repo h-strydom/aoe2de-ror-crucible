@@ -6,8 +6,8 @@ wider than the row) the "Send next wave" button on the Wonder comes on. When the
 send is up (5, 3 or 2 minutes), or when the player clicks, it marches out in formation, attack-moving straight down the
 road to the player's base, and the next wave spawns and walks in. Wave 0 comes at once and is sent as soon as it's
 staged; then waves alternate: the Capital's two lanes, then one lane from each of the other City States. They never
-end: the run ends when the Wonder falls. A sent unit standing idle (no target, not moving: the road's end, or a tower
-it took down) is sent on to the Wonder.
+end: the run ends when the Wonder falls, or when the player claims victory (a decision, up all run). A sent unit
+standing idle (no target, not moving: the road's end, or a tower it took down) is sent on to the Wonder.
 
 What a wave brings evolves (wave_table): each lane's army takes a step before it spawns; the XS reads the difficulty
 (xsGetDifficulty), rolls each lane's archetype, steps and spawns each group with xsCreateUnit, keeping the ids it gets
@@ -52,6 +52,7 @@ SPAWN_AREAS = ((76, 0, 142, 26), (0, 84, 20, 126), (200, 94, 219, 124))  # the C
 TRADERS, RELICS = 4, 7  # where the defeated count is kept: the Traders' relics
 COUNTER = f"<Relics Captured, {TRADERS}>"
 NEVER = 1_000_000  # the objective's count: it never completes
+CLAIM_AFTER = 5  # seconds: the Claim victory decision comes up
 TIMER = 0  # display timer slot
 
 WALK_VARIABLE = "crucible_wave_walk"  # lanes walking in: 1 the Capital's, 2 the City States'
@@ -257,6 +258,32 @@ def _triggers(ctx, tech: int) -> None:
             for value, (label, lanes) in SETS.items()
         ),
         *research,
+    )
+
+
+def _claim(ctx, player: int = PLAYER) -> None:
+    """A Claim victory decision, its only button, up from a few seconds in until clicked: the waves never end, so the
+    player taps out when they like."""
+    decision = ctx.next_decision_id()
+    ctx.triggers(
+        {
+            "name": "Win: claim victory offered",
+            "conditions": [{"type": "timer", "timer": CLAIM_AFTER}],
+            "effects": [
+                {
+                    "type": "create_decision",
+                    "decision_id": decision,
+                    "message": "The waves never end. Claim victory whenever you like.",
+                    "message_option1": "Claim victory",
+                    "message_option2": "",
+                },
+            ],
+        },
+        {
+            "name": "Win: claim victory",
+            "conditions": [{"type": "decision_triggered", "decision_id": decision, "decision_option": 1}],
+            "effects": [{"type": "declare_victory", "source_player": player, "enabled": True}],
+        },
     )
 
 
@@ -497,4 +524,5 @@ def add(ctx, techs: dict[str, int], game) -> None:
     tech = techs[SEND_WAVE]
     _triggers(ctx, tech)
     _captions(ctx, game)
+    _claim(ctx)
     ctx.xs(xs(ctx, tech, game))

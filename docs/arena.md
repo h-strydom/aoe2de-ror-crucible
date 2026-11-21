@@ -51,7 +51,8 @@ barracks and the rest.
 **Start.** The player owns only the Town Center and the Wonder. Every other building of the centre base, walls
 included, belongs to the Allies (5):
 - 3 seconds in, once the meta upgrades have kept the player's share (and the 2 houses every run starts with), the
-  Allies' other buildings are removed, out of the way; their walls and towers stay
+  Allies' other buildings in the camp are destroyed (their rubble stays a while), out of the way; their walls and
+  towers stay, and an unattackable Allies house on the north edge keeps them in the game
 - towers start at 40-75% of their HP
 - walls keep their normal HP but start randomly damaged: some destroyed, some heavily damaged, some fine; more damaged
   than destroyed or whole. The camp's Fortified Walls stay Fortified and the Allies'
@@ -79,7 +80,7 @@ age clock by difficulty (docs/waves.md). It doesn't research the ages itself yet
 get stronger too, so leaving them makes them more dangerous).
 
 **Waves.** The waves are the Legion's (3), spawned at the City States (2): a wave every 5 minutes on Standard, 3 on
-Moderate, 2 on Hard, and they never end (the run ends when the Wonder falls). How they grow is docs/evolving-waves.md
+Moderate, 2 on Hard, and they never end: the run ends when the Wonder falls, or when the player claims victory (a decision, up all run). How they grow is docs/evolving-waves.md
 (the numbers in `scenarios/wave_table.py`). Wave 0 comes at once from the Capital, 2 Clubmen and 2 Slingers a lane, and
 is sent as soon as it's in position; killing it puts a free Poor boon (any category) on each boon slot. Then waves
 alternate: the Capital's two lanes (odd waves), then one from each of the Western and Eastern City States (even
