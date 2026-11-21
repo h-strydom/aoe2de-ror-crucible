@@ -90,6 +90,15 @@ def blocks(center: Tile) -> list[Tile]:
 
 
 POCKET = ("barracks", "granary", "storage_pit")
+LABELS = {  # the caption over each setup's guarded building
+    "A": "A: walled-in tower (breaker)",
+    "A'": "A': walled-in tower (no breaker)",
+    "B": "B: two rings of wall",
+    "C": "C: wall with a way round",
+    "D": "D: big walled square",
+    "E": "E: tower ringed by houses",
+    "F": "F: archers in a building pocket",
+}
 BUILT = (  # name, guarded: [(unit, x, y)] placed exactly, attackers, spawn centre, target
     (
         "E",
@@ -143,8 +152,10 @@ def setup(o, ctx, techs: dict[str, int], top: int) -> str:
     diplomacy_set(o.handle, OWNER, [BREAKER, CONTROL], "ENEMY")
     diplomacy_set(o.handle, BREAKER, [CONTROL], "ALLY")
 
+    labels = []
+
     for name, attacker, (unit, (gx, gy)), walls, group, spawn in SETUPS:
-        add_unit(s, unit, gx, gy, player=OWNER)
+        labels.append((name, add_unit(s, unit, gx, gy, player=OWNER)))
 
         for x, y in walls:
             add_unit(s, SMALL_WALL, x, y, player=OWNER)
@@ -153,10 +164,26 @@ def setup(o, ctx, techs: dict[str, int], top: int) -> str:
 
     for name, guarded, group, spawn, target in BUILT:
         for unit, x, y in guarded:
-            s.unit_manager.add_unit(player=OWNER, unit_const=tables.object_id(unit.upper(), "ror"), x=x, y=y)
+            placed = s.unit_manager.add_unit(player=OWNER, unit_const=tables.object_id(unit.upper(), "ror"), x=x, y=y)
+
+            if unit != "bowman" and not any(n == name for n, _ in labels):  # the first building
+                labels.append((name, placed.reference_id))
 
         _attack(ctx, name, BREAKER, group, spawn, target)
 
+    ctx.trigger(
+        "Walls: labels",
+        [],
+        [
+            {
+                "type": "change_object_caption",
+                "source_player": OWNER,
+                "selected_object_ids": [ref],
+                "message": LABELS[n],
+            }
+            for n, ref in labels
+        ],
+    )
     ctx.xs(breaker.xs(BREAKER, (OWNER,), chat=True))
 
     return (
