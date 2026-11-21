@@ -78,19 +78,16 @@ Fish (not whales) hold twice their food, as fishing ships don't move on to the n
 age clock by difficulty (docs/waves.md). It doesn't research the ages itself yet (to do: then its bases around the map
 get stronger too, so leaving them makes them more dangerous).
 
-**Waves.** The waves are the Legion's (3), spawned at the City States (2), one every 5 minutes (docs/waves.md;
-the numbers are in `scenarios/wave_table.py`). Wave 0 comes at once from the Capital and is sent as soon as it's in
-position (Clubmen only, no ranged units); killing it puts a free Poor boon (any category) on each boon slot. A sent unit standing
-idle (the road's end, or a tower it took down) is sent on to the Wonder. Then they alternate:
-- capital waves (1, 3, 5, 7): two groups from the Capital, one per lane
-- city-state waves (2, 4, 6, 8): one group from each of the Western and Eastern City States
-- wave 9: all four lanes (and any wave after it, fighting on).
+**Waves.** The waves are the Legion's (3), spawned at the City States (2): a wave every 5 minutes on Standard, 3 on
+Moderate, 2 on Hard, and they never end (the run ends when the Wonder falls). How they grow is docs/evolving-waves.md
+(the numbers in `scenarios/wave_table.py`). Wave 0 comes at once from the Capital, 2 Clubmen and 2 Slingers a lane, and
+is sent as soon as it's in position; killing it puts a free Poor boon (any category) on each boon slot. Then waves
+alternate: the Capital's two lanes (odd waves), then one from each of the Western and Eastern City States (even
+waves). A sent unit standing idle (the road's end, or a tower it took down) is sent on to the Wonder.
 
-The difficulty picks each group's size and the Legion's age clock (which age's units a wave brings). At the start of a
-run each lane rolls an archetype (Swordsmen, Phalanx, Cavalry, Elephants, Bowmen, Horse archers, Chariots; no two the
-same) that picks its units from the Legion's Tool Age on; before that every group is Clubmen and Slingers. Every wave
-brings melee and ranged units, siege from the Bronze Age on, and Priests on Moderate and Hard. Chat names each wave's
-age and lanes' archetypes as it walks in.
+Each lane rolls an archetype at the start (no two the same) and is an army of its own: before it spawns it takes a
+step (grow, swap a unit line, or a shared upgrade or age up for the whole Legion). Siege and Priests come and go from
+the Bronze Age on. Chat says every step.
 
 **Staging.** Each lane is three rows of three tiles: where a wave spawns (the map edge), where it waits (a row
 inside the spawn base) and where it attacks to (in the player's base). A wave spawns a row at a time and walks in,
@@ -102,7 +99,7 @@ the west and east of the Wonder; each side City State's lane ends beside the Cap
 is sent 5 minutes after the one before (the first at 5:00), or as soon as the player clicks; a click starts the 5
 minutes again. Sending early brings later waves (and their ages) early. Sending a wave doesn't clear it: a wave is cleared when every unit
 in it is dead. The player sees each wave's units wherever they go (not the rest of the Legion). A timer shows the time to the next send; the objective counts
-defeated waves to 10 ("Defeat 10 waves (n/10)"), and chat names each one as it falls. Waves clump as they walk, so only
+defeated waves ("Waves defeated: n"), and chat names each one as it falls. Waves clump as they walk, so only
 the middle tile of each row matters as a reference.
 
 **Boons.** Each wave defeated (and each Legion base destroyed) gives one decision in the shop (`shop/`): two boon

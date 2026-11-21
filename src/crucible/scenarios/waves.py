@@ -1,21 +1,23 @@
-"""The waves of crucible_run (docs/arena.md, docs/waves.md): staged at a City State, then sent down the road.
+"""The waves of crucible_run (docs/arena.md, docs/evolving-waves.md): staged at a City State, then sent down the road.
 
 A wave spawns at the map edge and walks, in line formation, to a staging row inside the spawn base. Once it is in
-position the "Send next wave" button on the Wonder comes on. At 5 minutes after the last send, or when the player
-clicks, it marches out in formation, attack-moving straight down the road to the player's base, and the next wave
-spawns and walks in. A sent unit standing idle (no target, not moving: the road's end, or a tower it took down) is
-sent on to the Wonder. Wave 0 comes at once and is sent as soon as it's staged; then waves alternate: the Capital's two
-lanes, then one lane from each of the other City States; wave 9 is all four.
+position the "Send next wave" button on the Wonder comes on. When the difficulty's time since the last send is up (5,
+3 or 2 minutes), or when the player clicks, it marches out in formation, attack-moving straight down the road to the
+player's base, and the next wave spawns and walks in. Wave 0 comes at once and is sent as soon as it's staged; then
+waves alternate: the Capital's two lanes, then one lane from each of the other City States. They never end: the run
+ends when the Wonder falls. A sent unit standing idle (no target, not moving: the road's end, or a tower it took
+down) is sent on to the Wonder.
 
-What a wave brings is in wave_table: the XS reads the difficulty (xsGetDifficulty), rolls each lane's archetype and
-spawns each group with xsCreateUnit, keeping the ids it gets so it knows when a wave is defeated.
+What a wave brings evolves (wave_table): each lane's army takes a step before it spawns; the XS reads the difficulty
+(xsGetDifficulty), rolls each lane's archetype, steps and spawns each group with xsCreateUnit, keeping the ids it gets
+so it knows when a wave is defeated. The Legion's ages and upgrades are researched by triggers, queued by the XS.
 
 A lane is three rows of three tiles (marked by hand in the editor, 2026-11-17): where a row spawns, where it waits,
 and where it attacks to.
 
 A timer shows the time to the next send. A sent wave is defeated when every unit in it is dead; an objective counts
-them to 10. Trigger text can't show a variable, but it can show a player's attribute (`<Relics Captured, 4>`), so XS
-keeps the count in the Traders' relics, which nothing else uses (the text knows it as "Relics Captured"; "Gold Storage",
+them. Trigger text can't show a variable, but it can show a player's attribute (`<Relics Captured, 4>`), so XS keeps
+the count in the Traders' relics, which nothing else uses (the text knows it as "Relics Captured"; "Gold Storage",
 "Gold" and "Relics" stay as typed).
 
 The XS (waves.xs) decides; triggers do: XS sets a variable, a looping trigger acts on it and sets it back to 0.
@@ -26,33 +28,32 @@ from pathlib import Path
 
 from crucible.datamod.shop import SEND_WAVE
 from crucible.scenarios import wave_table as table
-from crucible.scenarios.wave_table import Age, Difficulty
+from crucible.scenarios.wave_table import Age, Difficulty, Slot
 
 RUNTIME = Path(__file__).with_name("waves.xs")
 PLAYER, LEGION = 1, 3
 WONDER = 276
 AT_WONDER = 10  # tiles: an idle wave unit this near the Wonder attacks it, further off attack-moves to it
 VISIBLE = 0  # visibility state
-SEND_TIME = 300  # seconds between sends
 MOVE, ATTACK_MOVE, LINE_FORMATION = 1, 17, 18
 MARGIN = 2  # tiles around a row that still count as on it
 DEPTH = 6  # tiles from the spawn row a group spawns in (rows of COLUMNS)
-COLUMNS = 5
+COLUMNS = 7
 SPACING = 0.8  # tiles between units in a spawn row
 ROW_SPACING = 0.9
-CHOICES = 3  # unit choices per slot, padded with -1
+SIEGE_CHOICES = 3  # siege units per age, padded with -1
 SPAWN_AREAS = ((76, 0, 142, 26), (0, 84, 20, 126), (200, 94, 219, 124))  # the City States, always in sight
-WAVES = table.WAVES  # to defeat
 TRADERS, RELICS = 4, 7  # where the defeated count is kept: the Traders' relics
 COUNTER = f"<Relics Captured, {TRADERS}>"
+NEVER = 1_000_000  # the objective's count: it never completes
 TIMER = 0  # display timer slot
-NO_PRIESTS = 99  # an age never reached
+NO_AGE = 99  # an age never reached
 
-WALK_VARIABLE = "crucible_wave_walk"  # lanes walking in: 1 the Capital's, 2 the City States', 3 all
+WALK_VARIABLE = "crucible_wave_walk"  # lanes walking in: 1 the Capital's, 2 the City States'
 SEND_VARIABLE = "crucible_wave_send"  # lanes sent, the same
-TIMER_VARIABLE = "crucible_wave_timer"  # 1: restart the timer
+TIMER_VARIABLE = "crucible_wave_timer"  # difficulty + 1: restart the timer at its time
 BUTTON_VARIABLE = "crucible_wave_button"  # 1: button on, 2: off
-WON_VARIABLE = "crucible_waves_won"  # 1: the last wave is defeated (asks whether to claim victory)
+TECH_VARIABLE = "crucible_legion_tech"  # a tech id: the Legion researches it
 
 Tile = tuple[int, int]
 Box = tuple[int, int, int, int]  # x1, y1, x2, y2, inclusive
@@ -116,7 +117,7 @@ CITY_STATES = (
     Lane("Eastern City State", _row(219, range(108, 111)), _row(206, range(108, 111)), _row(117, range(108, 111))),
 )
 LANES = CAPITAL + CITY_STATES
-SETS = {1: ("Capital", CAPITAL), 2: ("City States", CITY_STATES), 3: ("all lanes", LANES)}
+SETS = {1: ("Capital", CAPITAL), 2: ("City States", CITY_STATES)}
 
 
 def _walk_in(lane: Lane) -> list[dict]:
@@ -169,13 +170,13 @@ def _button(tech: int, on: bool) -> dict:
     return {"type": "enable_disable_technology", "source_player": 1, "technology": tech, "enabled": int(on)}
 
 
-def _timer() -> list[dict]:
+def _timer(seconds: int) -> list[dict]:
     return [
         {"type": "clear_timer", "timer": TIMER},
         {
             "type": "display_timer",
             "timer": TIMER,
-            "display_time": SEND_TIME,
+            "display_time": seconds,
             "time_unit": "SECONDS",
             "message": "Next wave: %d",
         },
@@ -183,17 +184,10 @@ def _timer() -> list[dict]:
 
 
 def _objective(ctx) -> None:
-    text = f"Defeat {WAVES} waves ({COUNTER}/{WAVES})"
+    text = f"Waves defeated: {COUNTER}"
     ctx.trigger(
         "Waves defeated",
-        [
-            {
-                "type": "accumulate_attribute",
-                "source_player": TRADERS,
-                "attribute": RELICS,
-                "quantity": WAVES,
-            }
-        ],
+        [{"type": "accumulate_attribute", "source_player": TRADERS, "attribute": RELICS, "quantity": NEVER}],
         [],
         display_as_objective=True,
         display_on_screen=True,
@@ -202,16 +196,42 @@ def _objective(ctx) -> None:
     )
 
 
+def legion_techs() -> dict[int, str]:
+    """Every tech the Legion may research: tech -> its name."""
+    ages = {tech: age.title for age, tech in table.AGE_TECHS.items()}
+
+    return ages | {u.tech: u.name for u in table.UPGRADES}
+
+
 def _triggers(ctx, tech: int) -> None:
-    for variable in (WALK_VARIABLE, SEND_VARIABLE, TIMER_VARIABLE, BUTTON_VARIABLE):
+    for variable in (WALK_VARIABLE, SEND_VARIABLE, TIMER_VARIABLE, BUTTON_VARIABLE, TECH_VARIABLE):
         ctx.var(variable)
 
-    ctx.trigger("Wave: no button at start", [], [_button(tech, on=False), *_timer()[1:]])
+    ctx.trigger("Wave: no button at start", [], [_button(tech, on=False)])
     _objective(ctx)
+    research = (
+        _on(
+            TECH_VARIABLE,
+            tech_id,
+            f"Legion: {name}",
+            [
+                {
+                    "type": "research_technology",
+                    "source_player": LEGION,
+                    "technology": tech_id,
+                    "force_research_technology": 1,
+                }
+            ],
+        )
+        for tech_id, name in legion_techs().items()
+    )
     ctx.triggers(
         _on(BUTTON_VARIABLE, 1, "Wave: button on", [_button(tech, on=True)]),
         _on(BUTTON_VARIABLE, 2, "Wave: button off", [_button(tech, on=False)]),
-        _on(TIMER_VARIABLE, 1, "Wave: timer", _timer()),
+        *(
+            _on(TIMER_VARIABLE, d + 1, f"Wave: timer ({d.name.title()})", _timer(table.SEND_TIMES[d]))
+            for d in Difficulty
+        ),
         *(
             _on(SEND_VARIABLE, value, f"Wave: {label} sent", [e for lane in lanes for e in _send(lane)])
             for value, (label, lanes) in SETS.items()
@@ -220,35 +240,7 @@ def _triggers(ctx, tech: int) -> None:
             _on(WALK_VARIABLE, value, f"Wave: {label} walk in", [e for lane in lanes for e in _walk_in(lane)])
             for value, (label, lanes) in SETS.items()
         ),
-    )
-
-
-def _win(ctx, player: int = 1) -> None:
-    """When the last wave is defeated: a Claim victory choice, its only button, asked once. It stays up until clicked,
-    so the player fights on and claims victory whenever they like. (Asked again after every wave by a looping
-    trigger, it never showed.)"""
-    ctx.var(WON_VARIABLE)
-    decision = ctx.next_decision_id()
-    ctx.triggers(
-        {
-            "name": "Win: claim victory or fight on",
-            "conditions": [{"type": "variable_value", "variable": WON_VARIABLE, "comparison": "EQUAL", "quantity": 1}],
-            "effects": [
-                {
-                    "type": "create_decision",
-                    "decision_id": decision,
-                    "message": f"{WAVES} waves are defeated. Claim victory whenever you like: until then, keep "
-                    "fighting.",
-                    "message_option1": "Claim victory",
-                    "message_option2": "",
-                },
-            ],
-        },
-        {
-            "name": "Win: claim victory",
-            "conditions": [{"type": "decision_triggered", "decision_id": decision, "decision_option": 1}],
-            "effects": [{"type": "declare_victory", "source_player": player, "enabled": True}],
-        },
+        *research,
     )
 
 
@@ -280,84 +272,111 @@ def _strings(name: str, values: list[str]) -> list[str]:
     return lines + [f'    xsArraySetString({name}, {i}, "{v}");' for i, v in enumerate(values)]
 
 
-def _choices(names: tuple[str, ...]) -> list[int]:
-    assert len(names) <= CHOICES, names
+def units() -> list[str]:
+    """Every unit a wave can bring, in index order: the lines, then siege and the Priest."""
+    return [line.unit for line in table.LINES] + table.specials()
 
-    return [table.unit_id(n) for n in names] + [-1] * (CHOICES - len(names))
 
-
-def data() -> list[str]:
-    """The tables as XS arrays, declared and filled by crucibleWaveData(). Indexes: a wave's numbers at
-    difficulty * cCrucibleWaves + wave; a unit choice at ((archetype * cCrucibleWaveAges + age) * 2 + slot) *
-    cCrucibleWaveChoices + n, slot 0 main, 1 other; a siege choice at age * cCrucibleWaveChoices + n."""
-    difficulties, ages = list(Difficulty), list(Age)
-    keys = [(d, w) for d in difficulties for w in range(WAVES)]
-    groups = [table.group(d, w) for d, w in keys]
-    units = [
-        unit
-        for archetype in table.ARCHETYPES
+def data(game) -> list[str]:
+    """The tables as XS arrays, declared and filled by crucibleWaveData(). `game`: the RoR data (what each upgrade
+    improves). Indexes: a line at its place in wave_table.LINES (slots hold line indexes); whether archetype a may hold
+    line l at a * lines + l; whether upgrade u improves unit k (units()) at u * units + k; a siege unit at
+    age * SIEGE_CHOICES + n."""
+    lines, everyone, ages = table.LINES, units(), list(Age)
+    index = {unit: k for k, unit in enumerate(everyone)}
+    allowed = [int(line.unit in a.lines) for a in table.ARCHETYPES for line in lines]
+    siege = [
+        table.SIEGE.get(age, ())[n] if n < len(table.SIEGE.get(age, ())) else None
         for age in ages
-        for slot in table.choices(archetype, age)
-        for unit in _choices(slot)
+        for n in range(SIEGE_CHOICES)
     ]
-    siege = [unit for age in ages for unit in _choices(table.SIEGE.get(age, ()))]
-    game_difficulties = [int(table.GAME_DIFFICULTY.get(g, table.FALLBACK)) for g in range(5)]
+    upgrade_index = {u.tech: n for n, u in enumerate(table.UPGRADES)}
     arrays = [
-        _ints("crucibleWaveMain", [g.main for g in groups]),
-        _ints("crucibleWaveOther", [g.other for g in groups]),
-        _ints("crucibleWaveSiege", [g.siege for g in groups]),
-        _ints("crucibleWaveAge", [int(table.legion_age(d, w)) for d, w in keys]),
-        _ints("crucibleWaveUnit", units),
-        _ints("crucibleWaveSiegeUnit", siege),
-        _ints("crucibleWavePriestAge", [int(table.PRIESTS.get(d, NO_PRIESTS)) for d in difficulties]),
-        _ints("crucibleWaveDifficultyOf", game_difficulties),  # by xsGetDifficulty (0 to 4)
+        _ints("crucibleWaveLineUnit", [table.unit_id(line.unit) for line in lines]),
+        _ints("crucibleWaveLineSlot", [int(line.slot) for line in lines]),
+        _ints("crucibleWaveLineAge", [int(line.age) for line in lines]),
+        _strings("crucibleWaveLineName", [line.title for line in lines]),
+        _ints("crucibleWaveAllowed", allowed, default=0),
+        _ints("crucibleWaveArchetypeMain", [int(a.main) for a in table.ARCHETYPES]),
         _strings("crucibleWaveArchetypeName", [a.name for a in table.ARCHETYPES]),
+        _ints("crucibleWaveStepWeight", [table.STEPS[s] for s in table.Step], default=0),
+        _ints("crucibleWaveUpgradeTech", [u.tech for u in table.UPGRADES]),
+        _ints("crucibleWaveUpgradeAge", [int(u.age) for u in table.UPGRADES]),
+        _ints("crucibleWaveUpgradeRequires", [upgrade_index.get(u.requires, -1) for u in table.UPGRADES]),
+        _strings("crucibleWaveUpgradeName", [u.name for u in table.UPGRADES]),
+        _ints(
+            "crucibleWaveImproves",
+            [int(table.improves(game, u, unit)) for u in table.UPGRADES for unit in everyone],
+            default=0,
+        ),
+        _ints("crucibleWaveSiegeUnit", [table.unit_id(u) if u else -1 for u in siege]),
+        _ints("crucibleWaveSiegeIndex", [index[u] if u else -1 for u in siege]),
+        _ints("crucibleWaveSiegeChance", [table.SIEGE_CHANCE.get(age, 0) for age in ages], default=0),
+        _ints("crucibleWavePriestChance", [table.PRIEST_CHANCE.get(age, 0) for age in ages], default=0),
+        _ints("crucibleWaveAgeTech", [table.AGE_TECHS.get(age, -1) for age in ages]),
         _strings("crucibleWaveAgeName", [a.title for a in ages]),
+        _ints("crucibleWaveDifficultyOf", [int(table.GAME_DIFFICULTY.get(g, table.FALLBACK)) for g in range(5)]),
+        _ints("crucibleWaveSendTime", [table.SEND_TIMES[d] for d in Difficulty]),
         _strings("crucibleWaveLaneName", [lane.name for lane in LANES]),
         _floats("crucibleWaveSpawnX", [lane.spawn[1][0] + 0.5 for lane in LANES]),
         _floats("crucibleWaveSpawnY", [lane.spawn[1][1] + 0.5 for lane in LANES]),
         _floats("crucibleWaveDirX", [lane.direction[0] for lane in LANES]),
         _floats("crucibleWaveDirY", [lane.direction[1] for lane in LANES]),
     ]
-    names = [lines[0].split(" = ")[0].strip() for lines in arrays]
+    names = [lines_[0].split(" = ")[0].strip() for lines_ in arrays]
 
     return [
         *(f"int {name} = -1;" for name in names),
         "void crucibleWaveData() {",
-        *(line for lines in arrays for line in lines),
+        *(line for lines_ in arrays for line in lines_),
         "}",
     ]
 
 
-def xs(ctx, tech: int) -> str:
+def xs(ctx, tech: int, game) -> str:
     wonder = next(u for u in ctx.scenario.unit_manager.units[PLAYER] if u.unit_const == WONDER)
+    start = table.START
     lines = [
         "// ---- crucible run: waves (data) ----",
         f"const int cCrucibleWaveLegion = {LEGION};",
-        f"const int cCrucibleWaveSendTime = {SEND_TIME};",
         f"const int cCrucibleWaveButton = {tech};",
         f"const int cCrucibleWaveWalkVariable = {_variable_id(ctx, WALK_VARIABLE)};",
         f"const int cCrucibleWaveSendVariable = {_variable_id(ctx, SEND_VARIABLE)};",
         f"const int cCrucibleWaveTimerVariable = {_variable_id(ctx, TIMER_VARIABLE)};",
         f"const int cCrucibleWaveButtonVariable = {_variable_id(ctx, BUTTON_VARIABLE)};",
-        f"const int cCrucibleWaves = {WAVES};",
-        f"const int cCrucibleWaveAllLanesFrom = {table.ALL_LANES_FROM};",
+        f"const int cCrucibleWaveTechVariable = {_variable_id(ctx, TECH_VARIABLE)};",
         f"const int cCrucibleWaveLanes = {len(LANES)};",
         f"const int cCrucibleWaveCapitalLanes = {len(CAPITAL)};",
+        f"const int cCrucibleWaveLines = {len(table.LINES)};",
+        f"const int cCrucibleWaveUnits = {len(units())};",
         f"const int cCrucibleWaveArchetypes = {len(table.ARCHETYPES)};",
-        f"const int cCrucibleWaveAges = {len(Age)};",
-        f"const int cCrucibleWaveChoices = {CHOICES};",
-        f"const int cCrucibleWavePriest = {table.unit_id('priest')};",
+        f"const int cCrucibleWaveUpgrades = {len(table.UPGRADES)};",
+        f"const int cCrucibleWaveSteps = {len(table.Step)};",
+        f"const int cCrucibleWaveLastAge = {int(Age.POST_IRON)};",
+        f"const int cCrucibleWaveSiegeAge = {int(min(table.SIEGE))};",
+        f"const int cCrucibleWaveSiegeChoices = {SIEGE_CHOICES};",
+        f"const int cCrucibleWavePriest = {table.unit_id(table.PRIEST)};",
+        f"const int cCrucibleWavePriestIndex = {len(units()) - 1};",
+        f"const int cCrucibleWaveAgeUpStart = {table.AGE_UP_START};",
+        f"const int cCrucibleWaveAgeUpStep = {table.AGE_UP_STEP};",
+        f"const int cCrucibleWaveMaxSteps = {table.MAX_STEPS};",
+        f"const int cCrucibleWaveMainShare = {table.MAIN_SHARE};",
+        f"const int cCrucibleWaveGrowPer = {table.GROW_PER};",
+        f"const int cCrucibleWaveStartMelee = {table.LINES.index(table.BY_UNIT[start[Slot.MELEE][0]])};",
+        f"const int cCrucibleWaveStartMeleeCount = {start[Slot.MELEE][1]};",
+        f"const int cCrucibleWaveStartRanged = {table.LINES.index(table.BY_UNIT[start[Slot.RANGED][0]])};",
+        f"const int cCrucibleWaveStartRangedCount = {start[Slot.RANGED][1]};",
+        f"const int cCrucibleWaveTierUpPerWave = {table.TIER_UP_PER_WAVE};",
+        f"const int cCrucibleWaveDoubleEvery = {table.DOUBLE_EVERY};",
         f"const int cCrucibleWaveColumns = {COLUMNS};",
         f"const float cCrucibleWaveSpacing = {SPACING};",
         f"const float cCrucibleWaveRowSpacing = {ROW_SPACING};",
         f"const int cCrucibleWaveCounterPlayer = {TRADERS};",
         f"const int cCrucibleWaveCounterRelics = {RELICS};",
-        f"const int cCrucibleWaveWonVariable = {_variable_id(ctx, WON_VARIABLE)};",
         f"const int cCrucibleWaveWonder = {wonder.reference_id};",
         f"vector cCrucibleWaveWonderAt = vector({wonder.x}, {wonder.y}, 0.0);",
         f"const float cCrucibleWaveAtWonder = {float(AT_WONDER * AT_WONDER)};",
-        *data(),
+        *data(game),
         "bool crucibleWaveIn(vector pos = cInvalidVector, int x1 = 0, int y1 = 0, int x2 = 0, int y2 = 0) {",
         "    float x = xsVectorGetX(pos);",
         "    float y = xsVectorGetY(pos);",
@@ -369,8 +388,8 @@ def xs(ctx, tech: int) -> str:
     return "\n".join(lines) + "\n" + RUNTIME.read_text(encoding="utf-8")
 
 
-def add(ctx, techs: dict[str, int]) -> None:
+def add(ctx, techs: dict[str, int], game) -> None:
+    """`game`: the RoR data (source_dat)."""
     tech = techs[SEND_WAVE]
     _triggers(ctx, tech)
-    _win(ctx)
-    ctx.xs(xs(ctx, tech))
+    ctx.xs(xs(ctx, tech, game))

@@ -13,6 +13,7 @@ int crucibleShopPicked = 0;  // the choice clicked: 1 or 2
 int crucibleShopChoices = 0;  // choices still to make
 bool crucibleShopReady = false;
 bool crucibleShopPoor = false;  // a Poor offer is being made
+int crucibleShopTierBonus = 0;  // percent added to each tier-up chance (the waves raise it as they're defeated)
 
 void crucibleShopInit() {
     if (crucibleShopReady) {
@@ -169,7 +170,7 @@ int crucibleShopTiersUp() {
     int roll = xsGetRandomNumberLH(0, 100);
 
     for (i = 0; < cCrucibleTierUps) {
-        int chance = xsArrayGetInt(crucibleTierUpChance, i);
+        int chance = xsArrayGetInt(crucibleTierUpChance, i) + crucibleShopTierBonus;
 
         if (roll < chance) {
             return (xsArrayGetInt(crucibleTierUpSteps, i));

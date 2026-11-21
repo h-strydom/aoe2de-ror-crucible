@@ -1,51 +1,61 @@
+from crucible.datamod.mod import source_dat
 from crucible.scenarios import wave_table as table
 from crucible.scenarios import waves
-from crucible.scenarios.wave_table import Age, Difficulty
+from crucible.scenarios.wave_table import Age, Slot, Step
 
 
-def test_every_wave_has_melee_and_ranged():
-    for difficulty in Difficulty:
-        assert len(table.GROUPS[difficulty]) == table.WAVES
+def test_every_line_is_a_real_unit():
+    for line in table.LINES:
+        assert table.unit_id(line.unit) >= 0, line.unit
 
-        assert table.group(difficulty, 0).other == 0  # wave 0: melee only
-
-        for wave in range(1, table.WAVES):
-            group = table.group(difficulty, wave)
-            assert group.main >= 1 and group.other >= 1, (difficulty, wave)
+    for unit in table.specials():
+        assert table.unit_id(unit) >= 0, unit
 
 
-def test_proposal_numbers():
-    assert table.GROUPS[Difficulty.HARD][1] == table.Group(4, 2)
-    assert table.group(Difficulty.STANDARD, 9) == table.Group(8, 3, 3)
-    assert table.group(Difficulty.MODERATE, 20) == table.group(Difficulty.MODERATE, 9)  # fighting on
-
-
-def test_legion_ages():
-    assert table.legion_age(Difficulty.STANDARD, 3) == Age.STONE
-    assert table.legion_age(Difficulty.HARD, 2) == Age.TOOL
-    assert table.legion_age(Difficulty.MODERATE, 9) == Age.POST_IRON
-
-
-def test_siege_only_from_bronze():
-    for difficulty in Difficulty:
-        for wave in range(table.WAVES):
-            if table.group(difficulty, wave).siege:
-                assert table.legion_age(difficulty, wave) >= Age.BRONZE, (difficulty, wave)
-
-
-def test_archetypes_cover_every_age_and_fit():
+def test_archetypes_start_and_climb():
     assert len(table.ARCHETYPES) >= len(waves.LANES)  # no two lanes the same
+    start = {slot: table.BY_UNIT[unit] for slot, (unit, _) in table.START.items()}
 
     for archetype in table.ARCHETYPES:
-        for age in Age:
-            main, other = table.choices(archetype, age)
-            assert main and other and len(main) <= waves.CHOICES and len(other) <= waves.CHOICES
-
-            for name in main + other:
-                assert table.unit_id(name) >= 0, name
+        for slot in Slot:
+            held = [table.BY_UNIT[u] for u in archetype.lines if table.BY_UNIT[u].slot == slot]
+            assert start[slot] in held, (archetype.name, slot)
+            assert max(line.age for line in held) >= Age.BRONZE, (archetype.name, slot)  # something to swap to
 
 
-def test_groups_fit_their_spawn_rows():
-    biggest = max(table.group(d, w).units + 1 for d in Difficulty for w in range(table.WAVES))
+def test_new_steps_start_at_zero():
+    assert table.STEPS[Step.NOTHING] == 0 and table.STEPS[Step.AGAIN] == 0
+    assert sum(table.STEPS.values()) > 0
+
+
+def test_every_upgrade_improves_something():
+    data = source_dat()
+    everyone = waves.units()
+    techs = {u.tech for u in table.UPGRADES}
+
+    for upgrade in table.UPGRADES:
+        assert any(table.improves(data, upgrade, unit) for unit in everyone), upgrade.name
+        assert upgrade.requires < 0 or upgrade.requires in techs, upgrade.name
+
+
+def test_only_what_applies():
+    data = source_dat()
+    by_name = {u.name: u for u in table.UPGRADES}
+    assert table.improves(data, by_name["Bronze Shield"], "slinger")
+    assert not table.improves(data, by_name["Leather Armor (archers)"], "slinger")  # Slingers aren't archers
+    assert not table.improves(data, by_name["Nobility"], "axeman")
+
+
+def test_cadence():
+    assert table.SEND_TIMES == {
+        table.Difficulty.STANDARD: 300,
+        table.Difficulty.MODERATE: 180,
+        table.Difficulty.HARD: 120,
+    }
+
+
+def test_big_groups_fit_their_spawn_area():
+    biggest = 60  # units in one lane's group, siege and Priest included
     rows = -(-biggest // waves.COLUMNS)
-    assert 0.5 + (rows - 1) * waves.ROW_SPACING < waves.DEPTH
+    assert 0.5 + (rows - 1) * waves.ROW_SPACING < waves.DEPTH + waves.MARGIN
+    assert (waves.COLUMNS - 1) / 2 * waves.SPACING < 1 + waves.MARGIN  # within a row's width and its margin

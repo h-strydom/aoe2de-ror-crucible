@@ -1,4 +1,6 @@
-# Waves
+# Waves (superseded)
+
+Replaced by docs/evolving-waves.md on 2026-11-21: kept for the reasoning only.
 
 Built 2026-11-21: the numbers live in `src/crucible/scenarios/wave_table.py` (this page is the reasoning), the
 running of them in `scenarios/waves.py` and `waves.xs`. Unit ages are RoR's own (read from the data file): Hoplites, Stone

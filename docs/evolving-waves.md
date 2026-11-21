@@ -1,6 +1,6 @@
-# Evolving waves: proposal
+# Evolving waves
 
-Not built: a proposal to review (2026-11-21). It replaces the fixed table in docs/waves.md after a Hard playtest: wave
+Built 2026-11-21 (numbers in `src/crucible/scenarios/wave_table.py`, running in `waves.py` and `waves.xs`). It replaces the fixed table in docs/waves.md after a Hard playtest: wave
 0 was harmless and wave 5 brought Stone Throwers, a cliff rather than a climb.
 
 The idea (from the playtest): no hand-set sizes or ages. Each lane is an army that starts tiny and **evolves one step
@@ -75,11 +75,16 @@ Every wave defeated still gives a boon choice. As waves grow, the shop's tier-up
   techs and ages researched by trigger (a looping trigger per tech, as for the button, set by a variable).
 - Objective and victory: waves defeated, no claim-victory decision.
 
-## Questions for you
+## Decided (2026-11-21)
 
-1. **Shared or per lane?** Per lane (above: four armies growing apart) or one Legion that steps once per wave and every
-   lane spawns from it?
-2. **Age up for the whole Legion?** The age tech gives the Legion free stats, so if one lane ages, all its units do.
-   Simplest: one Legion age, shared, rolled once per wave; lanes still grow and swap on their own.
-3. **Difficulty**: only the cadence (5/3/2 min), or also the step weights (Hard grows more)?
-4. **The end**: run until the Wonder falls, or keep a "claim victory" button after, say, wave 20 for a shorter run?
+- Each lane grows and swaps on its own; upgrades and ages are the Legion's, shared: a lane that rolls one doesn't grow.
+- An upgrade is only rolled if it improves a unit some lane fields (read from each tech's effects in the data: Bronze
+  Shield helps Slingers, Leather Armor for archers doesn't), or the siege and Priests once the Legion can bring them.
+- Siege and Priests aren't in every wave: each lane brings them by chance per age (wave_table SIEGE_CHANCE,
+  PRIEST_CHANCE).
+- Two more steps at weight 0 for now: nothing, and again (two more steps, which may be again: at most MAX_STEPS).
+- Age up: from 2%, +2% per step without one (steps come two per wave, so shared ageing is faster than the per-lane
+  simulation above).
+- Difficulty is the cadence only; the run goes on until the Wonder falls.
+- A browser simulation of 50 waves lives outside the repo (`_Workspace/crucible-wave-sim`, `generate.py` writes it
+  from these tables).
