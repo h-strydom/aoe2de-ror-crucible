@@ -123,3 +123,21 @@ spawn the better unit: no line-upgrade tech is researched (stat upgrades and age
   move-on had every lane on Hoplites and Composite Bowmen. Now a swap moves a slot up its family's next line (Short to
   Broad Swordsmen) or, at the top, to its path's next family; move-on is off; the shared upgrades are stat techs only.
   Simulated two waves into Bronze: Slingers 38%, Clubmen 21%, Axemen 15%, Scouts 9%, Bowmen 7%, Hoplites 1%.
+
+## Announcements, structures, boons, support slots (2026-11-21, built)
+
+- Age ups, Legion upgrades and boons, swaps (and "evolves again") are announced in the middle of the screen, one message
+  a wave (`xsDisplayInstructions`, cPanelMiddle, 10 s); growth isn't mentioned. The Legion researches its techs from XS
+  (`xsResearchTechnology`, force): no trigger per tech.
+- The Legion's upgrades count its own bases: Sentry, Guard and Ballista Towers, Medium and Fortified Walls,
+  Architecture, offered while it still has a tower, wall or building they improve. Ships come later (the outposts and
+  districts will use them).
+- Once the upgrades have run out for good (none left in any age), an upgrade is a boon: one of the 29 that improve a unit
+  or structure the Legion fields (not costs, gathering, training: it spawns its waves), its lowest tier plus one per
+  scale above 1. Simulated: none through wave 20, about 1 by wave 30, 6 by 40, 11 by 49.
+- Support slots: one per 10 waves (WAVES_PER_SUPPORT). For each slot the wave's lanes, from a random one, roll their
+  archetype's supports in order (SUPPORT_CHANCE 30% each, once the Legion's age opens it: Priests and the catapult line
+  from Bronze, the ballista line from Iron); the first that comes up takes the slot; a slot nobody fills stays empty.
+  Melee archetypes prefer Priests; Phalanx the ballista line; Archers and Mounted Archers the catapult line. Siege
+  fields the best line its age has opened. Simulated per wave: 0.3 of 1 slot at wave 10, 1.6 of 2 at 20, 2.7 of 3 at
+  30, 3.5 of 4 at 40.

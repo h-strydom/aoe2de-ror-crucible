@@ -19,8 +19,15 @@ one of STEPS by weight:
   Bowmen), an age up also moves every main slot on as far as the new age opens.
 Siege fields the furthest line its age has opened.
 Each is done `scale` times: 1, plus 1 every SCALE_EVERY waves, times that step's own scale (GROW_SCALE, UPGRADE_SCALE,
-SWAP_SCALE: what curses can raise later). An upgrade or swap that can't happen grows instead. Siege and Priests come
-and go: each wave a lane may bring them, by chance per age.
+SWAP_SCALE: what curses can raise later). An upgrade or swap that can't happen grows instead. Once the upgrades have
+run out for good (none left in any age), the Legion takes boons instead (one that improves something it fields, its
+tier rising with the scale).
+
+Upgrades also count the Legion's own towers, walls and buildings (its bases): tower and wall lines, Architecture.
+
+Support units (siege, Priests) come in support slots: one per WAVES_PER_SUPPORT waves. For each slot the wave's lanes
+(in a random order) each roll their archetype's supports in its order of preference (SUPPORT_CHANCE each, once the
+Legion's age has opened it); the first that comes up takes the slot, and a slot no lane fills stays empty.
 """
 
 from dataclasses import dataclass
@@ -68,6 +75,17 @@ FALLBACK = Difficulty.HARD  # 0 (Hardest), -1 (Extreme)
 SEND_TIMES = {Difficulty.STANDARD: 300, Difficulty.MODERATE: 180, Difficulty.HARD: 120}  # seconds between waves
 
 STEPS = {Step.GROW: 45, Step.UPGRADE: 30, Step.SWAP: 25, Step.NOTHING: 0, Step.AGAIN: 0}  # weights
+
+
+class Support(IntEnum):
+    PRIEST = 0
+    CATAPULT = 1  # the Stone Thrower family: Stone Thrower, Catapult, Heavy Catapult
+    BALLISTA = 2  # Ballista, Helepolis
+
+
+WAVES_PER_SUPPORT = 10  # a support slot per this many waves
+SUPPORT_CHANCE = {Support.PRIEST: 30, Support.CATAPULT: 30, Support.BALLISTA: 30}  # percent, each roll
+SUPPORT_FAMILY = {Support.CATAPULT: "Stone Throwers", Support.BALLISTA: "Ballistas"}  # the Priest is a unit
 AGE_UP_START = 1  # percent
 AGE_UP_STEP = 1  # percent more for every step without an age up
 MAX_STEPS = 8  # a lane's steps in one go at most (AGAIN can chain)
@@ -161,6 +179,18 @@ FAMILIES = (
 )
 BY_NAME = {family.name: family for family in FAMILIES}
 PRIEST = "priest"
+PRIEST_AGE = Age.BRONZE
+# The Legion's own buildings an upgrade or boon can improve (its bases): ids, as the units table lacks some names.
+STRUCTURES = {
+    "watch_tower": 79,
+    "sentry_tower": 234,
+    "guard_tower": 235,
+    "ballista_tower": 236,
+    "small_wall": 72,
+    "medium_wall": 117,
+    "fortified_wall": 155,
+    "barracks": 12,  # stands for every building (Architecture's class)
+}
 
 # A path: stages in order, each a choice of families rolled at the start (None: the path ends there).
 Path = tuple[tuple[str | None, ...], ...]
@@ -181,6 +211,7 @@ class Archetype:
     name: str
     main: Slot
     paths: dict[Slot, tuple[Path, ...]]  # each slot's paths: one rolled at the start
+    supports: tuple[Support, ...] = (Support.PRIEST, Support.CATAPULT, Support.BALLISTA)  # in order of preference
 
 
 ARCHETYPES = (
@@ -189,6 +220,7 @@ ARCHETYPES = (
         "Phalanx",
         Slot.MELEE,
         {Slot.MELEE: ((("Clubmen",), ("Hoplites",)),), Slot.RANGED: (RANGED_SUPPORT,)},
+        (Support.BALLISTA, Support.CATAPULT, Support.PRIEST),
     ),
     Archetype(
         "Cavalry",
@@ -211,7 +243,12 @@ ARCHETYPES = (
             Slot.RANGED: ((("Slingers",), ("Bowmen",), ("Chariot Archers",), ("Elephant Archers",)),),
         },
     ),
-    Archetype("Archers", Slot.RANGED, {Slot.RANGED: (RANGED_BOWMEN,), Slot.MELEE: MELEE_SUPPORTS}),
+    Archetype(
+        "Archers",
+        Slot.RANGED,
+        {Slot.RANGED: (RANGED_BOWMEN,), Slot.MELEE: MELEE_SUPPORTS},
+        (Support.CATAPULT, Support.BALLISTA, Support.PRIEST),
+    ),
     Archetype(
         "Mounted Archers",
         Slot.RANGED,
@@ -221,13 +258,10 @@ ARCHETYPES = (
             ),
             Slot.MELEE: MELEE_SUPPORTS,
         },
+        (Support.CATAPULT, Support.BALLISTA, Support.PRIEST),
     ),
 )
 
-# Siege and Priests: each wave, each lane brings them by chance (percent) from the Bronze Age; siege is one unit of a
-# siege family the Legion's age has opened, at its upgraded line.
-SIEGE_CHANCE = {Age.BRONZE: 20, Age.IRON: 30, Age.POST_IRON: 40}
-PRIEST_CHANCE = {Age.BRONZE: 10, Age.IRON: 20, Age.POST_IRON: 25}
 
 
 @dataclass(frozen=True)
@@ -263,18 +297,32 @@ UPGRADES = (  # stat techs; line upgrades come from FAMILIES
     Upgrade("Engineering", 35, Age.IRON),
     Upgrade("Siege Craft", 111, Age.IRON),
     Upgrade("Afterlife", 18, Age.IRON),
+    # the Legion's bases
+    Upgrade("Sentry Tower", 12, Age.BRONZE),
+    Upgrade("Guard Tower", 15, Age.IRON, 12),
+    Upgrade("Ballista Tower", 2, Age.IRON, 15),
+    Upgrade("Medium Wall", 13, Age.BRONZE),
+    Upgrade("Fortified Wall", 14, Age.IRON, 13),
+    Upgrade("Architecture", 112, Age.BRONZE),
 )
 
 STAT_EFFECTS = (0, 4, 5)  # set, add, multiply an attribute: an effect command a unit feels
+UPGRADE_UNIT = 3  # an effect command that turns one unit into another (a tower or wall line)
 
 
 def unit_id(name: str) -> int:
-    return tables.object_id(name.upper(), "ror")
+    return STRUCTURES[name] if name in STRUCTURES else tables.object_id(name.upper(), "ror")
 
 
 def units() -> list[str]:
-    """Every unit a wave can bring, in index order: each family's lines, then the Priest."""
-    return [line.unit for family in FAMILIES for line in family.lines] + [PRIEST]
+    """Every unit an upgrade can improve, in index order: each family's lines, the Priest, then the Legion's
+    structures."""
+    return [line.unit for family in FAMILIES for line in family.lines] + [PRIEST, *STRUCTURES]
+
+
+def structures_from() -> int:
+    """The index in units() of the first structure."""
+    return units().index(next(iter(STRUCTURES)))
 
 
 def line_upgrades() -> list[tuple[int, int]]:
@@ -282,17 +330,20 @@ def line_upgrades() -> list[tuple[int, int]]:
     return [(f, n) for f, family in enumerate(FAMILIES) for n in range(1, len(family.lines))]
 
 
-def improves(data, upgrade: Upgrade, unit: str) -> bool:
-    """`upgrade`'s tech changes a stat of `unit` (by its id or its class), read from the data."""
-    tech = data.techs[upgrade.tech]
-
-    if tech.effect_id < 0:
-        return False
-
+def improves_by(commands, data, unit: str) -> bool:
+    """Effect commands change a stat of `unit` (by its id or its class), or turn it into another."""
     uid = unit_id(unit)
     klass = data.civs[1].units[uid].class_
+    triples = [c[:3] if isinstance(c, tuple) else (c.type, c.a, c.b) for c in commands]  # a boon's are tuples
 
     return any(
-        command.type in STAT_EFFECTS and (command.a == uid or (command.a == -1 and command.b == klass))
-        for command in data.effects[tech.effect_id].effect_commands
+        (kind in STAT_EFFECTS and (a == uid or (a == -1 and b == klass))) or (kind == UPGRADE_UNIT and a == uid)
+        for kind, a, b in triples
     )
+
+
+def improves(data, upgrade: Upgrade, unit: str) -> bool:
+    """`upgrade`'s tech changes `unit`, read from the data."""
+    tech = data.techs[upgrade.tech]
+
+    return tech.effect_id >= 0 and improves_by(data.effects[tech.effect_id].effect_commands, data, unit)

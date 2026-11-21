@@ -82,3 +82,24 @@ def test_slingers_hold_until_bronze():
     for family in table.FAMILIES:
         if family.slot == Slot.RANGED and family.name != "Slingers":
             assert family.age >= Age.BRONZE, family.name
+
+
+def test_every_archetype_ranks_every_support_once():
+    for archetype in table.ARCHETYPES:
+        assert sorted(archetype.supports) == sorted(table.Support), archetype.name
+
+    assert table.WAVES_PER_SUPPORT == 10 and all(0 < c <= 100 for c in table.SUPPORT_CHANCE.values())
+
+
+def test_structure_upgrades_improve_the_legions_bases():
+    data = source_dat()
+    by_name = {u.name: u for u in table.UPGRADES}
+    assert table.improves(data, by_name["Sentry Tower"], "watch_tower")
+    assert table.improves(data, by_name["Fortified Wall"], "small_wall")
+    assert table.structures_from() == table.units().index("watch_tower")
+
+
+def test_legion_boons_help_a_spawned_army(techs):
+    boons = waves.legion_boons(source_dat(), techs)
+    assert len(boons) >= 20
+    assert all(boon.stat not in waves.USELESS_TO_THE_LEGION for boon, _, _ in boons)

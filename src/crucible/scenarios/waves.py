@@ -27,6 +27,7 @@ The XS (waves.xs) decides; triggers do: XS sets a variable, a looping trigger ac
 from dataclasses import dataclass
 from pathlib import Path
 
+from crucible.boons.model import Tier
 from crucible.datamod.shop import SEND_WAVE
 from crucible.scenarios import wave_table as table
 from crucible.scenarios.wave_table import Age, Difficulty
@@ -53,13 +54,13 @@ TRADERS, RELICS = 4, 7  # where the defeated count is kept: the Traders' relics
 COUNTER = f"<Relics Captured, {TRADERS}>"
 NEVER = 1_000_000  # the objective's count: it never completes
 CLAIM_AFTER = 5  # seconds: the Claim victory decision comes up
+NEWS_TIME = 10  # seconds a wave's announcement (age ups, upgrades, swaps) stays in the middle of the screen
 TIMER = 0  # display timer slot
 
 WALK_VARIABLE = "crucible_wave_walk"  # lanes walking in: 1 the Capital's, 2 the City States'
 SEND_VARIABLE = "crucible_wave_send"  # lanes sent, the same
 TIMER_VARIABLE = "crucible_wave_timer"  # difficulty + 1: restart the timer at its time
 BUTTON_VARIABLE = "crucible_wave_button"  # 1: button on, 2: off
-TECH_VARIABLE = "crucible_legion_tech"  # a tech id: the Legion researches it
 
 Tile = tuple[int, int]
 Box = tuple[int, int, int, int]  # x1, y1, x2, y2, inclusive
@@ -213,35 +214,66 @@ def _objective(ctx) -> None:
     )
 
 
-def legion_techs() -> dict[int, str]:
-    """Every tech the Legion may research: tech -> its name."""
-    ages = {tech: age.title for age, tech in table.AGE_TECHS.items()}
+def _useless() -> set:
+    from crucible.bonuses.model import Stat
 
-    return ages | {u.tech: u.name for u in table.UPGRADES}
+    return {  # it spawns its waves and never trains, builds, gathers or researches
+        Stat.COST,
+        Stat.FOOD_COST,
+        Stat.WOOD_COST,
+        Stat.TRAINING_SPEED,
+        Stat.BUILD_SPEED,
+        Stat.RESEARCH_SPEED,
+        Stat.RESEARCH_TIME,
+        Stat.POPULATION,
+        Stat.WORK_RATE,
+        Stat.CARRY,
+        Stat.FOOD,
+        Stat.ALL_RESOURCES,
+        Stat.STARTING_FOOD,
+        Stat.TRADE_GOLD,
+        Stat.TRIBUTE_TAX,
+    }
+
+
+USELESS_TO_THE_LEGION = _useless()
+
+
+def legion_boons(game, techs: dict[str, int]) -> list[tuple]:
+    """The boons the Legion can take once its upgrades run out: (boon, {tier: tech}, improves by unit index), for every
+    boon but drawbacks that compiles and improves something in wave_table.units()."""
+    from crucible.boons import catalogue
+    from crucible.boons.compile import commands
+    from crucible.boons.model import Flag
+    from crucible.datamod.boons import key
+
+    found = []
+
+    for boon in catalogue.ALL:
+        if Flag.DRAWBACK in boon.flags or boon.stat in USELESS_TO_THE_LEGION:
+            continue
+
+        tiers = {tier: techs[key(boon, tier)] for tier in boon.tiers if key(boon, tier) in techs}
+
+        try:
+            effect = [c for tier in tiers for c in commands(boon, tier, game)]
+        except NotImplementedError:
+            continue
+
+        improves = [int(table.improves_by(effect, game, unit)) for unit in table.units()]
+
+        if tiers and any(improves):
+            found.append((boon, tiers, improves))
+
+    return found
 
 
 def _triggers(ctx, tech: int) -> None:
-    for variable in (WALK_VARIABLE, SEND_VARIABLE, TIMER_VARIABLE, BUTTON_VARIABLE, TECH_VARIABLE):
+    for variable in (WALK_VARIABLE, SEND_VARIABLE, TIMER_VARIABLE, BUTTON_VARIABLE):
         ctx.var(variable)
 
     ctx.trigger("Wave: no button at start", [], [_button(tech, on=False)])
     _objective(ctx)
-    research = (
-        _on(
-            TECH_VARIABLE,
-            tech_id,
-            f"Legion: {name}",
-            [
-                {
-                    "type": "research_technology",
-                    "source_player": LEGION,
-                    "technology": tech_id,
-                    "force_research_technology": 1,
-                }
-            ],
-        )
-        for tech_id, name in legion_techs().items()
-    )
     ctx.triggers(
         _on(BUTTON_VARIABLE, 1, "Wave: button on", [_button(tech, on=True)]),
         _on(BUTTON_VARIABLE, 2, "Wave: button off", [_button(tech, on=False)]),
@@ -257,7 +289,6 @@ def _triggers(ctx, tech: int) -> None:
             _on(WALK_VARIABLE, value, f"Wave: {label} walk in", [e for lane in lanes for e in _walk_in(lane)])
             for value, (label, lanes) in SETS.items()
         ),
-        *research,
     )
 
 
@@ -375,7 +406,7 @@ def _path(path: table.Path) -> list[int]:
     return cells
 
 
-def data(game) -> list[str]:
+def data(game, techs: dict[str, int]) -> list[str]:
     """The tables as XS arrays, declared and filled by crucibleWaveData(). `game`: the RoR data (what each upgrade
     improves). Indexes: unit k at its place in wave_table.units(); family f's line i at f * LINES + i (a unit index);
     archetype a's slot s's path p at ((a * 2 + s) * PATHS + p) * STAGES * OPTIONS; whether upgrade u improves unit k at
@@ -409,6 +440,7 @@ def data(game) -> list[str]:
             ]
 
     upgrade_index = {u.tech: n for n, u in enumerate(table.UPGRADES)}
+    boons = legion_boons(game, techs)
     arrays = [
         _ints("crucibleWaveUnitId", [table.unit_id(u) for u in everyone]),
         _strings("crucibleWaveUnitName", [u.replace("_", " ").title() for u in everyone]),
@@ -433,8 +465,32 @@ def data(game) -> list[str]:
             [int(table.improves(game, u, unit)) for u in table.UPGRADES for unit in everyone],
             default=0,
         ),
-        _ints("crucibleWaveSiegeChance", [table.SIEGE_CHANCE.get(age, 0) for age in ages], default=0),
-        _ints("crucibleWavePriestChance", [table.PRIEST_CHANCE.get(age, 0) for age in ages], default=0),
+        _ints(
+            "crucibleWaveSupportPrefer",
+            [int(s) for a in table.ARCHETYPES for s in a.supports],
+        ),
+        _ints("crucibleWaveSupportChance", [table.SUPPORT_CHANCE[s] for s in table.Support], default=0),
+        _ints(
+            "crucibleWaveSupportFamily",
+            [
+                next(n for n, f in enumerate(families) if f.name == table.SUPPORT_FAMILY[s])
+                if s in table.SUPPORT_FAMILY
+                else -1
+                for s in table.Support
+            ],
+        ),
+        _ints(
+            "crucibleWaveSupportAge",
+            [
+                int(table.BY_NAME[table.SUPPORT_FAMILY[s]].age) if s in table.SUPPORT_FAMILY else int(table.PRIEST_AGE)
+                for s in table.Support
+            ],
+        ),
+        _ints("crucibleWaveBoonTech", [boon_tiers.get(t, -1) for _, boon_tiers, _ in boons for t in Tier]),
+        _ints("crucibleWaveBoonLowest", [int(min(boon_tiers)) for _, boon_tiers, _ in boons]),
+        _strings("crucibleWaveBoonName", [boon.title.replace('"', "") for boon, _, _ in boons]),
+        _ints("crucibleWaveBoonImproves", [v for _, _, improves in boons for v in improves], default=0),
+        _strings("crucibleWaveTierName", [t.title for t in Tier]),
         _ints("crucibleWaveAgeTech", [table.AGE_TECHS.get(age, -1) for age in ages]),
         _strings("crucibleWaveAgeName", [a.title for a in ages]),
         _ints("crucibleWaveDifficultyOf", [int(table.GAME_DIFFICULTY.get(g, table.FALLBACK)) for g in range(5)]),
@@ -455,7 +511,7 @@ def data(game) -> list[str]:
     ]
 
 
-def xs(ctx, tech: int, game) -> str:
+def xs(ctx, tech: int, game, techs: dict[str, int]) -> str:
     wonder = next(u for u in ctx.scenario.unit_manager.units[PLAYER] if u.unit_const == WONDER)
     lane_variables = ", ".join(str(_variable_id(ctx, lane_variable(n))) for n in range(len(LANES)))
     lines = [
@@ -466,7 +522,6 @@ def xs(ctx, tech: int, game) -> str:
         f"const int cCrucibleWaveSendVariable = {_variable_id(ctx, SEND_VARIABLE)};",
         f"const int cCrucibleWaveTimerVariable = {_variable_id(ctx, TIMER_VARIABLE)};",
         f"const int cCrucibleWaveButtonVariable = {_variable_id(ctx, BUTTON_VARIABLE)};",
-        f"const int cCrucibleWaveTechVariable = {_variable_id(ctx, TECH_VARIABLE)};",
         f"const int cCrucibleWaveLanes = {len(LANES)};",
         f"const int cCrucibleWaveCapitalLanes = {len(CAPITAL)};",
         f"const int cCrucibleWaveUnits = {len(table.units())};",
@@ -480,8 +535,14 @@ def xs(ctx, tech: int, game) -> str:
         f"const int cCrucibleWaveSteps = {len(table.Step)};",
         f"const int cCrucibleWaveLastAge = {int(Age.POST_IRON)};",
         f"const int cCrucibleWaveSiegeSlot = {int(table.Slot.SIEGE)};",
-        f"const int cCrucibleWaveSiegeAge = {int(min(f.age for f in table.FAMILIES if f.slot == table.Slot.SIEGE))};",
-        f"const int cCrucibleWavePriest = {len(table.units()) - 1};",
+        f"const int cCrucibleWavePriest = {table.units().index(table.PRIEST)};",
+        f"const int cCrucibleWavePriestAge = {int(table.PRIEST_AGE)};",
+        f"const int cCrucibleWaveStructuresFrom = {table.structures_from()};",
+        f"const int cCrucibleWaveSupports = {len(table.Support)};",
+        f"const int cCrucibleWaveWavesPerSupport = {table.WAVES_PER_SUPPORT};",
+        f"const int cCrucibleWaveBoons = {len(legion_boons(game, techs))};",
+        f"const int cCrucibleWaveTiers = {len(Tier)};",
+        f"const int cCrucibleWaveNewsTime = {NEWS_TIME};",
         f"const int cCrucibleWaveAgeUpStart = {table.AGE_UP_START};",
         f"const int cCrucibleWaveAgeUpStep = {table.AGE_UP_STEP};",
         f"const int cCrucibleWaveMaxSteps = {table.MAX_STEPS};",
@@ -502,7 +563,7 @@ def xs(ctx, tech: int, game) -> str:
         f"const int cCrucibleWaveWonder = {wonder.reference_id};",
         f"vector cCrucibleWaveWonderAt = vector({wonder.x}, {wonder.y}, 0.0);",
         f"const float cCrucibleWaveAtWonder = {float(AT_WONDER * AT_WONDER)};",
-        *data(game),
+        *data(game, techs),
         "int crucibleWaveLaneVariable(int lane = 0) {",
         *(f"    if (lane == {n}) {{ return ({v}); }}" for n, v in enumerate(lane_variables.split(", "))),
         "    return (-1);",
@@ -524,4 +585,4 @@ def add(ctx, techs: dict[str, int], game) -> None:
     _triggers(ctx, tech)
     _captions(ctx, game)
     _claim(ctx)
-    ctx.xs(xs(ctx, tech, game))
+    ctx.xs(xs(ctx, tech, game, techs))
