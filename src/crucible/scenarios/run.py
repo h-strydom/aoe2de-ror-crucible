@@ -1,9 +1,9 @@
 """crucible_run: the arena as a game (docs/arena.md), built from the hand-made map (assets/crucible_arena).
 
 So far: the five factions and their diplomacy, the player's base handed to the Allies (the player keeps the Town
-Center and the Wonder, with standard resources and 4 villagers; what the meta doesn't keep is removed but the
-walls and towers, randomly damaged), the City States made invulnerable, the waves (staged, then sent: waves.py),
-and defeat when the Wonder falls. Raids and the win come later.
+Center and the Wonder, with standard resources and 4 villagers; what the meta doesn't keep is destroyed but the
+walls, randomly damaged and none destroyed, and the towers, whole), the City States made invulnerable, the waves
+(staged, then sent: waves.py), and defeat when the Wonder falls. Raids come later.
 
 Played with the Crucible data mod (the Send next wave button is one of its techs).
 """
@@ -154,7 +154,6 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             ctx.xs(
                 run_xs.start(
                     walls,
-                    towers,
                     city_states,
                     allies=Faction.ALLIES,
                     player=Faction.PLAYER,

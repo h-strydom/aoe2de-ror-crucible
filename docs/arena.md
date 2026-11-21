@@ -53,9 +53,9 @@ included, belongs to the Allies (5):
 - 3 seconds in, once the meta upgrades have kept the player's share (and the 2 houses every run starts with), the
   Allies' other buildings in the camp are destroyed (their rubble stays a while), out of the way; their walls and
   towers stay, and an unattackable Allies house on the north edge keeps them in the game
-- towers start at 40-75% of their HP
-- walls keep their normal HP but start randomly damaged: some destroyed, some heavily damaged, some fine; more damaged
-  than destroyed or whole. The camp's Fortified Walls stay Fortified and the Allies'
+- towers start whole
+- walls keep their normal HP but start randomly damaged, none destroyed: about half heavily damaged (10-35%), 29%
+  damaged (40-75%), 18% fine (80-100%). The camp's Fortified Walls stay Fortified and the Allies'
 
 The player starts with standard resources (200 food, 200 wood, 150 stone) and 4 villagers by the Town Center; a meta
 upgrade adds 6 more just south of them.

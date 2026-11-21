@@ -61,3 +61,11 @@ def test_spawn_rows_short_of_staging():
         sx1, sy1, sx2, sy2 = lane.spawn_rows
         tx1, ty1, tx2, ty2 = lane.staged
         assert sx2 < tx1 or tx2 < sx1 or sy2 < ty1 or ty2 < sy1, lane.name  # a unit in its spawn rows isn't staged
+
+
+def test_walls_start_damaged_never_destroyed():
+    from crucible.scenarios import run_xs
+
+    assert sum(chance for chance, _, _ in run_xs.WALL_STATES) == 100
+    assert all(low > 0 for _, low, _ in run_xs.WALL_STATES)
+    assert "crucibleRunTowers" not in run_xs.start({72: 200}, [], allies=5, player=1, invulnerable=2)
