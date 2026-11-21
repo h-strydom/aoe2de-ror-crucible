@@ -110,9 +110,12 @@ in it is dead. The player sees each wave's units wherever they go (not the rest 
 defeated waves to 9 ("Defeat 9 waves (n/9)"), and chat names each one as it falls. Waves clump as they walk, so only
 the middle tile of each row matters as a reference.
 
-**Boons.** Each wave defeated gives one decision in the shop (`shop/`): two boon categories on the Wonder, then a
-boon of the one picked on each boon slot. For now every boon (but drawbacks) can come up. Each boon researched gets a
-line in the Objectives panel (the Scouts text can't change during a game).
+**Boons.** Each wave defeated (and each Legion base destroyed) gives one decision in the shop (`shop/`): two boon
+categories on the Wonder, each from a different tag axis ("Combat boons", "Stable boons", "Yamato boons"), then a random
+boon of the one picked on each boon slot. The boons are the tiered ones (`crucible.boons`): a boon comes at its lowest
+tier, or 20% of the time one tier up and 10% two tiers up (capped at its top tier), at its lowest tier's price
+(`TIER_COSTS`, `TIER_UPS`). Every boon but drawbacks can come up. Each boon tier researched gets a line in the
+Objectives panel (the Scouts text can't change during a game).
 
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's

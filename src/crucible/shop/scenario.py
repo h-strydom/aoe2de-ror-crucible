@@ -1,6 +1,6 @@
 """Adding the shop to a scenario: the two triggers that re-enable the choices, then the XS (data block + runtime).
 
-The scenario calls crucibleShopOpen() from its own XS when a wave is defeated.
+The scenario calls crucibleShopOpen() from its own XS when a wave is defeated (and a base's objective does).
 """
 
 from pathlib import Path
@@ -37,8 +37,8 @@ def variable_id(ctx, name: str) -> int:
 
 def xs(config: ShopConfig, techs: dict[str, int], choices_variable: int, **meta) -> str:
     """`meta`: the meta upgrades' trigger variables (see xs_data)."""
-    boons = shop_pool.boons(config)
-    data = xs_data(config, techs, boons, shop_pool.categories(config, boons), choices_variable, **meta)
+    boons = shop_pool.boons(config, techs)
+    data = xs_data(config, techs, boons, shop_pool.categories(boons), choices_variable, **meta)
 
     return data + "\n" + RUNTIME.read_text(encoding="utf-8")
 

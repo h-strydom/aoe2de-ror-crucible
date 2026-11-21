@@ -1,17 +1,22 @@
-"""The tiered boons (crucible.boons) as hidden techs: one per boon per tier, unplaced and free for now (a trigger or
-XS researches them). Tiers that don't compile yet are left out."""
+"""The tiered boons (crucible.boons) as hidden techs: one per boon per tier, unplaced (the shop puts the one it rolls
+on a Wonder slot). Every tier of a boon costs what its lowest does. Tiers that don't compile yet are left out."""
 
-from crucible.bonuses.model import Icon
 from crucible.boons import catalogue
 from crucible.boons.compile import commands
 from crucible.boons.model import Boon, Tier
 from crucible.datamod.icons import icon_id
 from crucible.datamod.mod import NOWHERE, DataMod
+from crucible.datamod.upgrades import RESEARCH_TIME
 
 
 def key(boon: Boon, tier: Tier) -> str:
     """The manifest key of a boon's tier."""
     return f"boon {boon.id} {tier.name.lower()}"
+
+
+def describe(boon: Boon, tier: Tier) -> str:
+    """"Choson 2 Heirloom: Swordsman line: HP +45 & +1 melee armour & +1 pierce armour"."""
+    return f"{boon.name} {tier.title}: {boon.title} {boon.text(tier)}"
 
 
 def add(mod: DataMod) -> dict[str, str]:
@@ -28,17 +33,18 @@ def add(mod: DataMod) -> dict[str, str]:
 
             name = f"Crucible {key(boon, tier)}"
             title = f"{boon.title} ({tier.title})"
-            text = boon.text(tier)
+            text = describe(boon, tier)
             mod.manifest[key(boon, tier)] = mod.new_tech(
                 name,
                 effect=mod.new_effect(name, found),
                 title=title,
                 description=text,
-                tooltip=f"Research <b>{title}<b>\n{text}",
-                icon=icon_id(Icon.TECHNOLOGY, mod.data),
+                tooltip=f"Research <b>{title}<b> (<cost>)\n{text}",
+                icon=icon_id(boon.icon, mod.data),
                 location=NOWHERE,
                 button=0,
-                research_time=1,
+                research_time=RESEARCH_TIME,
+                costs=boon.cost.items(),
             )
 
     return skipped

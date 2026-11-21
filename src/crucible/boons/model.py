@@ -15,7 +15,7 @@ from enum import IntEnum, StrEnum
 from aoe2ed import tables
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from crucible.bonuses.model import Change, Civ, Group, Stat
+from crucible.bonuses.model import Change, Civ, Cost, Group, Icon, Stat
 
 
 class Tier(IntEnum):
@@ -31,6 +31,19 @@ class Tier(IntEnum):
     @property
     def title(self) -> str:
         return self.name.title()
+
+
+# What a boon costs, by its lowest tier (a higher roll costs the same): one place to tune every price.
+TIER_COSTS: dict[Tier, Cost] = {
+    Tier.POOR: Cost(food=150),
+    Tier.COMMON: Cost(food=250),
+    Tier.IMPROVED: Cost(food=200, gold=75),
+    Tier.MASTERCRAFTED: Cost(food=250, gold=150),
+    Tier.LEGENDARY: Cost(gold=300),
+    Tier.HEIRLOOM: Cost(gold=400),
+}
+# The shop's roll for a better tier than a boon's lowest: (tiers up, chance in percent), checked in order.
+TIER_UPS: tuple[tuple[int, int], ...] = ((2, 10), (1, 20))
 
 
 class Domain(StrEnum):
@@ -230,6 +243,34 @@ class Boon(BaseModel):
     def lowest(self) -> Tier:
         """Sets the price."""
         return min(self.tiers)
+
+    @property
+    def highest(self) -> Tier:
+        return max(self.tiers)
+
+    @property
+    def cost(self) -> Cost:
+        return TIER_COSTS[self.lowest]
+
+    @property
+    def icon(self) -> Icon:
+        """Its button picture: from its first subject or building with one ("Swordsman" is infantry)."""
+        aliases = {Subject.HOPLITE: Icon.INFANTRY, Subject.SWORDSMAN: Icon.INFANTRY}
+        names = {i.value: i for i in Icon}
+
+        for tag in (*self.subjects, *self.buildings):
+            if tag in aliases:
+                return aliases[tag]
+
+            if tag.value.lower() in names:
+                return names[tag.value.lower()]
+
+        return Icon.TECHNOLOGY
+
+    @property
+    def name(self) -> str:
+        """"Choson 2"."""
+        return f"{self.civ.value.title()} {self.number}"
 
     @property
     def civ_types(self) -> tuple[CivType, ...]:

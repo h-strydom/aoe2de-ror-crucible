@@ -1,19 +1,23 @@
-"""Which boons a run's shop can offer, and the categories the choices can be."""
+"""Which boons a run's shop can offer (crucible.boons), and the categories the choices can be: every tag of every axis
+that has a boon in the pool."""
 
-from crucible.bonuses import catalogue
-from crucible.bonuses.model import Category, Modifier, Tag
+from crucible.boons import catalogue
+from crucible.boons.model import AXES, Boon, Category, Flag
+from crucible.datamod.boons import key
 from crucible.shop.config import ShopConfig
 
 
-def boons(config: ShopConfig) -> list[Modifier]:
-    """The boons of the civs in the config (its civ packs), drawbacks left out."""
+def boons(config: ShopConfig, techs: dict[str, int]) -> list[Boon]:
+    """The boons of the civs in the config (its civ packs) with a tier in the data mod, drawbacks left out."""
     return [
-        m
-        for m in catalogue.query(exclude=[Tag.DRAWBACK])
-        if m.civ in config.civs and any(m.in_category(c) for c in config.categories)
+        b
+        for b in catalogue.ALL
+        if b.civ in config.civs
+        and not b.in_category(Flag.DRAWBACK)
+        and any(key(b, tier) in techs for tier in b.tiers)
     ]
 
 
-def categories(config: ShopConfig, pool: list[Modifier]) -> list[Category]:
-    """The config's categories that have any boon in the pool."""
-    return [c for c in config.categories if any(m.in_category(c) for m in pool)]
+def categories(pool: list[Boon]) -> list[Category]:
+    """Every tag with a boon in the pool, axis by axis (Drawback isn't one)."""
+    return [c for axis in AXES for c in axis if c is not Flag.DRAWBACK and any(b.in_category(c) for b in pool)]

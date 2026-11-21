@@ -79,10 +79,6 @@ DAMAGE = {3: "pierce", 4: "melee"}
 EXAMPLES = ("watch_tower", "scout_ship", "stone_thrower", "clubman", "priest", "bowman", "scout", "villager")
 
 
-def datamod(mod) -> None:
-    boon_techs.add(mod)
-
-
 @dataclass(frozen=True)
 class Read:
     """One value to read: kind "object" (unit, attribute, class), "resource" (resource) or "tech" (tech,

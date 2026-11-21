@@ -101,12 +101,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "campaign":
         from aoe2ed import game
 
-        from crucible.bonuses import catalogue
         from crucible.datamod import build
         from crucible.scenarios import campaign as crucible_campaign
         from crucible.scenarios import hub, run
 
-        folder = build.build(list(catalogue.ALL), OUT)
+        folder = build.build([], OUT)
         techs = build.manifest(folder)
         scenarios = [hub.build(OUT, techs), run.build(OUT, techs)]
         built = crucible_campaign.build(OUT, *scenarios)
@@ -122,10 +121,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "package":
         from crucible import package as mod_package
-        from crucible.bonuses import catalogue
         from crucible.datamod import build
 
-        for kind, path in mod_package.package(build.build(list(catalogue.ALL), OUT), args.to).items():
+        for kind, path in mod_package.package(build.build([], OUT), args.to).items():
             print(f"{kind}: {path}")
 
         return 0

@@ -160,7 +160,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             )
             config = ShopConfig()
             shop.add(ctx, config, techs, slots=meta.BOON_SLOTS.key, speed=meta.BOON_SPEED.key)  # before the waves
-            boon_list.add(ctx, shop_pool.boons(config), techs, player=Faction.PLAYER)
+            boon_list.add(ctx, shop_pool.boons(config, techs), techs, player=Faction.PLAYER)
             waves.add(ctx, techs)
             bases.add(ctx, s)  # optional objectives: a boon choice per Legion base destroyed
             town_center = next(u for u in s.unit_manager.units[Faction.PLAYER] if u.unit_const == TOWN_CENTER)

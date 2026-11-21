@@ -4,6 +4,7 @@ from genieutils.datfile import DatFile
 
 from crucible.bonuses import catalogue
 from crucible.bonuses.model import Icon
+from crucible.boons.model import Flag
 from crucible.datamod import build, civs, icons, mod, shop, strings, upgrades
 from crucible.scenarios import check
 from crucible.scenarios.checks import TESTS
@@ -75,19 +76,21 @@ def test_string_ids_count_up_and_escape_newlines():
     assert table.lines() == '10 "A"\n11 "B\\nC"\n'
 
 
-def test_shop_pool_and_xs():
+def test_shop_pool_and_xs(techs):
     config = ShopConfig(slots=3, choices=4)
-    boons = shop_pool.boons(config)
-    assert boons and all(m.civ in config.civs for m in boons)
-    categories = shop_pool.categories(config, boons)
-    assert all(any(m.in_category(c) for m in boons) for c in categories)
+    boons = shop_pool.boons(config, techs)
+    assert boons and all(b.civ in config.civs and not b.in_category(Flag.DRAWBACK) for b in boons)
+    categories = shop_pool.categories(boons)
+    assert all(any(b.in_category(c) for b in boons) for c in categories)
+    assert len({type(c) for c in categories}) >= 2  # choices can come from different axes
 
-    techs = {m.id: 900 + k for k, m in enumerate(boons)} | {shop.choice_key(1): 990, shop.choice_key(2): 991}
     code = shop_scenario.xs(config, techs, choices_variable=0)
     assert xs.check(code)["ok"]
     assert f"const int cCrucibleBoons = {len(boons)};" in code
     assert "const int cCrucibleSlots = 3;" in code
     assert "const int cCrucibleChoices = 4;" in code
+    assert "xsArraySetInt(crucibleTierUpChance, 0, 10);" in code  # +2 tiers: 10%
+    assert "xsArraySetInt(crucibleTierUpChance, 1, 20);" in code  # +1 tier: 20%
 
 
 def test_styles_lose_their_bonuses_and_get_every_tech(tmp_path):

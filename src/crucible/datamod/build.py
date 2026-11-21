@@ -7,7 +7,7 @@ from pathlib import Path
 from aoe2ed.screens import mod_dir
 
 from crucible.bonuses.model import Modifier
-from crucible.datamod import civs, count_icons, hub, shop, upgrades
+from crucible.datamod import boons, civs, count_icons, hub, shop, upgrades
 from crucible.datamod.mod import MANIFEST, MOD, DataMod
 
 
@@ -23,6 +23,7 @@ def build(
     mod = DataMod.from_ror()
     civs.strip_bonuses(mod)
     upgrades.add(mod, modifiers, buttons)
+    boons.add(mod)  # the tiered boons the shop offers
     shop.add(mod)
     hub.add(mod)
     count_icons.add(mod)

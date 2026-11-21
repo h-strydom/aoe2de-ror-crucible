@@ -1,7 +1,9 @@
 // ---- Crucible shop: runtime (the generated data block comes first) ----
-// crucibleShopOpen() after a wave grants cCrucibleChoices choices. Each choice: two categories on the choice buttons;
-// a click locks in (the other is disabled); when the pick finishes, each boon slot on row 1 gets a boon of that
-// category, stacking on the ones there, and the next choice (if any are left) appears on the same buttons.
+// crucibleShopOpen() after a wave (or a base) grants cCrucibleChoices choices. Each choice: two categories on the choice
+// buttons, from different tag axes (a combat boon, a Stable boon); a click locks in (the other is disabled); when the
+// pick finishes, each boon slot on row 1 gets a random boon of that category, at its lowest tier or, by the tier-up
+// roll, a better one at the same price; boons stack on a slot, and the next choice (if any are left) appears on the
+// same buttons.
 
 int crucibleShopState = 0;  // 0 closed, 1 choosing, 2 picked
 int crucibleShopCategory1 = -1;
@@ -29,16 +31,14 @@ int crucibleShopChoice(int number = 1) {
     return (cCrucibleChoice2);
 }
 
-// Boons of a category (and rarity, unless -1) that haven't been offered yet.
-int crucibleShopAvailable(int category = 0, int rarity = -1) {
+// Boons of a category that haven't been offered yet.
+int crucibleShopAvailable(int category = 0) {
     int count = 0;
 
     for (boon = 0; < cCrucibleBoons) {
         if (xsArrayGetInt(crucibleBoonMember, category * cCrucibleBoons + boon) == 1) {
             if (xsArrayGetInt(crucibleBoonTaken, boon) == 0) {
-                if ((rarity < 0) || (xsArrayGetInt(crucibleBoonRarity, boon) == rarity)) {
-                    count = count + 1;
-                }
+                count = count + 1;
             }
         }
     }
@@ -46,12 +46,12 @@ int crucibleShopAvailable(int category = 0, int rarity = -1) {
     return (count);
 }
 
-// A random category with boons left, other than `skip`; -1 if none.
-int crucibleShopRandomCategory(int skip = -1) {
+// A random category with boons left, not of axis `skipAxis`; -1 if none.
+int crucibleShopRandomCategory(int skipAxis = -1) {
     int count = 0;
 
     for (a = 0; < cCrucibleCategories) {
-        if ((a != skip) && (crucibleShopAvailable(a, -1) > 0)) {
+        if ((xsArrayGetInt(crucibleCategoryAxis, a) != skipAxis) && (crucibleShopAvailable(a) > 0)) {
             count = count + 1;
         }
     }
@@ -63,7 +63,7 @@ int crucibleShopRandomCategory(int skip = -1) {
     int roll = xsGetRandomNumberLH(0, count);
 
     for (b = 0; < cCrucibleCategories) {
-        if ((b != skip) && (crucibleShopAvailable(b, -1) > 0)) {
+        if ((xsArrayGetInt(crucibleCategoryAxis, b) != skipAxis) && (crucibleShopAvailable(b) > 0)) {
             if (roll == 0) {
                 return (b);
             }
@@ -78,13 +78,13 @@ int crucibleShopRandomCategory(int skip = -1) {
 void crucibleShopName(int number = 1, int category = 0) {
     int tech = crucibleShopChoice(number);
     string name = xsArrayGetString(crucibleCategoryName, category);
-    int count = crucibleShopAvailable(category, -1);
+    int count = crucibleShopAvailable(category);
 
     xsSetTechName(tech, 1, name + " boons (" + count + ")");
     xsSetTechDescription(tech, 1, "Choose from " + count + " " + name + " boons.");
 }
 
-// Show the next choice: two categories with boons left on the choice buttons.
+// Show the next choice: two categories with boons left on the choice buttons, from different axes.
 void crucibleShopShow() {
     crucibleShopCategory1 = crucibleShopRandomCategory(-1);
 
@@ -94,7 +94,7 @@ void crucibleShopShow() {
         return;
     }
 
-    crucibleShopCategory2 = crucibleShopRandomCategory(crucibleShopCategory1);
+    crucibleShopCategory2 = crucibleShopRandomCategory(xsArrayGetInt(crucibleCategoryAxis, crucibleShopCategory1));
     crucibleShopName(1, crucibleShopCategory1);
 
     if (crucibleShopCategory2 < 0) {
@@ -118,40 +118,9 @@ void crucibleShopOpen() {
     }
 }
 
-// A rarity drawn by points among those the category still has; -1 if none.
-int crucibleShopRarity(int category = 0) {
-    int total = 0;
-
-    for (a = 0; < cCrucibleRarities) {
-        if (crucibleShopAvailable(category, a) > 0) {
-            total = total + xsArrayGetInt(crucibleRarityPoints, a);
-        }
-    }
-
-    if (total == 0) {
-        return (-1);
-    }
-
-    int roll = xsGetRandomNumberLH(0, total);
-
-    for (b = 0; < cCrucibleRarities) {
-        if (crucibleShopAvailable(category, b) > 0) {
-            int points = xsArrayGetInt(crucibleRarityPoints, b);
-
-            if (roll < points) {
-                return (b);
-            }
-
-            roll = roll - points;
-        }
-    }
-
-    return (-1);
-}
-
-// A random boon of the category and rarity that hasn't been offered; -1 if none.
-int crucibleShopBoon(int category = 0, int rarity = 0) {
-    int count = crucibleShopAvailable(category, rarity);
+// A random boon of the category that hasn't been offered; -1 if none.
+int crucibleShopBoon(int category = 0) {
+    int count = crucibleShopAvailable(category);
 
     if (count == 0) {
         return (-1);
@@ -161,7 +130,7 @@ int crucibleShopBoon(int category = 0, int rarity = 0) {
 
     for (boon = 0; < cCrucibleBoons) {
         if (xsArrayGetInt(crucibleBoonMember, category * cCrucibleBoons + boon) == 1) {
-            if ((xsArrayGetInt(crucibleBoonTaken, boon) == 0) && (xsArrayGetInt(crucibleBoonRarity, boon) == rarity)) {
+            if (xsArrayGetInt(crucibleBoonTaken, boon) == 0) {
                 if (roll == 0) {
                     return (boon);
                 }
@@ -169,6 +138,49 @@ int crucibleShopBoon(int category = 0, int rarity = 0) {
                 roll = roll - 1;
             }
         }
+    }
+
+    return (-1);
+}
+
+// How many tiers up the roll gives: each (tiers, chance) in turn takes its slice of 100.
+int crucibleShopTiersUp() {
+    int roll = xsGetRandomNumberLH(0, 100);
+
+    for (i = 0; < cCrucibleTierUps) {
+        int chance = xsArrayGetInt(crucibleTierUpChance, i);
+
+        if (roll < chance) {
+            return (xsArrayGetInt(crucibleTierUpSteps, i));
+        }
+
+        roll = roll - chance;
+    }
+
+    return (0);
+}
+
+// The tech of the boon's rolled tier: its lowest, up by the roll, down to the best tier it has a tech for.
+int crucibleShopTierTech(int boon = 0) {
+    int lowest = xsArrayGetInt(crucibleBoonLowest, boon);
+    int tier = lowest + crucibleShopTiersUp();
+
+    if (tier >= cCrucibleTiers) {
+        tier = cCrucibleTiers - 1;
+    }
+
+    while (tier >= lowest) {
+        int tech = xsArrayGetInt(crucibleBoonTier, boon * cCrucibleTiers + tier);
+
+        if (tech >= 0) {
+            if (tier > lowest) {
+                xsChatData("Shop: a boon rolled %d tiers up", tier - lowest);
+            }
+
+            return (tech);
+        }
+
+        tier = tier - 1;
     }
 
     return (-1);
@@ -199,11 +211,10 @@ void crucibleShopOffer(int category = 0) {
     }
 
     for (slot = 0; < slots) {
-        int rarity = crucibleShopRarity(category);
+        int boon = crucibleShopBoon(category);
 
-        if (rarity >= 0) {
-            int boon = crucibleShopBoon(category, rarity);
-            int tech = xsArrayGetInt(crucibleBoonTech, boon);
+        if (boon >= 0) {
+            int tech = crucibleShopTierTech(boon);
 
             xsEffectAmount(cModifyTech, tech, cAttrSetTime, time, 1);
             xsEffectAmount(cModifyTech, tech, cAttrSetLocation, cCrucibleWonder, 1);
