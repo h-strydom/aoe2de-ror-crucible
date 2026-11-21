@@ -490,7 +490,6 @@ def xs(ctx, tech: int, game) -> str:
         f"const int cCrucibleWaveGrowScale = {table.GROW_SCALE};",
         f"const int cCrucibleWaveUpgradeScale = {table.UPGRADE_SCALE};",
         f"const int cCrucibleWaveSwapScale = {table.SWAP_SCALE};",
-        f"const int cCrucibleWaveLineWeight = {table.LINE_WEIGHT};",
         f"const bool cCrucibleWaveMoveOn = {'true' if table.MOVE_ON else 'false'};",
         f"const int cCrucibleWaveStartCount = {table.START_COUNT};",
         f"const int cCrucibleWaveTierUpPerWave = {table.TIER_UP_PER_WAVE};",

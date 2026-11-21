@@ -62,7 +62,7 @@ BOONS = (
         domain=Domain.ECONOMY,
         kind=Kind.RESOURCES,
         subjects=(Subject.FOOD,),
-        tiers=ladder(Tier.POOR, flat(75), flat(150), flat(300)),
+        tiers=ladder(Tier.POOR, flat(150), flat(300), flat(450)),  # 150 at Poor (playtest 2026-11-21)
     ),
     Boon(
         civ=Civ.PALMYRANS,

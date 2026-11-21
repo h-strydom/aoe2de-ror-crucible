@@ -119,3 +119,7 @@ spawn the better unit: no line-upgrade tech is researched (stat upgrades and age
 - Bowmen come from the Bronze Age, not the Tool (playtests 2026-11-21): Slingers beat the player's archers, and plain
   Bowmen in the Tool Age made a lane easier, so ranged lanes hold Slingers until then; they start as plain Bowmen (going
   straight to Improved was too big a jump), and Improved and Composite come by line upgrades.
+- Line steps are swaps, per lane (playtest 2026-11-21): one or two waves into the Bronze Age, shared line upgrades and
+  move-on had every lane on Hoplites and Composite Bowmen. Now a swap moves a slot up its family's next line (Short to
+  Broad Swordsmen) or, at the top, to its path's next family; move-on is off; the shared upgrades are stat techs only.
+  Simulated two waves into Bronze: Slingers 38%, Clubmen 21%, Axemen 15%, Scouts 9%, Bowmen 7%, Hoplites 1%.

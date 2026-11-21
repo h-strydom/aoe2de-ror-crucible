@@ -1,20 +1,23 @@
 """How the waves of crucible_run evolve (docs/evolving-waves.md): no set sizes or ages, an army per lane that takes a
 step each time it's about to spawn.
 
-Units come in families (Swordsmen: Short, Broad, Long Swordsman, Legionary), moved along by RoR's own line-upgrade
-techs. Each lane rolls an archetype at the start (no two the same): a main path for one slot and a support path for
-the other, each a chain of families ("Clubmen, Swordsmen"); where a path has a choice ("Bowmen, then Chariot Archers or
-not") it's rolled once, at the start. A lane's slot holds a family on its path and a count; it fields the family's line
-the Legion has upgraded it to.
+Units come in families (Swordsmen: Short, Broad, Long Swordsman, Legionary), each slot moving up its family's lines by
+swaps (playtest 2026-11-21: shared line upgrades made the Bronze Age jump too far at once). Each lane rolls an
+archetype at the start (no two the same): a main path for one slot and a support path for the other, each a chain of
+families ("Clubmen, Swordsmen"); where a path has a choice ("Bowmen, then Chariot Archers or not") it's rolled once, at
+the start. A lane's slot holds a family on its path, the line of it it's on, and a count.
 
 A step: first the age-up roll (AGE_UP_START percent, + AGE_UP_STEP for every step without one, back after one), else
 one of STEPS by weight:
 - grow: units to the main slot (MAIN_SHARE percent of the time) or the support;
-- upgrade: the Legion's (shared by every lane): a stat tech, or a family's next line (LINE_WEIGHT times as likely: the
-  waves simply spawn the better unit, no tech), but only what improves a unit some lane fields (or siege and Priests,
-  once the Legion can bring them); a support slot never fields a Post-Iron line (MAIN_ONLY), so it stops a line short;
-- swap: a slot moves one family on along its path, once the Legion's age opens it. With MOVE_ON, an age up also moves
-  every main slot on as far as the new age opens its path.
+- upgrade: the Legion's (shared by every lane): a stat tech, but only one that improves a unit some lane fields (or
+  siege and Priests, once the Legion can bring them);
+- swap: a slot moves one step up: its family's next line if the Legion's age has opened it (Short to Broad Swordsmen,
+  Improved to Composite Bowmen: the waves just spawn the better unit), else its path's next family, from that
+  family's first line. A support slot never fields a Post-Iron line (MAIN_ONLY), so it stops a line short. With
+  MOVE_ON (off since a playtest: one or two waves into the Bronze Age the lanes had jumped to Hoplites and Composite
+  Bowmen), an age up also moves every main slot on as far as the new age opens.
+Siege fields the furthest line its age has opened.
 Each is done `scale` times: 1, plus 1 every SCALE_EVERY waves, times that step's own scale (GROW_SCALE, UPGRADE_SCALE,
 SWAP_SCALE: what curses can raise later). An upgrade or swap that can't happen grows instead. Siege and Priests come
 and go: each wave a lane may bring them, by chance per age.
@@ -73,9 +76,8 @@ SCALE_EVERY = 10  # waves: the scale goes up by 1
 GROW_SCALE = 1  # units per grow, times the scale
 UPGRADE_SCALE = 1  # upgrades per upgrade step, times the scale
 SWAP_SCALE = 1  # families moved on per swap step, times the scale
-LINE_WEIGHT = 3  # a line upgrade is this many times as likely as a stat upgrade
 MAIN_ONLY = Age.POST_IRON  # lines of this age (Legionaries, Centurions, Cataphracts...) only in a main slot
-MOVE_ON = True  # an age up moves each lane's main slot on to the next family on its path, once that age opens it
+MOVE_ON = False  # an age up moves each lane's main slot on as far as the new age opens (off: Bronze came too fast)
 START_COUNT = 2  # units in each slot before a lane's first step
 
 TIER_UP_PER_WAVE = 1  # percent added to each tier-up chance in the shop per wave defeated
