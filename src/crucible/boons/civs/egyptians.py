@@ -1,0 +1,95 @@
+"""Egyptians: "Chariot and Priest civilization" (RoR string 120150)."""
+
+from crucible.bonuses.model import Civ, Group, Stat, flat, pct
+from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, extra, ladder
+
+BOONS = (
+    Boon(
+        civ=Civ.EGYPTIANS,
+        number=1,
+        title="Farms: Cost",
+        stat=Stat.COST,
+        targets=("farm",),
+        domain=Domain.ECONOMY,
+        kind=Kind.DISCOUNT,
+        subjects=(
+            Subject.FOOD,
+            Subject.BUILDING,
+        ),
+        tiers=ladder(Tier.POOR, pct(-0.2), pct(-0.35), pct(-0.5)),
+    ),
+    Boon(
+        civ=Civ.EGYPTIANS,
+        number=2,
+        title="Villager: Work speed, Gold",
+        stat=Stat.WORK_RATE,
+        groups=(Group.GOLD_MINERS,),
+        domain=Domain.ECONOMY,
+        kind=Kind.GATHERING,
+        subjects=(
+            Subject.VILLAGER,
+            Subject.GOLD,
+        ),
+        buildings=(Building.TOWN_CENTER,),
+        tiers=ladder(Tier.MASTERCRAFTED, pct(0.2), pct(0.4), (pct(0.6), extra(flat(3), Stat.CARRY))),
+    ),
+    Boon(
+        civ=Civ.EGYPTIANS,
+        number=3,
+        title="Villager: Capacity, gold",
+        stat=Stat.CARRY,
+        groups=(Group.GOLD_MINERS,),
+        domain=Domain.ECONOMY,
+        kind=Kind.GATHERING,
+        subjects=(
+            Subject.VILLAGER,
+            Subject.GOLD,
+        ),
+        buildings=(Building.TOWN_CENTER,),
+        tiers=ladder(Tier.POOR, flat(2), flat(4), flat(8)),
+    ),
+    Boon(
+        civ=Civ.EGYPTIANS,
+        number=4,
+        title="Chariots: HP",
+        stat=Stat.HP,
+        targets=(
+            "chariot",
+            "chariot_archer",
+            "scythe_chariot",
+        ),
+        domain=Domain.MILITARY,
+        kind=Kind.COMBAT,
+        subjects=(Subject.CHARIOT,),
+        buildings=(
+            Building.STABLE,
+            Building.ARCHERY_RANGE,
+        ),
+        tiers=ladder(Tier.COMMON, pct(0.15), pct(0.25), pct(0.33)),
+    ),
+    Boon(
+        civ=Civ.EGYPTIANS,
+        number=5,
+        title="Priest: Range",
+        stat=Stat.RANGE,
+        targets=("priest",),
+        domain=Domain.MILITARY,
+        kind=Kind.FAITH,
+        subjects=(Subject.PRIEST,),
+        buildings=(Building.TEMPLE,),
+        tiers=ladder(Tier.MASTERCRAFTED, flat(1), flat(2), (flat(3), extra(pct(0.25), Stat.CONVERSION_SPEED))),
+    ),
+    Boon(
+        civ=Civ.EGYPTIANS,
+        number=6,
+        title="Priest: Pierce armour",
+        stat=Stat.PIERCE_ARMOUR,
+        targets=("priest",),
+        domain=Domain.MILITARY,
+        kind=Kind.COMBAT,
+        subjects=(Subject.PRIEST,),
+        buildings=(Building.TEMPLE,),
+        flags=(Flag.TEAM,),
+        tiers=ladder(Tier.POOR, flat(1), flat(2), flat(3)),
+    ),
+)

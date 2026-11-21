@@ -169,6 +169,7 @@ class Stat(StrEnum):
     """What a modifier changes; the value is how descriptions say it."""
 
     HP = "HP"
+    HP_REGENERATION = "HP regeneration"  # per minute; not compiled yet (boons only)
     ATTACK = "attack"
     ATTACK_SPEED = "attack speed"
     MELEE_ARMOUR = "melee armour"
@@ -188,6 +189,7 @@ class Stat(StrEnum):
     HEAL_SPEED = "heal speed"
     REJUVENATION = "faith regeneration"
     CONVERSION_RESISTANCE = "conversion resistance"
+    CONVERSION_SPEED = "conversion speed"  # not compiled yet (boons only)
     POPULATION = "population room"
     FOOD = "food"  # food held, e.g. by Farms
     ALL_RESOURCES = "all resources"  # at the start

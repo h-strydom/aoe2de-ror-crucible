@@ -6,11 +6,13 @@ Parked work, roughly in order. Move an item into its own doc once it's being bui
 
 - **Boon test map**: a check scenario that hands out every boon and shows its effect in game (the unit, building or
   tech it changes, before and after), so each modifier's effect can be confirmed once instead of by chance in runs.
-- **Rarity tiers** (in progress: `D:\_Everything\_Workspace\bonuses-filled.xlsx`): six tiers (Poor, Common, Improved,
-  Mastercrafted, Legendary, Heirloom), each boon covering three in a row; Heirloom adds something beyond the normal
-  effect. A boon's price is set by its lowest tier, so rolling a higher tier is a free upgrade.
-- **Tagging for variety**: offers draw from different tag axes (domain, effect, subject, building, civ, civ type,
-  team), e.g. "combat" vs "stable" vs "team". The axes are in the spreadsheet's Tagging sheet.
+- **Tiered boons** (drafted in `src/crucible/boons/`, one module per civ: the source of truth, kept as Python to
+  build the data mod from): six tiers (Poor to Heirloom), each boon a run of them with a list of effects per tier
+  (extras combine, a new tier is a new `Tier` member). The lowest tier sets the price, so a higher roll is free.
+  Still to do: fold into the data mod (replacing `crucible.bonuses`' fixed values), prices per tier, compile the new
+  stats (HP regeneration, conversion speed).
+- **Offers**: each choice from a different tag axis (domain, effect, subject, building, civ, civ type), then a boon
+  at random with that tag (`catalogue.offer`). Later: picking a group more often makes it likelier.
 - **Wave 0**: an instant wave at the start; killing it gives random Poor boons for free. Waves 1 on stay as they are,
   and victory becomes defeating 10 waves.
 - Custom coloured icons per tier.

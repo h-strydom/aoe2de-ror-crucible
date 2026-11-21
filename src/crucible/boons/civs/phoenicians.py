@@ -1,0 +1,117 @@
+"""Phoenicians: "Elephant and Naval civilization" (RoR string 120156)."""
+
+from crucible.bonuses.model import Civ, Group, Stat, flat, pct
+from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, ladder
+
+BOONS = (
+    Boon(
+        civ=Civ.PHOENICIANS,
+        number=1,
+        title="Villager: Work speed, Wood",
+        stat=Stat.WORK_RATE,
+        groups=(Group.WOODCUTTERS,),
+        domain=Domain.ECONOMY,
+        kind=Kind.GATHERING,
+        subjects=(
+            Subject.VILLAGER,
+            Subject.WOOD,
+        ),
+        buildings=(Building.TOWN_CENTER,),
+        tiers=ladder(Tier.IMPROVED, pct(0.15), pct(0.3), pct(0.45)),
+    ),
+    Boon(
+        civ=Civ.PHOENICIANS,
+        number=2,
+        title="Villager: Capacity, wood",
+        stat=Stat.CARRY,
+        groups=(Group.WOODCUTTERS,),
+        domain=Domain.ECONOMY,
+        kind=Kind.GATHERING,
+        subjects=(
+            Subject.VILLAGER,
+            Subject.WOOD,
+        ),
+        buildings=(Building.TOWN_CENTER,),
+        tiers=ladder(Tier.POOR, flat(2), flat(4), flat(8)),
+    ),
+    Boon(
+        civ=Civ.PHOENICIANS,
+        number=3,
+        title="Elephants: Cost",
+        stat=Stat.COST,
+        targets=(
+            "war_elephant",
+            "armored_elephant",
+            "elephant_archer",
+        ),
+        domain=Domain.MILITARY,
+        kind=Kind.DISCOUNT,
+        subjects=(Subject.ELEPHANT,),
+        buildings=(
+            Building.STABLE,
+            Building.ARCHERY_RANGE,
+        ),
+        tiers=ladder(Tier.COMMON, pct(-0.15), pct(-0.25), pct(-0.35)),
+    ),
+    Boon(
+        civ=Civ.PHOENICIANS,
+        number=4,
+        title="Catapult Triremes: Attack speed",
+        stat=Stat.ATTACK_SPEED,
+        targets=(
+            "catapult_trireme",
+            "juggernaut",
+        ),
+        domain=Domain.MILITARY,
+        kind=Kind.COMBAT,
+        subjects=(
+            Subject.SHIP,
+            Subject.SIEGE,
+        ),
+        buildings=(Building.DOCK,),
+        tiers=ladder(Tier.COMMON, pct(0.15), pct(0.33), pct(0.5)),
+    ),
+    Boon(
+        civ=Civ.PHOENICIANS,
+        number=5,
+        title="Dock: HP",
+        stat=Stat.HP,
+        targets=("dock",),
+        domain=Domain.DEFENCE,
+        kind=Kind.DURABILITY,
+        subjects=(
+            Subject.SHIP,
+            Subject.BUILDING,
+        ),
+        buildings=(Building.DOCK,),
+        tiers=ladder(Tier.POOR, flat(150), flat(300), flat(500)),
+    ),
+    Boon(
+        civ=Civ.PHOENICIANS,
+        number=6,
+        title="Dock: Line of sight",
+        stat=Stat.LINE_OF_SIGHT,
+        targets=("dock",),
+        domain=Domain.DEFENCE,
+        kind=Kind.VISION,
+        subjects=(
+            Subject.SHIP,
+            Subject.BUILDING,
+        ),
+        buildings=(Building.DOCK,),
+        tiers=ladder(Tier.POOR, flat(2), flat(4), flat(6)),
+    ),
+    Boon(
+        civ=Civ.PHOENICIANS,
+        number=7,
+        title="Archers: Line of sight",
+        stat=Stat.LINE_OF_SIGHT,
+        groups=(Group.ARCHERS,),
+        domain=Domain.MILITARY,
+        kind=Kind.VISION,
+        subjects=(Subject.ARCHER,),
+        buildings=(Building.ARCHERY_RANGE,),
+        flags=(Flag.TEAM,),
+        tiers=ladder(Tier.POOR, flat(1), flat(2), flat(3)),
+    ),
+)
