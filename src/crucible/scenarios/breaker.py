@@ -179,7 +179,7 @@ void {p}Aim(int k = 0, float x = 0.0, float y = 0.0, int piece = -1, int skip = 
 
     float px = xsVectorGetX(at) + dx / length * {THROUGH}.0;
     float py = xsVectorGetY(at) + dy / length * {THROUGH}.0;
-    xsArraySetVector({p}Goal, k, vector(px, py, 0.0));
+    xsArraySetVector({p}Goal, k, xsVectorSet(px, py, 0.0));
 }}
 
 // `skip`: the unit's own target, which it can't reach (a tower walled in by houses).
