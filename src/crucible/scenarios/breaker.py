@@ -8,9 +8,9 @@ breaking (so they open one gap together), else the nearest wall or gate of a vic
 nearest building or tower (houses walling in a tower or archers), never the target it can't reach; with nothing to
 break, it attack-moves on to where it was first headed.
 
-Where a unit is headed is read from its own orders (its move target while it isn't on one of ours), not when it's
-first seen: a wave spawned and ordered a moment later would otherwise be sent back to where it spawned. A unit with no
-order yet is left alone.
+Where it goes on to (its goal) is never where it was first seen, which sent a wave ordered a moment after spawning back
+home. It's the unit's move target when the game reports one (it reports none for an attack-move, walls check
+2026-11-21), else what it couldn't reach when it got stuck, else a point THROUGH tiles past the piece it breaks.
 
 Once the piece it was sent at falls, the unit attack-moves on at once: left alone, the game has it attack the next
 piece of wall beside the gap, and it chews along the wall instead of walking through (walls check, 2026-11-21). The
@@ -22,6 +22,7 @@ Task Object.
 
 INTERVAL = 1  # seconds between checks
 REACH = 4  # tiles: how far a stuck unit looks for a wall to break, or a unit breaking one to join
+THROUGH = 6  # tiles past a broken piece a unit with no other goal heads for
 MOVED = 0.3  # tiles: less than this between checks is standing still
 STUCK_CHECKS = 2  # checks in a row before it acts
 TRACKED = 500  # units it can follow at once
@@ -141,10 +142,44 @@ int {p}Index(int id = -1) {{
     return (k);
 }}
 
+bool {p}HasGoal(int k = 0) {{
+    return (xsVectorGetX(xsArrayGetVector({p}Goal, k)) >= 0.0);
+}}
+
+// Attack-move on to its goal; with none, it's left to the game.
 void {p}MoveOn(int id = -1, int k = 0) {{
-    xsArraySetInt({p}One, 0, id);
-    xsTaskUnits({p}One, cActionTypeAttackMove, xsArrayGetVector({p}Goal, k));
+    if ({p}HasGoal(k)) {{
+        xsArraySetInt({p}One, 0, id);
+        xsTaskUnits({p}One, cActionTypeAttackMove, xsArrayGetVector({p}Goal, k));
+    }}
+
     xsArraySetInt({p}Piece, k, -1);
+}}
+
+// Where to go once `piece` falls, if it has no goal yet: what it couldn't reach (`skip`), else THROUGH tiles past the
+// piece, straight on from (x, y).
+void {p}Aim(int k = 0, float x = 0.0, float y = 0.0, int piece = -1, int skip = -1) {{
+    if ({p}HasGoal(k)) {{
+        return;
+    }}
+
+    if ({p}Standing(skip)) {{
+        xsArraySetVector({p}Goal, k, xsGetUnitPosition(skip));
+        return;
+    }}
+
+    vector at = xsGetUnitPosition(piece);
+    float dx = xsVectorGetX(at) - x;
+    float dy = xsVectorGetY(at) - y;
+    float length = sqrt(dx * dx + dy * dy);
+
+    if (length < 0.1) {{
+        return;
+    }}
+
+    float px = xsVectorGetX(at) + dx / length * {THROUGH}.0;
+    float py = xsVectorGetY(at) + dy / length * {THROUGH}.0;
+    xsArraySetVector({p}Goal, k, vector(px, py, 0.0));
 }}
 
 // `skip`: the unit's own target, which it can't reach (a tower walled in by houses).
@@ -164,6 +199,7 @@ void {p}Act(int id = -1, int k = 0, float x = 0.0, float y = 0.0, int skip = -1)
         xsArraySetInt({p}One, 0, id);
         xsTaskUnits({p}One, cActionTypeDefault, xsGetUnitPosition(best), best);
         xsArraySetInt({p}Piece, k, best);
+        {p}Aim(k, x, y, best, skip);
 {say("Breaker: unit %d breaks a wall")}
     }} else {{
         {p}MoveOn(id, k);
@@ -196,17 +232,11 @@ void {p}Class(int type = -1) {{
         }}
 
         if ((piece < 0) && ({p}IsWall(target) == false)) {{
-            vector order = xsGetUnitMoveTarget(id);  // its own order, not one of ours
+            vector order = xsGetUnitMoveTarget(id);  // its own order, when the game gives one
 
             if (xsVectorGetX(order) >= 0.0) {{
                 xsArraySetVector({p}Goal, k, order);
             }}
-        }}
-
-        if (xsVectorGetX(xsArrayGetVector({p}Goal, k)) < 0.0) {{
-            xsArraySetFloat({p}X, k, x + 100.0);  // no order yet: left alone, and not counted as standing
-            xsArraySetFloat({p}Y, k, y);
-            continue;
         }}
 
         bool moving = (dx * dx + dy * dy) > {MOVED * MOVED};
@@ -221,7 +251,7 @@ void {p}Class(int type = -1) {{
             {p}MoveOn(id, k);  // its gap is open: through it, not along the wall
 {say("Breaker: unit %d goes through", "            ")}
             stuck = 0;
-        }} else if ((target != piece) && {p}IsWall(target)) {{
+        }} else if ((target != piece) && {p}IsWall(target) && {p}HasGoal(k)) {{
             {p}MoveOn(id, k);  // it turned on another piece of wall by itself
             stuck = 0;
         }} else if (stuck >= {STUCK_CHECKS}) {{
