@@ -85,9 +85,10 @@ is sent as soon as it's in position; killing it puts a free Poor boon (any categ
 alternate: the Capital's two lanes (odd waves), then one from each of the Western and Eastern City States (even
 waves). A sent unit standing idle (the road's end, or a tower it took down) is sent on to the Wonder.
 
-Each lane rolls an archetype at the start (no two the same) and is an army of its own: before it spawns it takes a
-step (grow, swap a unit line, or a shared upgrade or age up for the whole Legion). Siege and Priests come and go from
-the Bronze Age on. Chat says every step.
+Each lane rolls an archetype at the start (no two the same; a caption over a City States building at the lane names
+it) and is an army of its own: a main and a support family on its archetype's paths. Before it spawns it takes a step
+(grow, move a slot on along its path, or a shared upgrade or age up for the whole Legion). Siege and Priests come and
+go from the Bronze Age on. Chat says every step.
 
 **Staging.** Each lane is three rows of three tiles: where a wave spawns (the map edge), where it waits (a row
 inside the spawn base) and where it attacks to (in the player's base). A wave spawns a row at a time and walks in,

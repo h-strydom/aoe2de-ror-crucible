@@ -88,3 +88,31 @@ Every wave defeated still gives a boon choice. As waves grow, the shop's tier-up
 - Difficulty is the cadence only; the run goes on until the Wonder falls.
 - A browser simulation of 50 waves lives outside the repo (`_Workspace/crucible-wave-sim`, `generate.py` writes it
   from these tables).
+
+## Paths and families (2026-11-21, built)
+
+Replaces the swap tables above. Units come in families (Swordsmen: Short, Broad, Long Swordsman, Legionary); a lane's
+slot holds a family on its archetype's path and fields the line the Legion has upgraded that family to. The waves just
+spawn the better unit: no line-upgrade tech is researched (stat upgrades and ages still are).
+
+| Archetype | Main | Support |
+|---|---|---|
+| Legion | Clubmen > Swordsmen | Slingers > Bowmen > (Composite, or Chariot Archers) |
+| Phalanx | Clubmen > Hoplites | the same |
+| Cavalry | Clubmen > Scouts > Cavalry | the same |
+| Chariots | Clubmen > Scouts > Chariots | Slingers > Bowmen > Chariot Archers |
+| Elephants | Clubmen > Scouts > Chariots > Elephants | Slingers > Bowmen > Chariot Archers > Elephant Archers |
+| Archers | Slingers > Bowmen | one of: Clubmen > Scouts > Chariots > (Camel Riders); Clubmen > Swordsmen; Clubmen > Hoplites; Clubmen > Scouts > Cavalry |
+| Mounted Archers | Slingers > Bowmen > Chariot Archers > (Horse or Elephant Archers) | as Archers |
+
+- Choices in a path are rolled once, at the start. The Post-Iron lines (Legionaries, Centurions, Cataphracts, Armored
+  Elephants, Heavy Horse Archers) are main-slot only: a support stops a line short (Long Swordsmen, Phalangites, Heavy
+  Cavalry).
+- An age up moves every main slot on as far as the new age opens its path (MOVE_ON): a Cavalry lane is Scouts at the
+  Tool Age, Cavalry at Bronze. Supports move on by swaps.
+- Each step is done `scale` times: 1, +1 every 10 waves, times GROW_SCALE, UPGRADE_SCALE, SWAP_SCALE (1 now; curses
+  can raise one). Age up: from 1%, +1% per step.
+- A caption over a City States building at each lane names its archetype; chat says it too.
+- Simulated (2000 Hard runs): Tool around wave 6, Bronze 12, Iron 18, Post-Iron 24; about 8 units a lane at wave 10, 14
+  at 20, 25 at 30, 65 at 49. Archers' main and the supports end on Bronze Age units (RoR has nothing later).
+- Open: what happens once the upgrades run out (around wave 35), and how siege and Priests mix in.

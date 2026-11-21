@@ -1,14 +1,23 @@
 """How the waves of crucible_run evolve (docs/evolving-waves.md): no set sizes or ages, an army per lane that takes a
 step each time it's about to spawn.
 
-Each lane has two slots, melee and ranged, each a unit line and a count; its archetype (rolled at the start, no two
-the same) says which lines it may swap to and which slot is its main kind. The Legion's age and its upgrades are
-shared: one lane's step can age up or upgrade every lane's units, and that lane doesn't grow that time.
+Units come in families (Swordsmen: Short, Broad, Long Swordsman, Legionary), moved along by RoR's own line-upgrade
+techs. Each lane rolls an archetype at the start (no two the same): a main path for one slot and a support path for
+the other, each a chain of families ("Clubmen, Swordsmen"); where a path has a choice ("Bowmen, then Chariot Archers or
+not") it's rolled once, at the start. A lane's slot holds a family on its path and a count; it fields the family's line
+the Legion has upgraded it to.
 
 A step: first the age-up roll (AGE_UP_START percent, + AGE_UP_STEP for every step without one, back after one), else
-one of STEPS by weight. An upgrade is only rolled if it improves a unit some lane fields (or siege and priests, once
-the Legion can bring them); a swap prefers a slot whose line is behind the Legion's age. Siege and Priests come and go:
-each wave a lane may bring them, by chance per age.
+one of STEPS by weight:
+- grow: units to the main slot (MAIN_SHARE percent of the time) or the support;
+- upgrade: the Legion's (shared by every lane): a stat tech, or a family's next line (LINE_WEIGHT times as likely: the
+  waves simply spawn the better unit, no tech), but only what improves a unit some lane fields (or siege and Priests,
+  once the Legion can bring them); a support slot never fields a Post-Iron line (MAIN_ONLY), so it stops a line short;
+- swap: a slot moves one family on along its path, once the Legion's age opens it. With MOVE_ON, an age up also moves
+  every main slot on as far as the new age opens its path.
+Each is done `scale` times: 1, plus 1 every SCALE_EVERY waves, times that step's own scale (GROW_SCALE, UPGRADE_SCALE,
+SWAP_SCALE: what curses can raise later). An upgrade or swap that can't happen grows instead. Siege and Priests come
+and go: each wave a lane may bring them, by chance per age.
 """
 
 from dataclasses import dataclass
@@ -38,6 +47,7 @@ class Age(IntEnum):
 class Slot(IntEnum):
     MELEE = 0
     RANGED = 1
+    SIEGE = 2  # families the Legion brings by chance, not in a lane's slots
 
 
 class Step(IntEnum):
@@ -55,12 +65,18 @@ FALLBACK = Difficulty.HARD  # 0 (Hardest), -1 (Extreme)
 SEND_TIMES = {Difficulty.STANDARD: 300, Difficulty.MODERATE: 180, Difficulty.HARD: 120}  # seconds between waves
 
 STEPS = {Step.GROW: 45, Step.UPGRADE: 30, Step.SWAP: 25, Step.NOTHING: 0, Step.AGAIN: 0}  # weights
-AGE_UP_START = 2  # percent
-AGE_UP_STEP = 2  # percent more for every step without an age up
+AGE_UP_START = 1  # percent
+AGE_UP_STEP = 1  # percent more for every step without an age up
 MAX_STEPS = 8  # a lane's steps in one go at most (AGAIN can chain)
 MAIN_SHARE = 65  # percent: a grown unit goes to the archetype's main slot
-GROW_PER = 6  # a step grows the army by 1 per this many units (at least 1)
-START = {Slot.MELEE: ("clubman", 2), Slot.RANGED: ("slinger", 2)}  # every lane's army before its first step
+SCALE_EVERY = 10  # waves: the scale goes up by 1
+GROW_SCALE = 1  # units per grow, times the scale
+UPGRADE_SCALE = 1  # upgrades per upgrade step, times the scale
+SWAP_SCALE = 1  # families moved on per swap step, times the scale
+LINE_WEIGHT = 3  # a line upgrade is this many times as likely as a stat upgrade
+MAIN_ONLY = Age.POST_IRON  # lines of this age (Legionaries, Centurions, Cataphracts...) only in a main slot
+MOVE_ON = True  # an age up moves each lane's main slot on to the next family on its path, once that age opens it
+START_COUNT = 2  # units in each slot before a lane's first step
 
 TIER_UP_PER_WAVE = 1  # percent added to each tier-up chance in the shop per wave defeated
 DOUBLE_EVERY = 5  # every this many waves defeated: two boon choices
@@ -69,105 +85,141 @@ DOUBLE_EVERY = 5  # every this many waves defeated: two boon choices
 @dataclass(frozen=True)
 class Line:
     unit: str
-    slot: Slot
-    age: Age
+    age: Age  # when the Legion can field it
+    tech: int = -1  # the tech that upgrades the family to it (-1: the family's first)
 
     @property
     def title(self) -> str:
         return self.unit.replace("_", " ").title()
 
 
-LINES = (
-    Line("clubman", Slot.MELEE, Age.STONE),
-    Line("axeman", Slot.MELEE, Age.TOOL),
-    Line("scout", Slot.MELEE, Age.TOOL),
-    Line("short_swordsman", Slot.MELEE, Age.BRONZE),
-    Line("broad_swordsman", Slot.MELEE, Age.BRONZE),
-    Line("hoplite", Slot.MELEE, Age.BRONZE),
-    Line("cavalry", Slot.MELEE, Age.BRONZE),
-    Line("camel_rider", Slot.MELEE, Age.BRONZE),
-    Line("chariot", Slot.MELEE, Age.BRONZE),
-    Line("long_swordsman", Slot.MELEE, Age.IRON),
-    Line("phalangite", Slot.MELEE, Age.IRON),
-    Line("heavy_cavalry", Slot.MELEE, Age.IRON),
-    Line("war_elephant", Slot.MELEE, Age.IRON),
-    Line("scythe_chariot", Slot.MELEE, Age.IRON),
-    Line("legionary", Slot.MELEE, Age.POST_IRON),
-    Line("centurion", Slot.MELEE, Age.POST_IRON),
-    Line("cataphract", Slot.MELEE, Age.POST_IRON),
-    Line("armored_elephant", Slot.MELEE, Age.POST_IRON),
-    Line("slinger", Slot.RANGED, Age.STONE),
-    Line("bowman", Slot.RANGED, Age.TOOL),
-    Line("improved_bowman", Slot.RANGED, Age.BRONZE),
-    Line("composite_bowman", Slot.RANGED, Age.BRONZE),
-    Line("chariot_archer", Slot.RANGED, Age.BRONZE),
-    Line("horse_archer", Slot.RANGED, Age.IRON),
-    Line("elephant_archer", Slot.RANGED, Age.IRON),
-    Line("heavy_horse_archer", Slot.RANGED, Age.POST_IRON),
+@dataclass(frozen=True)
+class Family:
+    name: str
+    slot: Slot
+    lines: tuple[Line, ...]
+
+    @property
+    def age(self) -> Age:
+        return self.lines[0].age
+
+
+# RoR's line-upgrade techs (read from the data: each upgrades one of these units into the next).
+FAMILIES = (
+    Family("Clubmen", Slot.MELEE, (Line("clubman", Age.STONE), Line("axeman", Age.TOOL, 63))),
+    Family(
+        "Swordsmen",
+        Slot.MELEE,
+        (
+            Line("short_swordsman", Age.BRONZE),
+            Line("broad_swordsman", Age.BRONZE, 65),
+            Line("long_swordsman", Age.IRON, 66),
+            Line("legionary", Age.POST_IRON, 77),
+        ),
+    ),
+    Family(
+        "Hoplites",
+        Slot.MELEE,
+        (Line("hoplite", Age.BRONZE), Line("phalangite", Age.IRON, 73), Line("centurion", Age.POST_IRON, 79)),
+    ),
+    Family("Scouts", Slot.MELEE, (Line("scout", Age.TOOL),)),
+    Family(
+        "Cavalry",
+        Slot.MELEE,
+        (Line("cavalry", Age.BRONZE), Line("heavy_cavalry", Age.IRON, 71), Line("cataphract", Age.POST_IRON, 78)),
+    ),
+    Family("Camel Riders", Slot.MELEE, (Line("camel_rider", Age.BRONZE),)),
+    Family("Chariots", Slot.MELEE, (Line("chariot", Age.BRONZE), Line("scythe_chariot", Age.IRON, 126))),
+    Family("Elephants", Slot.MELEE, (Line("war_elephant", Age.IRON), Line("armored_elephant", Age.POST_IRON, 125))),
+    Family("Slingers", Slot.RANGED, (Line("slinger", Age.STONE),)),
+    Family(
+        "Bowmen",
+        Slot.RANGED,
+        (Line("bowman", Age.TOOL), Line("improved_bowman", Age.BRONZE, 56), Line("composite_bowman", Age.BRONZE, 57)),
+    ),
+    Family("Chariot Archers", Slot.RANGED, (Line("chariot_archer", Age.BRONZE),)),
+    Family(
+        "Horse Archers",
+        Slot.RANGED,
+        (Line("horse_archer", Age.IRON), Line("heavy_horse_archer", Age.POST_IRON, 38)),
+    ),
+    Family("Elephant Archers", Slot.RANGED, (Line("elephant_archer", Age.IRON),)),
+    Family(
+        "Stone Throwers",
+        Slot.SIEGE,
+        (Line("stone_thrower", Age.BRONZE), Line("catapult", Age.IRON, 54), Line("heavy_catapult", Age.POST_IRON, 36)),
+    ),
+    Family("Ballistas", Slot.SIEGE, (Line("ballista", Age.IRON), Line("helepolis", Age.POST_IRON, 27))),
 )
-BY_UNIT = {line.unit: line for line in LINES}
+BY_NAME = {family.name: family for family in FAMILIES}
+PRIEST = "priest"
+
+# A path: stages in order, each a choice of families rolled at the start (None: the path ends there).
+Path = tuple[tuple[str | None, ...], ...]
+MELEE_LEGION: Path = (("Clubmen",), ("Swordsmen",))
+MELEE_CHARIOTS: Path = (("Clubmen",), ("Scouts",), ("Chariots",), (None, "Camel Riders"))
+RANGED_BOWMEN: Path = (("Slingers",), ("Bowmen",))
+RANGED_SUPPORT: Path = (("Slingers",), ("Bowmen",), (None, "Chariot Archers"))  # Composite, or Chariot Archers
+MELEE_SUPPORTS: tuple[Path, ...] = (  # for the ranged archetypes; in a support slot no Post-Iron line (MAIN_ONLY)
+    MELEE_CHARIOTS,
+    MELEE_LEGION,
+    (("Clubmen",), ("Hoplites",)),
+    (("Clubmen",), ("Scouts",), ("Cavalry",)),
+)
 
 
 @dataclass(frozen=True)
 class Archetype:
     name: str
     main: Slot
-    lines: tuple[str, ...]  # what its slots may hold (each slot the lines of its kind)
+    paths: dict[Slot, tuple[Path, ...]]  # each slot's paths: one rolled at the start
 
 
 ARCHETYPES = (
-    Archetype(
-        "Swordsmen",
-        Slot.MELEE,
-        ("clubman", "axeman", "short_swordsman", "broad_swordsman", "long_swordsman", "legionary")
-        + ("slinger", "bowman", "improved_bowman", "composite_bowman"),
-    ),
+    Archetype("Legion", Slot.MELEE, {Slot.MELEE: (MELEE_LEGION,), Slot.RANGED: (RANGED_SUPPORT,)}),
     Archetype(
         "Phalanx",
         Slot.MELEE,
-        ("clubman", "axeman", "hoplite", "phalangite", "centurion")
-        + ("slinger", "bowman", "improved_bowman", "composite_bowman"),
+        {Slot.MELEE: ((("Clubmen",), ("Hoplites",)),), Slot.RANGED: (RANGED_SUPPORT,)},
     ),
     Archetype(
         "Cavalry",
         Slot.MELEE,
-        ("clubman", "scout", "cavalry", "camel_rider", "heavy_cavalry", "cataphract")
-        + ("slinger", "bowman", "chariot_archer", "horse_archer", "heavy_horse_archer"),
-    ),
-    Archetype(
-        "Elephants",
-        Slot.MELEE,
-        ("clubman", "scout", "cavalry", "war_elephant", "armored_elephant")
-        + ("slinger", "bowman", "improved_bowman", "elephant_archer"),
+        {Slot.MELEE: ((("Clubmen",), ("Scouts",), ("Cavalry",)),), Slot.RANGED: (RANGED_SUPPORT,)},
     ),
     Archetype(
         "Chariots",
         Slot.MELEE,
-        ("clubman", "scout", "chariot", "scythe_chariot") + ("slinger", "bowman", "chariot_archer"),
+        {
+            Slot.MELEE: ((("Clubmen",), ("Scouts",), ("Chariots",)),),
+            Slot.RANGED: ((("Slingers",), ("Bowmen",), ("Chariot Archers",)),),
+        },
     ),
     Archetype(
-        "Bowmen",
-        Slot.RANGED,
-        ("clubman", "axeman", "short_swordsman", "long_swordsman", "legionary")
-        + ("slinger", "bowman", "improved_bowman", "composite_bowman", "elephant_archer"),
+        "Elephants",
+        Slot.MELEE,
+        {
+            Slot.MELEE: ((("Clubmen",), ("Scouts",), ("Chariots",), ("Elephants",)),),
+            Slot.RANGED: ((("Slingers",), ("Bowmen",), ("Chariot Archers",), ("Elephant Archers",)),),
+        },
     ),
+    Archetype("Archers", Slot.RANGED, {Slot.RANGED: (RANGED_BOWMEN,), Slot.MELEE: MELEE_SUPPORTS}),
     Archetype(
-        "Horse archers",
+        "Mounted Archers",
         Slot.RANGED,
-        ("clubman", "scout", "cavalry", "heavy_cavalry", "cataphract")
-        + ("slinger", "bowman", "chariot_archer", "horse_archer", "heavy_horse_archer"),
+        {
+            Slot.RANGED: (
+                (("Slingers",), ("Bowmen",), ("Chariot Archers",), ("Horse Archers", "Elephant Archers")),
+            ),
+            Slot.MELEE: MELEE_SUPPORTS,
+        },
     ),
 )
 
-# Siege and Priests: each wave, each lane brings them by chance (percent) from the Bronze Age.
-SIEGE = {
-    Age.BRONZE: ("stone_thrower",),
-    Age.IRON: ("catapult", "ballista"),
-    Age.POST_IRON: ("heavy_catapult", "helepolis"),
-}
+# Siege and Priests: each wave, each lane brings them by chance (percent) from the Bronze Age; siege is one unit of a
+# siege family the Legion's age has opened, at its upgraded line.
 SIEGE_CHANCE = {Age.BRONZE: 20, Age.IRON: 30, Age.POST_IRON: 40}
 PRIEST_CHANCE = {Age.BRONZE: 10, Age.IRON: 20, Age.POST_IRON: 25}
-PRIEST = "priest"
 
 
 @dataclass(frozen=True)
@@ -179,7 +231,7 @@ class Upgrade:
 
 
 AGE_TECHS = {Age.TOOL: 101, Age.BRONZE: 102, Age.IRON: 103}  # the Post-Iron Age has none: its lines only
-UPGRADES = (
+UPGRADES = (  # stat techs; line upgrades come from FAMILIES
     Upgrade("Tool Working", 46, Age.TOOL),
     Upgrade("Leather Armor (soldiers)", 40, Age.TOOL),
     Upgrade("Leather Armor (archers)", 41, Age.TOOL),
@@ -212,9 +264,14 @@ def unit_id(name: str) -> int:
     return tables.object_id(name.upper(), "ror")
 
 
-def specials() -> list[str]:
-    """The units outside the slots an upgrade may help: siege of every age, and the Priest."""
-    return [unit for units in SIEGE.values() for unit in units] + [PRIEST]
+def units() -> list[str]:
+    """Every unit a wave can bring, in index order: each family's lines, then the Priest."""
+    return [line.unit for family in FAMILIES for line in family.lines] + [PRIEST]
+
+
+def line_upgrades() -> list[tuple[int, int]]:
+    """(family index, line index) of every line upgrade, in order."""
+    return [(f, n) for f, family in enumerate(FAMILIES) for n in range(1, len(family.lines))]
 
 
 def improves(data, upgrade: Upgrade, unit: str) -> bool:

@@ -28,7 +28,7 @@ from pathlib import Path
 
 from crucible.datamod.shop import SEND_WAVE
 from crucible.scenarios import wave_table as table
-from crucible.scenarios.wave_table import Age, Difficulty, Slot
+from crucible.scenarios.wave_table import Age, Difficulty
 
 RUNTIME = Path(__file__).with_name("waves.xs")
 PLAYER, LEGION = 1, 3
@@ -41,13 +41,16 @@ DEPTH = 6  # tiles from the spawn row a group spawns in (rows of COLUMNS)
 COLUMNS = 7
 SPACING = 0.8  # tiles between units in a spawn row
 ROW_SPACING = 0.9
-SIEGE_CHOICES = 3  # siege units per age, padded with -1
+LINES = 4  # lines per family at most
+PATHS = 4  # paths per archetype slot at most
+STAGES = 5  # families per path at most
+OPTIONS = 2  # choices per stage at most
+CITY_STATES_PLAYER = 2
 SPAWN_AREAS = ((76, 0, 142, 26), (0, 84, 20, 126), (200, 94, 219, 124))  # the City States, always in sight
 TRADERS, RELICS = 4, 7  # where the defeated count is kept: the Traders' relics
 COUNTER = f"<Relics Captured, {TRADERS}>"
 NEVER = 1_000_000  # the objective's count: it never completes
 TIMER = 0  # display timer slot
-NO_AGE = 99  # an age never reached
 
 WALK_VARIABLE = "crucible_wave_walk"  # lanes walking in: 1 the Capital's, 2 the City States'
 SEND_VARIABLE = "crucible_wave_send"  # lanes sent, the same
@@ -272,31 +275,109 @@ def _strings(name: str, values: list[str]) -> list[str]:
     return lines + [f'    xsArraySetString({name}, {i}, "{v}");' for i, v in enumerate(values)]
 
 
-def units() -> list[str]:
-    """Every unit a wave can bring, in index order: the lines, then siege and the Priest."""
-    return [line.unit for line in table.LINES] + table.specials()
+def lane_variable(n: int) -> str:
+    return f"crucible_lane_{n}"
+
+
+def _captions(ctx, game) -> None:
+    """Over a City States building at each lane, its archetype ("Capital west: Legion"), once the XS has rolled it
+    (it sets the lane's variable to the archetype + 1)."""
+    s = ctx.scenario
+    buildings = [u for u in s.unit_manager.units[CITY_STATES_PLAYER] if game.civs[1].units[u.unit_const].type == 80]
+    triggers = []
+
+    for n, lane in enumerate(LANES):
+        ctx.var(lane_variable(n))
+        sx, sy = lane.stage[1]
+        building = min(buildings, key=lambda u: (u.x - sx) ** 2 + (u.y - sy) ** 2)
+
+        for a, archetype in enumerate(table.ARCHETYPES):
+            triggers.append(
+                {
+                    "name": f"Lane: {lane.name} is {archetype.name}",
+                    "conditions": [
+                        {
+                            "type": "variable_value",
+                            "variable": lane_variable(n),
+                            "comparison": "EQUAL",
+                            "quantity": a + 1,
+                        }
+                    ],
+                    "effects": [
+                        {
+                            "type": "change_object_caption",
+                            "source_player": CITY_STATES_PLAYER,
+                            "selected_object_ids": [building.reference_id],
+                            "message": f"{lane.name}: {archetype.name}",
+                        }
+                    ],
+                }
+            )
+
+    ctx.triggers(*triggers)
+
+
+def _path(path: table.Path) -> list[int]:
+    """A path as STAGES * OPTIONS family indexes: -1 the path ends, -2 no option."""
+    index = {f.name: n for n, f in enumerate(table.FAMILIES)}
+    cells = []
+
+    for k in range(STAGES):
+        stage = path[k] if k < len(path) else ()
+        assert len(stage) <= OPTIONS, path
+        cells += [(index[o] if o else -1) if o_ < len(stage) else -2 for o_, o in enumerate(stage + (None,) * OPTIONS)][
+            :OPTIONS
+        ]
+
+    return cells
 
 
 def data(game) -> list[str]:
     """The tables as XS arrays, declared and filled by crucibleWaveData(). `game`: the RoR data (what each upgrade
-    improves). Indexes: a line at its place in wave_table.LINES (slots hold line indexes); whether archetype a may hold
-    line l at a * lines + l; whether upgrade u improves unit k (units()) at u * units + k; a siege unit at
-    age * SIEGE_CHOICES + n."""
-    lines, everyone, ages = table.LINES, units(), list(Age)
-    index = {unit: k for k, unit in enumerate(everyone)}
-    allowed = [int(line.unit in a.lines) for a in table.ARCHETYPES for line in lines]
-    siege = [
-        table.SIEGE.get(age, ())[n] if n < len(table.SIEGE.get(age, ())) else None
-        for age in ages
-        for n in range(SIEGE_CHOICES)
-    ]
+    improves). Indexes: unit k at its place in wave_table.units(); family f's line i at f * LINES + i (a unit index);
+    archetype a's slot s's path p at ((a * 2 + s) * PATHS + p) * STAGES * OPTIONS; whether upgrade u improves unit k at
+    u * units + k."""
+    everyone, families, ages = table.units(), table.FAMILIES, list(Age)
+    unit_index = {}
+
+    for f in families:
+        for line in f.lines:
+            unit_index[(f.name, line.unit)] = len(unit_index)
+
+    def line_cells(field):
+        return [field(f, f.lines[i]) if i < len(f.lines) else -1 for f in families for i in range(LINES)]
+
+    def cap(f: table.Family, main: bool) -> int:
+        allowed = [i for i, line in enumerate(f.lines) if main or line.age < table.MAIN_ONLY]
+
+        return max(allowed, default=0)
+
+    paths, path_counts = [], []
+
+    for a in table.ARCHETYPES:
+        for s in (table.Slot.MELEE, table.Slot.RANGED):
+            options = a.paths[s]
+            assert len(options) <= PATHS, a.name
+            path_counts.append(len(options))
+            paths += [
+                cell
+                for p in range(PATHS)
+                for cell in (_path(options[p]) if p < len(options) else [-2] * (STAGES * OPTIONS))
+            ]
+
     upgrade_index = {u.tech: n for n, u in enumerate(table.UPGRADES)}
     arrays = [
-        _ints("crucibleWaveLineUnit", [table.unit_id(line.unit) for line in lines]),
-        _ints("crucibleWaveLineSlot", [int(line.slot) for line in lines]),
-        _ints("crucibleWaveLineAge", [int(line.age) for line in lines]),
-        _strings("crucibleWaveLineName", [line.title for line in lines]),
-        _ints("crucibleWaveAllowed", allowed, default=0),
+        _ints("crucibleWaveUnitId", [table.unit_id(u) for u in everyone]),
+        _strings("crucibleWaveUnitName", [u.replace("_", " ").title() for u in everyone]),
+        _ints("crucibleWaveFamilySlot", [int(f.slot) for f in families]),
+        _strings("crucibleWaveFamilyName", [f.name for f in families]),
+        _ints("crucibleWaveFamilyLines", [len(f.lines) for f in families]),
+        _ints("crucibleWaveLineUnit", line_cells(lambda f, line: unit_index[(f.name, line.unit)])),
+        _ints("crucibleWaveLineAge", line_cells(lambda f, line: int(line.age))),
+        _ints("crucibleWaveCapMain", [cap(f, True) for f in families]),
+        _ints("crucibleWaveCapSupport", [cap(f, False) for f in families]),
+        _ints("crucibleWavePath", paths),
+        _ints("crucibleWavePathCount", path_counts),
         _ints("crucibleWaveArchetypeMain", [int(a.main) for a in table.ARCHETYPES]),
         _strings("crucibleWaveArchetypeName", [a.name for a in table.ARCHETYPES]),
         _ints("crucibleWaveStepWeight", [table.STEPS[s] for s in table.Step], default=0),
@@ -309,8 +390,6 @@ def data(game) -> list[str]:
             [int(table.improves(game, u, unit)) for u in table.UPGRADES for unit in everyone],
             default=0,
         ),
-        _ints("crucibleWaveSiegeUnit", [table.unit_id(u) if u else -1 for u in siege]),
-        _ints("crucibleWaveSiegeIndex", [index[u] if u else -1 for u in siege]),
         _ints("crucibleWaveSiegeChance", [table.SIEGE_CHANCE.get(age, 0) for age in ages], default=0),
         _ints("crucibleWavePriestChance", [table.PRIEST_CHANCE.get(age, 0) for age in ages], default=0),
         _ints("crucibleWaveAgeTech", [table.AGE_TECHS.get(age, -1) for age in ages]),
@@ -335,7 +414,7 @@ def data(game) -> list[str]:
 
 def xs(ctx, tech: int, game) -> str:
     wonder = next(u for u in ctx.scenario.unit_manager.units[PLAYER] if u.unit_const == WONDER)
-    start = table.START
+    lane_variables = ", ".join(str(_variable_id(ctx, lane_variable(n))) for n in range(len(LANES)))
     lines = [
         "// ---- crucible run: waves (data) ----",
         f"const int cCrucibleWaveLegion = {LEGION};",
@@ -347,25 +426,30 @@ def xs(ctx, tech: int, game) -> str:
         f"const int cCrucibleWaveTechVariable = {_variable_id(ctx, TECH_VARIABLE)};",
         f"const int cCrucibleWaveLanes = {len(LANES)};",
         f"const int cCrucibleWaveCapitalLanes = {len(CAPITAL)};",
-        f"const int cCrucibleWaveLines = {len(table.LINES)};",
-        f"const int cCrucibleWaveUnits = {len(units())};",
+        f"const int cCrucibleWaveUnits = {len(table.units())};",
+        f"const int cCrucibleWaveFamilies = {len(table.FAMILIES)};",
+        f"const int cCrucibleWaveLines = {LINES};",
+        f"const int cCrucibleWavePaths = {PATHS};",
+        f"const int cCrucibleWaveStages = {STAGES};",
+        f"const int cCrucibleWaveOptions = {OPTIONS};",
         f"const int cCrucibleWaveArchetypes = {len(table.ARCHETYPES)};",
         f"const int cCrucibleWaveUpgrades = {len(table.UPGRADES)};",
         f"const int cCrucibleWaveSteps = {len(table.Step)};",
         f"const int cCrucibleWaveLastAge = {int(Age.POST_IRON)};",
-        f"const int cCrucibleWaveSiegeAge = {int(min(table.SIEGE))};",
-        f"const int cCrucibleWaveSiegeChoices = {SIEGE_CHOICES};",
-        f"const int cCrucibleWavePriest = {table.unit_id(table.PRIEST)};",
-        f"const int cCrucibleWavePriestIndex = {len(units()) - 1};",
+        f"const int cCrucibleWaveSiegeSlot = {int(table.Slot.SIEGE)};",
+        f"const int cCrucibleWaveSiegeAge = {int(min(f.age for f in table.FAMILIES if f.slot == table.Slot.SIEGE))};",
+        f"const int cCrucibleWavePriest = {len(table.units()) - 1};",
         f"const int cCrucibleWaveAgeUpStart = {table.AGE_UP_START};",
         f"const int cCrucibleWaveAgeUpStep = {table.AGE_UP_STEP};",
         f"const int cCrucibleWaveMaxSteps = {table.MAX_STEPS};",
         f"const int cCrucibleWaveMainShare = {table.MAIN_SHARE};",
-        f"const int cCrucibleWaveGrowPer = {table.GROW_PER};",
-        f"const int cCrucibleWaveStartMelee = {table.LINES.index(table.BY_UNIT[start[Slot.MELEE][0]])};",
-        f"const int cCrucibleWaveStartMeleeCount = {start[Slot.MELEE][1]};",
-        f"const int cCrucibleWaveStartRanged = {table.LINES.index(table.BY_UNIT[start[Slot.RANGED][0]])};",
-        f"const int cCrucibleWaveStartRangedCount = {start[Slot.RANGED][1]};",
+        f"const int cCrucibleWaveScaleEvery = {table.SCALE_EVERY};",
+        f"const int cCrucibleWaveGrowScale = {table.GROW_SCALE};",
+        f"const int cCrucibleWaveUpgradeScale = {table.UPGRADE_SCALE};",
+        f"const int cCrucibleWaveSwapScale = {table.SWAP_SCALE};",
+        f"const int cCrucibleWaveLineWeight = {table.LINE_WEIGHT};",
+        f"const bool cCrucibleWaveMoveOn = {'true' if table.MOVE_ON else 'false'};",
+        f"const int cCrucibleWaveStartCount = {table.START_COUNT};",
         f"const int cCrucibleWaveTierUpPerWave = {table.TIER_UP_PER_WAVE};",
         f"const int cCrucibleWaveDoubleEvery = {table.DOUBLE_EVERY};",
         f"const int cCrucibleWaveColumns = {COLUMNS};",
@@ -377,6 +461,10 @@ def xs(ctx, tech: int, game) -> str:
         f"vector cCrucibleWaveWonderAt = vector({wonder.x}, {wonder.y}, 0.0);",
         f"const float cCrucibleWaveAtWonder = {float(AT_WONDER * AT_WONDER)};",
         *data(game),
+        "int crucibleWaveLaneVariable(int lane = 0) {",
+        *(f"    if (lane == {n}) {{ return ({v}); }}" for n, v in enumerate(lane_variables.split(", "))),
+        "    return (-1);",
+        "}",
         "bool crucibleWaveIn(vector pos = cInvalidVector, int x1 = 0, int y1 = 0, int x2 = 0, int y2 = 0) {",
         "    float x = xsVectorGetX(pos);",
         "    float y = xsVectorGetY(pos);",
@@ -392,4 +480,5 @@ def add(ctx, techs: dict[str, int], game) -> None:
     """`game`: the RoR data (source_dat)."""
     tech = techs[SEND_WAVE]
     _triggers(ctx, tech)
+    _captions(ctx, game)
     ctx.xs(xs(ctx, tech, game))
