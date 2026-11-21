@@ -7,13 +7,15 @@ def test_every_wave_has_melee_and_ranged():
     for difficulty in Difficulty:
         assert len(table.GROUPS[difficulty]) == table.WAVES
 
-        for wave in range(table.WAVES):
+        assert table.group(difficulty, 0).other == 0  # wave 0: melee only
+
+        for wave in range(1, table.WAVES):
             group = table.group(difficulty, wave)
             assert group.main >= 1 and group.other >= 1, (difficulty, wave)
 
 
 def test_proposal_numbers():
-    assert table.GROUPS[Difficulty.HARD][0] == table.Group(3, 2)
+    assert table.GROUPS[Difficulty.HARD][1] == table.Group(4, 2)
     assert table.group(Difficulty.STANDARD, 9) == table.Group(8, 3, 3)
     assert table.group(Difficulty.MODERATE, 20) == table.group(Difficulty.MODERATE, 9)  # fighting on
 

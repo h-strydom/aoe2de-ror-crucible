@@ -1,7 +1,9 @@
-"""The XS crucible_run starts with: the Allies' buildings to 1 HP, the base's walls randomly damaged (the Allies', or
-the player's with the Walls upgrade), the City States made
-invulnerable. It runs once, at 2 seconds: after the meta upgrades have taken the player's buildings back.
+"""The XS crucible_run starts with: the base's walls and towers randomly damaged (the Allies', or the player's with
+the Walls or Watch Tower upgrade), the City States made invulnerable. It runs once, at START: after the meta upgrades
+have taken the player's buildings back. (The Allies' other buildings are removed then too: run.py.)
 """
+
+TOWER_HP = (10, 50)  # a tower starts between these, in percent of its full HP
 
 START = 3  # seconds: after the kept buildings, towers and walls are made anew (about 1-2 s)
 
@@ -27,21 +29,20 @@ def _wall_rolls() -> str:
 
 def start(
     walls: dict[int, int],
-    buildings: list[int],
+    towers: dict[int, int],
     city_states: list[int],
     *,
     allies: int,
     player: int,
     invulnerable: int,
-    aged: list[int] = (),
 ) -> str:
-    """`walls`: wall type -> its full HP. `aged`: the buildings' types in every age (their maximum HP is 1 for the
-    Allies, so an age up keeps them at 1)."""
+    """`walls`, `towers`: type -> its full HP."""
     wall_calls = "\n".join(
         f"    crucibleRunWalls({owner}, {unit}, {hp});" for owner in (allies, player) for unit, hp in walls.items()
     )
-    max_calls = "\n".join(f"    crucibleRunMaxOneHp({unit});" for unit in sorted({*buildings, *aged}))
-    building_calls = "\n".join(f"    crucibleRunOneHp({unit});" for unit in buildings)
+    tower_calls = "\n".join(
+        f"    crucibleRunTowers({owner}, {unit}, {hp});" for owner in (allies, player) for unit, hp in towers.items()
+    )
     invulnerable_calls = "\n".join(f"    crucibleRunInvulnerable({unit});" for unit in city_states)
 
     return f"""// ---- crucible run: start ----
@@ -59,17 +60,13 @@ void crucibleRunWalls(int owner = -1, int type = -1, int hp = 0) {{
     }}
 }}
 
-// The Allies' buildings at 1 HP: the type's maximum for the Allies (a per-unit maximum seemed to keep a building from
-// taking its next age's look), in every age, so an age up keeps them at 1; then each one's current HP.
-void crucibleRunMaxOneHp(int type = -1) {{
-    xsEffectAmount(cSetAttribute, type, cHitpoints, 1, {allies});
-}}
-
-void crucibleRunOneHp(int type = -1) {{
-    int ids = xsGetPlayerUnitIds({allies}, type, -1);
+void crucibleRunTowers(int owner = -1, int type = -1, int hp = 0) {{
+    int ids = xsGetPlayerUnitIds(owner, type, -1);
+    int percent = 0;
 
     for (i = 0; < xsArrayGetSize(ids)) {{
-        xsSetUnitProperty(xsArrayGetInt(ids, i), cUnitHitpoints, 1);
+        percent = xsGetRandomNumberLH({TOWER_HP[0]}, {TOWER_HP[1] + 1});
+        xsSetUnitProperty(xsArrayGetInt(ids, i), cUnitHitpoints, hp * percent / 100);
     }}
 }}
 
@@ -93,8 +90,7 @@ rule crucibleRunStart
     }}
 
 {wall_calls}
-{max_calls}
-{building_calls}
+{tower_calls}
 {invulnerable_calls}
     xsDisableSelf();
 }}

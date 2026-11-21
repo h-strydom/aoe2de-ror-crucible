@@ -13,6 +13,7 @@ def test_hub_has_a_trigger_per_level(tmp_path, techs):
         units = s.unit_manager.units
         assert {u.unit_const for u in units[hub.PLAYER]} == {meta.TOWN_CENTER, hub.WONDER}
         assert len([u for u in units[hub.PURPLE] if u.unit_const in hub.VILLAGERS]) == 4  # at the berries
+        assert len([u for u in units[hub.PURPLE] if u.unit_const == hub.HOUSE]) == meta.STARTING_HOUSES
         assert s.player_manager.active_players == 4  # no empty players: they'd get a starting town
         players = s.player_manager.players
         assert all(players[p].personality == "Immobile AI" for p in (2, 3, 4))  # "None AI" explores
@@ -24,7 +25,7 @@ def test_hub_has_a_trigger_per_level(tmp_path, techs):
             assert f"Hub: {upgrade.title} on offer at {upgrade.levels - 1}" in names
         assert {
             "Hub: Villager 6",
-            "Hub: House 7",
+            "Hub: House 5",
             "Hub: Axemen upgrade 1",
             "Hub: Axemen 1",
             "Hub: Bowmen 2",

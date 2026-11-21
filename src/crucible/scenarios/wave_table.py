@@ -3,8 +3,8 @@ archetype, which units.
 
 A wave is one group per lane: the Capital's two lanes, or one from each City State; wave 0 is the Capital's, and wave
 9 (and any after it, fighting on) all four. A group is its main units (about 70%), the other units (the rest, at least
-one) and siege. Each lane rolls an archetype at the start of a run (no two the same); it picks the units from the
-Legion's Tool Age on, and before that every group is Clubmen and Slingers.
+one; wave 0 is Clubmen only) and siege. Each lane rolls an archetype at the start of a run (no two the same); it
+picks the units from the Legion's Tool Age on, and before that every group is Clubmen and Slingers.
 
 Struggling is the point: the Legion ages on its own clock, and the player keeps up through the meta and the boons.
 """
@@ -76,7 +76,7 @@ def units(count: int, siege: int = 0) -> Group:
 # Per group, waves 0 to 9.
 GROUPS = {
     Difficulty.STANDARD: (
-        mix(2, 1),
+        mix(3, 0),  # wave 0: melee only
         mix(3, 1),
         mix(3, 1),
         units(5),
@@ -88,7 +88,7 @@ GROUPS = {
         units(11, 3),
     ),
     Difficulty.MODERATE: (
-        mix(3, 1),
+        mix(4, 0),
         mix(4, 1),
         mix(4, 2),
         units(7),
@@ -100,7 +100,7 @@ GROUPS = {
         units(15, 3),
     ),
     Difficulty.HARD: (
-        mix(3, 2),
+        mix(5, 0),
         mix(4, 2),
         units(7),
         units(8),

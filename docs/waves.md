@@ -72,7 +72,7 @@ Per group, as units (melee and ranged, split by the archetype) + siege. The age 
 
 | Wave | Standard | Moderate | Hard |
 |---|---|---|---|
-| 0 | 2 Clubmen, 1 Slinger | 3 Clubmen, 1 Slinger | 3 Clubmen, 2 Slingers |
+| 0 | 3 Clubmen | 4 Clubmen | 5 Clubmen |
 | 1 | 3 Clubmen, 1 Slinger | 4 Clubmen, 1 Slinger | 4 Clubmen, 2 Slingers |
 | 2 | 3 Clubmen, 1 Slinger | 4 Clubmen, 2 Slingers | 7 (Tool) |
 | 3 | 5 | 7 (Tool) | 8 |
@@ -86,9 +86,8 @@ Per group, as units (melee and ranged, split by the archetype) + siege. The age 
 Totals (two groups; wave 9: four): Standard 6, 8, 8, 10, 12, 14, 18, 20, 24, 56; Moderate 8, 10, 12, 14, 16, 20, 22,
 26, 30, 72; Hard 10, 12, 14, 16, 22, 24, 30, 32, 38, 88.
 
-- **Standard wave 0**: 4 Clubmen and 2 Slingers against a Town Center and the Wonder: not losable.
-- **Hard wave 0**: Slingers outrange villagers, so the player needs a few soldiers by the time it arrives. It walks
-  from the Capital (about a minute), and the meta's starting Clubmen count.
+- **Wave 0** is melee only (playtest 2026-11-21): Clubmen, no Slingers. It walks from the Capital (about a minute),
+  and the meta's starting Clubmen count.
 - Difficulty changes sizes, the Legion's age clock and the Priest extras; the 5-minute timer never changes
   (docs/arena.md).
 

@@ -74,13 +74,14 @@ VILLAGERS = Upgrade(
     6,
     label="villagers",
 )
+STARTING_HOUSES = 2  # of the base's houses, the player's in every run (and in the hub)
 HOUSES = Upgrade(
     "meta_houses",
     "House",
-    "Start each run with one more of your base's houses: yours, at full health.",
+    f"Start each run with one more of your base's houses (you always have {STARTING_HOUSES}): yours, at full health.",
     "town_center",
     2,
-    7,
+    5,
     label="houses",
 )
 GRANARY_UPGRADE = Upgrade(

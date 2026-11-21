@@ -3,7 +3,8 @@
 A wave spawns at the map edge and walks, in line formation, to a staging row inside the spawn base. Once it is in
 position the "Send next wave" button on the Wonder comes on. At 5 minutes after the last send, or when the player
 clicks, it marches out in formation, attack-moving straight down the road to the player's base, and the next wave
-spawns and walks in. Wave 0 comes at once and is sent as soon as it's staged; then waves alternate: the Capital's two
+spawns and walks in. A sent unit standing idle (no target, not moving: the road's end, or a tower it took down) is
+sent on to the Wonder. Wave 0 comes at once and is sent as soon as it's staged; then waves alternate: the Capital's two
 lanes, then one lane from each of the other City States; wave 9 is all four.
 
 What a wave brings is in wave_table: the XS reads the difficulty (xsGetDifficulty), rolls each lane's archetype and
@@ -29,6 +30,8 @@ from crucible.scenarios.wave_table import Age, Difficulty
 
 RUNTIME = Path(__file__).with_name("waves.xs")
 PLAYER, LEGION = 1, 3
+WONDER = 276
+AT_WONDER = 10  # tiles: an idle wave unit this near the Wonder attacks it, further off attack-moves to it
 VISIBLE = 0  # visibility state
 SEND_TIME = 300  # seconds between sends
 MOVE, ATTACK_MOVE, LINE_FORMATION = 1, 17, 18
@@ -327,6 +330,7 @@ def data() -> list[str]:
 
 
 def xs(ctx, tech: int) -> str:
+    wonder = next(u for u in ctx.scenario.unit_manager.units[PLAYER] if u.unit_const == WONDER)
     lines = [
         "// ---- crucible run: waves (data) ----",
         f"const int cCrucibleWaveLegion = {LEGION};",
@@ -350,6 +354,9 @@ def xs(ctx, tech: int) -> str:
         f"const int cCrucibleWaveCounterPlayer = {TRADERS};",
         f"const int cCrucibleWaveCounterRelics = {RELICS};",
         f"const int cCrucibleWaveWonVariable = {_variable_id(ctx, WON_VARIABLE)};",
+        f"const int cCrucibleWaveWonder = {wonder.reference_id};",
+        f"vector cCrucibleWaveWonderAt = vector({wonder.x}, {wonder.y}, 0.0);",
+        f"const float cCrucibleWaveAtWonder = {float(AT_WONDER * AT_WONDER)};",
         *data(),
         "bool crucibleWaveIn(vector pos = cInvalidVector, int x1 = 0, int y1 = 0, int x2 = 0, int y2 = 0) {",
         "    float x = xsVectorGetX(pos);",

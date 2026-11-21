@@ -1,9 +1,9 @@
 """crucible_run: the arena as a game (docs/arena.md), built from the hand-made map (assets/crucible_arena).
 
 So far: the five factions and their diplomacy, the player's base handed to the Allies (the player keeps the Town
-Center and the Wonder, with standard resources and 4 villagers; the Allies' buildings start at 1 HP, their walls
-randomly damaged), the City States made invulnerable, the waves (staged, then sent: waves.py), and defeat when the
-Wonder falls. Raids and the win come later.
+Center and the Wonder, with standard resources and 4 villagers; what the meta doesn't keep is removed but the
+walls and towers, randomly damaged), the City States made invulnerable, the waves (staged, then sent: waves.py),
+and defeat when the Wonder falls. Raids and the win come later.
 
 Played with the Crucible data mod (the Send next wave button is one of its techs).
 """
@@ -16,7 +16,6 @@ from aoe2ed.session import SESSIONS
 from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 
 from crucible import meta
-from crucible.bonuses.compile.targets import with_ages
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import SEND_WAVE
@@ -130,8 +129,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 s.unit_manager.add_unit(player=Faction.PLAYER, unit_const=villager, x=x, y=y)
 
             walls = {t: units[t].hit_points for t in allied if units[t].class_ in WALL_CLASSES}
-            buildings = [t for t in allied if t not in walls]
-            aged = sorted({later for t in buildings for later in with_ages(data, t)})  # what the Allies' ages make them
+            towers = {t: units[t].hit_points for t in allied if t in run_rules.TOWERS}
+            cleared = [t for t in allied if t not in walls and t not in towers]  # removed once the meta has kept its
             city_states = sorted({u.unit_const for u in s.unit_manager.units[Faction.CITY_STATES]})
             gaia = data.civs[0].units
             fish = sorted(
@@ -142,15 +141,19 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             ctx.xs(
                 run_xs.start(
                     walls,
-                    buildings,
+                    towers,
                     city_states,
                     allies=Faction.ALLIES,
                     player=Faction.PLAYER,
                     invulnerable=Faction.CITY_STATES,
-                    aged=aged,
                 )
             )
             ctx.xs(run_rules.fish_xs(fish))
+            ctx.trigger(  # the Allies' houses, Granary, Temple and the rest: out of the way
+                "Allies: camp buildings cleared",
+                [{"type": "timer", "timer": run_xs.START}],
+                [{"type": "remove_object", "source_player": Faction.ALLIES, "object_list_unit_id": t} for t in cleared],
+            )
             run_rules.add(
                 ctx,
                 player=Faction.PLAYER,

@@ -20,7 +20,8 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert s.sections["FileHeader"].unknown_numbers == [11]
         names = {t.name for t in s.trigger_manager.triggers}
         assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walk in", "Wave: all lanes sent"} <= names
-        assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 7", "Meta: kept buildings to age 3"} <= names
+        assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 5", "Meta: kept buildings to age 3"} <= names
+        assert {"Meta: starting building 70 2", "Allies: camp buildings cleared"} <= names
         assert {"Meta: Clubmen", "No hub buttons", "No data mod", "No data mod: defeat"} <= names
         assert {"Win: claim victory or fight on", "Win: claim victory", "Player: no walls or gates"} <= names
         assert {f"Base: {name}" for name, _ in bases.BASES} <= names  # an optional objective per Legion base

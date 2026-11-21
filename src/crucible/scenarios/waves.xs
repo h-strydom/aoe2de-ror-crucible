@@ -17,6 +17,9 @@ int crucibleWaveSentWave = -1;
 int crucibleWaveSentCount = 0;
 int crucibleWaveDefeated = -1;  // by wave number: 1 once defeated
 int crucibleWaveDefeatedCount = 0;
+int crucibleWaveLastX = -1;  // by spawned unit: where it was at the last check
+int crucibleWaveLastY = -1;
+int crucibleWaveOne = -1;  // a one-unit array for xsTaskUnits
 
 // The lanes a wave comes down: 1 the Capital's, 2 the City States', 3 all.
 int crucibleWaveLaneSet(int wave = 0) {
@@ -253,6 +256,46 @@ void crucibleWaveCountDefeated() {
     }
 }
 
+// Sent units standing idle (no target, not moved since the last check) go on to the Wonder: attack-moving to it, or
+// attacking it once near (the end of the road, or the gap a tower left, isn't where they stop).
+void crucibleWavePush() {
+    int id = -1;
+    vector pos = cInvalidVector;
+    float x = 0.0;
+    float y = 0.0;
+    float dx = 0.0;
+    float dy = 0.0;
+
+    for (i = 0; < crucibleWaveSentCount) {
+        if (xsArrayGetInt(crucibleWaveSentWave, i) < crucibleWave) {
+            id = xsArrayGetInt(crucibleWaveSentIds, i);
+
+            if (crucibleWaveAlive(id)) {
+                pos = xsGetUnitPosition(id);
+                x = xsVectorGetX(pos);
+                y = xsVectorGetY(pos);
+                dx = x - xsArrayGetFloat(crucibleWaveLastX, i);
+                dy = y - xsArrayGetFloat(crucibleWaveLastY, i);
+
+                if ((xsGetUnitTargetUnitId(id) < 0) && ((dx * dx + dy * dy) < 0.09)) {
+                    xsArraySetInt(crucibleWaveOne, 0, id);
+                    dx = x - xsVectorGetX(cCrucibleWaveWonderAt);
+                    dy = y - xsVectorGetY(cCrucibleWaveWonderAt);
+
+                    if ((dx * dx + dy * dy) < cCrucibleWaveAtWonder) {
+                        xsTaskUnits(crucibleWaveOne, cActionTypeDefault, cCrucibleWaveWonderAt, cCrucibleWaveWonder);
+                    } else {
+                        xsTaskUnits(crucibleWaveOne, cActionTypeAttackMove, cCrucibleWaveWonderAt);
+                    }
+                }
+
+                xsArraySetFloat(crucibleWaveLastX, i, x);
+                xsArraySetFloat(crucibleWaveLastY, i, y);
+            }
+        }
+    }
+}
+
 void crucibleWaveSend() {
     xsSetTriggerVariable(cCrucibleWaveSendVariable, crucibleWaveLaneSet(crucibleWave));
     xsSetTriggerVariable(cCrucibleWaveButtonVariable, 2);
@@ -276,6 +319,9 @@ rule crucibleWaveStart
     crucibleWaveSentIds = xsArrayCreateInt(cCrucibleWaveCapacity, -1, "crucible wave sent ids");
     crucibleWaveSentWave = xsArrayCreateInt(cCrucibleWaveCapacity, -1, "crucible wave sent wave");
     crucibleWaveDefeated = xsArrayCreateInt(1000, 0, "crucible wave defeated");
+    crucibleWaveLastX = xsArrayCreateFloat(cCrucibleWaveCapacity, -100.0, "crucible wave last x");
+    crucibleWaveLastY = xsArrayCreateFloat(cCrucibleWaveCapacity, -100.0, "crucible wave last y");
+    crucibleWaveOne = xsArrayCreateInt(1, -1, "crucible wave one");
     int difficulty = xsGetDifficulty();
 
     if ((difficulty >= 0) && (difficulty < xsArrayGetSize(crucibleWaveDifficultyOf))) {
@@ -304,6 +350,7 @@ rule crucibleWaves
         }
 
         crucibleWaveCountDefeated();
+        crucibleWavePush();
         return;
     }
 
@@ -330,4 +377,5 @@ rule crucibleWaves
     }
 
     crucibleWaveCountDefeated();
+    crucibleWavePush();
 }

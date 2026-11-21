@@ -206,6 +206,11 @@ def _setup(o) -> None:
     near = [v for v in _units(s, GRAY, VILLAGERS) if min(dist((v.x, v.y), (b.x, b.y)) for b in bushes) <= BERRY_REACH]
     s.unit_manager.change_ownership(near, PURPLE)
 
+    # the houses every run starts with (nearest the Town Center): purple from the start
+    town_center = _units(s, PLAYER, (meta.TOWN_CENTER,))[0]
+    houses = sorted(_units(s, GRAY, (HOUSE,)), key=lambda u: dist((u.x, u.y), (town_center.x, town_center.y)))
+    s.unit_manager.change_ownership(houses[: meta.STARTING_HOUSES], PURPLE)
+
 
 def _tile(unit) -> list[int]:
     return [int(unit.x), int(unit.y), int(unit.x), int(unit.y)]

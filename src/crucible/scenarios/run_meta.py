@@ -8,7 +8,8 @@ Starting soldiers stand in slots by the Wonder, placed by hand (2026-11-17): Clu
 (Axemen instead with the Axemen upgrade), 2 more Axemen the other two; Bowmen fill the ranged slots, the Scout its own.
 
 Other upgrades (and the Bronze Age, given at tier 3) unlock techs locked by run_rules (unlocks()), or hand the player
-the base's walls (Small Walls, still damaged: run_xs rolls them after) or towers (the Watch Tower upgrade: they're
+the base's Small Walls (still damaged: run_xs rolls them after; the Fortified Walls round the camp stay the
+Allies') or towers (the Watch Tower upgrade: they're
 Watch Towers, run_rules.tier_one_towers). Like kept buildings, they're made anew for the player: a unit that changes
 hands keeps its old owner's stats, so the player's boons (tower population, building line of sight) missed them.
 
@@ -24,7 +25,7 @@ from crucible import meta
 
 VILLAGER_MALE, VILLAGER_FEMALE = 83, 293
 HOUSE, CLUBMAN, AXEMAN, BOWMAN, SCOUT = 70, 281, 531, 4, 448
-WALLS = (72, 117, 155)  # Small, Medium, Fortified Wall
+SMALL_WALL = 72  # the Walls upgrade hands over the Small Walls; the Fortified Walls round the camp stay the Allies'
 TOWERS = (79, 234, 235, 236)  # Watch, Sentry, Guard, Ballista Tower
 LOOKS_ONLY = (HOUSE,)  # kept by a change of hands (no buttons to lose); the rest are created anew
 AGE_TECHS = ((1, 101), (2, 102), (3, 103))  # (the age reached, its tech): Tool, Bronze, Iron
@@ -37,8 +38,9 @@ SLOTS = {  # where starting soldiers stand: tiles, in the order they fill
     "cavalry": ((103, 120), (103, 121), (103, 122)),
     "siege": ((102, 116),),
 }
+STARTING = ((HOUSE, meta.STARTING_HOUSES),)  # kept in every run: the type, how many (nearest the Town Center)
 KEPT = {  # upgrade -> (the building type each level keeps, how many of that type nearer the Town Center to skip)
-    meta.HOUSES.key: (HOUSE, 0),
+    meta.HOUSES.key: (HOUSE, meta.STARTING_HOUSES),
     meta.GRANARY_UPGRADE.key: (meta.GRANARY, 0),
     meta.STORAGE_PIT_UPGRADE.key: (meta.STORAGE_PIT, 0),
     meta.BARRACKS_UPGRADE.key: (meta.BARRACKS, 0),
@@ -187,12 +189,21 @@ def add(
 
     kept = []
 
+    def nearest(building: int) -> list:
+        units = (u for u in s.unit_manager.units[allies] if u.unit_const == building)
+
+        return sorted(units, key=lambda u: dist((u.x, u.y), town_center))
+
+    for building, count in STARTING:
+        for n, unit in enumerate(nearest(building)[:count], start=1):
+            _keep(ctx, f"Meta: starting building {building} {n}", [], unit, allies, player)
+
+            if building in LOOKS_ONLY:
+                kept.append(unit)
+
     for key, (building, skip) in KEPT.items():
         upgrade = next(u for u in meta.UPGRADES if u.key == key)
-        candidates = sorted(
-            (u for u in s.unit_manager.units[allies] if u.unit_const == building),
-            key=lambda u: dist((u.x, u.y), town_center),
-        )[skip : skip + upgrade.levels]
+        candidates = nearest(building)[skip : skip + upgrade.levels]
         if building in LOOKS_ONLY:
             kept += candidates
 
@@ -211,7 +222,7 @@ def add(
                 [{"type": "enable_disable_technology", "source_player": player, "technology": tech, "enabled": 1}],
             )
 
-    for upgrade, types in ((meta.WALLS, WALLS), (meta.TOWER, TOWERS)):
+    for upgrade, types in ((meta.WALLS, (SMALL_WALL,)), (meta.TOWER, TOWERS)):
         units = [u for u in s.unit_manager.units[allies] if u.unit_const in types]
         _remake(ctx, f"Meta: {upgrade.label}", _at_least(upgrade.key, 1), units, allies, player)
 

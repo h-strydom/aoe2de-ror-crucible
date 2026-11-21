@@ -1,7 +1,7 @@
 """Rules of crucible_run beyond the factions and waves (docs/arena.md):
 
-- the Allies' towers and walls are the tier the player has unlocked: Watch Towers and Small Walls for now (meta
-  upgrades will raise it);
+- the Allies' towers are the tier the player has unlocked: Watch Towers for now (meta upgrades will raise it); the
+  camp's Fortified Walls stay Fortified (the Walls upgrade hands over only the Small Walls);
 - the player's tech tree: the Stone Age and part of the Tool Age (ALLOWED), no techs but Tool Age; meta upgrades
   unlock the rest (run_meta);
 - the player never builds walls or gates (RoR's gates come with walls);
@@ -64,12 +64,11 @@ def locked(data) -> tuple[list[int], list[int]]:
 
 
 def tier_one_towers(s, allies: int) -> None:
-    """The Allies' towers become Watch Towers, their walls Small Walls."""
+    """The Allies' towers become Watch Towers. Their walls stay as placed (the Fortified Walls round the camp had gone
+    in play once they were turned into Small Walls, 2026-11-21)."""
     for unit in s.unit_manager.units[allies]:
         if unit.unit_const in TOWERS:
             unit.unit_const = WATCH_TOWER
-        elif unit.unit_const in WALLS:
-            unit.unit_const = WALLS[0]
 
 
 def gates(data) -> list[int]:
