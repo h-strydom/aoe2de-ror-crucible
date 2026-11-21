@@ -8,6 +8,10 @@ breaking (so they open one gap together), else the nearest wall or gate of a vic
 nearest building or tower (houses walling in a tower or archers), never the target it can't reach; with nothing to
 break, it attack-moves on to where it was first headed.
 
+Where a unit is headed is read from its own orders (its move target while it isn't on one of ours), not when it's
+first seen: a wave spawned and ordered a moment later would otherwise be sent back to where it spawned. A unit with no
+order yet is left alone.
+
 Once the piece it was sent at falls, the unit attack-moves on at once: left alone, the game has it attack the next
 piece of wall beside the gap, and it chews along the wall instead of walking through (walls check, 2026-11-21). The
 same if it turns on another piece of wall by itself.
@@ -124,18 +128,13 @@ int {p}Index(int id = -1) {{
 
     int k = {p}Count;
     vector at = xsGetUnitPosition(id);
-    vector goal = xsGetUnitMoveTarget(id);
-
-    if (xsVectorGetX(goal) < 0.0) {{
-        goal = at;
-    }}
 
     xsArraySetInt({p}Ids, k, id);
     xsArraySetFloat({p}X, k, xsVectorGetX(at) + 100.0);  // so the first check counts as moving
     xsArraySetFloat({p}Y, k, xsVectorGetY(at));
     xsArraySetFloat({p}Hp, k, -1.0);
     xsArraySetInt({p}Stuck, k, 0);
-    xsArraySetVector({p}Goal, k, goal);
+    xsArraySetVector({p}Goal, k, vector(-1.0, -1.0, -1.0));
     xsArraySetInt({p}Piece, k, -1);
     {p}Count = {p}Count + 1;
 
@@ -194,6 +193,20 @@ void {p}Class(int type = -1) {{
 
         if (target >= 0) {{
             hp = xsGetUnitHitpoints(target);
+        }}
+
+        if ((piece < 0) && ({p}IsWall(target) == false)) {{
+            vector order = xsGetUnitMoveTarget(id);  // its own order, not one of ours
+
+            if (xsVectorGetX(order) >= 0.0) {{
+                xsArraySetVector({p}Goal, k, order);
+            }}
+        }}
+
+        if (xsVectorGetX(xsArrayGetVector({p}Goal, k)) < 0.0) {{
+            xsArraySetFloat({p}X, k, x + 100.0);  // no order yet: left alone, and not counted as standing
+            xsArraySetFloat({p}Y, k, y);
+            continue;
         }}
 
         bool moving = (dx * dx + dy * dy) > {MOVED * MOVED};
