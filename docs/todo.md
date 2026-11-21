@@ -4,8 +4,6 @@ Parked work, roughly in order. Move an item into its own doc once it's being bui
 
 ## Boons
 
-- **Boon test map**: a check scenario that hands out every boon and shows its effect in game (the unit, building or
-  tech it changes, before and after), so each modifier's effect can be confirmed once instead of by chance in runs.
 - **Tiered boons** (drafted in `src/crucible/boons/`, one module per civ: the source of truth, kept as Python to
   build the data mod from): six tiers (Poor to Heirloom), each boon a run of them with a list of effects per tier
   (extras combine, a new tier is a new `Tier` member). The lowest tier sets the price, so a higher roll is free.
