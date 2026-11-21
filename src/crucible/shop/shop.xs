@@ -81,7 +81,7 @@ void crucibleShopName(int number = 1, int category = 0) {
     int count = crucibleShopAvailable(category, -1);
 
     xsSetTechName(tech, 1, name + " boons (" + count + ")");
-    xsSetTechDescription(tech, 1, "Choose from " + count + " " + name + " boons (choices left: " + crucibleShopChoices + ").");
+    xsSetTechDescription(tech, 1, "Choose from " + count + " " + name + " boons.");
 }
 
 // Show the next choice: two categories with boons left on the choice buttons.
@@ -105,7 +105,7 @@ void crucibleShopShow() {
     }
 
     crucibleShopState = 1;
-    xsChatData("Shop: choose (choices left: %d)", crucibleShopChoices);
+    xsChatData("Shop: choose a boon category on the Wonder");
 }
 
 // A wave is defeated: grant its choices, and show one unless a choice is already up.

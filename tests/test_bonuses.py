@@ -78,7 +78,7 @@ def test_plurals():
 
 
 def test_subject_shortens_long_lists():
-    assert catalogue.by_id("choson_6").description == "Storage Pit technologies -40% cost"
+    assert catalogue.by_id("choson_3").description == "Storage Pit technologies -40% cost"
 
 
 def test_civs_know_their_game():

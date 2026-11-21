@@ -11,13 +11,13 @@ LEGION = 3
 WALL_CLASSES, FARM_CLASS = (27, 39), 49  # walls and gates; farms
 BUILDING = 80
 PAD = 2  # tiles around a base's box: a few buildings stand on its edge
-BASES = (  # name, (x0, x1, y0, y1) as in docs/arena.md
-    ("the north-west island outpost", (18, 28, 40, 54)),
-    ("the north-east island outpost", (184, 218, 2, 46)),
-    ("the southern economic district", (94, 116, 160, 182)),
-    ("the southern mining district", (69, 90, 205, 212)),
-    ("the south-west military district", (6, 26, 198, 220)),
-    ("the south-south-east military district", (131, 157, 198, 215)),
+BASES = (  # objective name, (x0, x1, y0, y1) as in docs/arena.md
+    ("Western Outpost", (18, 28, 40, 54)),  # the north-west island outpost
+    ("Eastern Outpost", (184, 218, 2, 46)),  # the north-east island outpost
+    ("Southern Farming District", (94, 116, 160, 182)),
+    ("Southern Mining District", (69, 90, 205, 212)),
+    ("Western Military District", (6, 26, 198, 220)),  # the south-west one (stables)
+    ("Southern Military District", (131, 157, 198, 215)),  # the south-south-east one (archery ranges)
 )
 
 
@@ -43,13 +43,13 @@ def add(ctx, s) -> None:
         if not found:
             raise ValueError(f"no Legion buildings in {name}")
 
-        text = f"Optional: destroy {name} (a boon choice)"
+        text = f"Destroy {name}"
         ctx.trigger(
             f"Base: {name}",
             [{"type": "destroy_object", "unit_object": u.reference_id} for u in found],
             [
                 {"type": "script_call", "message": f"void crucibleBaseDestroyed{n}() {{ crucibleShopOpen(); }}"},
-                {"type": "send_chat", "source_player": 1, "message": f"You destroyed {name}: a boon choice."},
+                {"type": "send_chat", "source_player": 1, "message": f"{name} destroyed: a boon choice."},
             ],
             display_as_objective=True,
             display_on_screen=True,

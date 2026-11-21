@@ -1,6 +1,6 @@
 """Choson: "Infantry and Tower civilization" (RoR string 120161).
 
-• Axeman, Short/Broad/Long Swordsmen and Legion +5/+15/+20/+60/+80 hit points
+• Axeman, Short/Broad/Long Swordsmen and Legion +5/+15/+20/+60/+80 hit points (here: Axemen +5, the Swordsman line +30)
 • Storage Pit technologies cost -40%
 • Towers +2 range
 • Priests cost -30%
@@ -21,45 +21,16 @@ MODIFIERS = (
         icon=Icon.INFANTRY,
         rarity=Rarity.COMMON,
     ),
-    Modifier(
-        change=flat(15),
+    Modifier(  # one boon for the whole line (RoR gives each unit its own amount: +15/+20/+60/+80)
+        change=flat(30),
         stat=Stat.HP,
-        targets=("short_swordsman",),
+        targets=("short_swordsman", "broad_swordsman", "long_swordsman", "legionary"),
         tags=(Tag.INFANTRY, Tag.SWORDSMAN, Tag.BARRACKS, Tag.UNIT),
         civ=Civ.CHOSON,
         name="Choson 2",
         icon=Icon.INFANTRY,
-        rarity=Rarity.COMMON,
-    ),
-    Modifier(
-        change=flat(20),
-        stat=Stat.HP,
-        targets=("broad_swordsman",),
-        tags=(Tag.INFANTRY, Tag.SWORDSMAN, Tag.BARRACKS, Tag.UNIT),
-        civ=Civ.CHOSON,
-        name="Choson 3",
-        icon=Icon.INFANTRY,
-        rarity=Rarity.COMMON,
-    ),
-    Modifier(
-        change=flat(60),
-        stat=Stat.HP,
-        targets=("long_swordsman",),
-        tags=(Tag.INFANTRY, Tag.SWORDSMAN, Tag.BARRACKS, Tag.UNIT),
-        civ=Civ.CHOSON,
-        name="Choson 4",
-        icon=Icon.INFANTRY,
         rarity=Rarity.RARE,
-    ),
-    Modifier(
-        change=flat(80),
-        stat=Stat.HP,
-        targets=("legionary",),
-        tags=(Tag.INFANTRY, Tag.SWORDSMAN, Tag.BARRACKS, Tag.UNIT),
-        civ=Civ.CHOSON,
-        name="Choson 5",
-        icon=Icon.INFANTRY,
-        rarity=Rarity.RARE,
+        subject="Swordsman line",
     ),
     Modifier(
         change=pct(-0.4),
@@ -83,7 +54,7 @@ MODIFIERS = (
         ),
         tags=(Tag.STORAGE_PIT, Tag.TECHNOLOGY),
         civ=Civ.CHOSON,
-        name="Choson 6",
+        name="Choson 3",
         subject="Storage Pit technologies",
         icon=Icon.STORAGE_PIT,
         rarity=Rarity.LEGENDARY,
@@ -94,7 +65,7 @@ MODIFIERS = (
         groups=(Group.TOWERS,),
         tags=(Tag.TOWER, Tag.DEFENCE, Tag.BUILDING),
         civ=Civ.CHOSON,
-        name="Choson 7",
+        name="Choson 4",
         icon=Icon.TOWER,
         rarity=Rarity.RARE,
     ),
@@ -104,7 +75,7 @@ MODIFIERS = (
         targets=("priest",),
         tags=(Tag.PRIEST, Tag.TEMPLE, Tag.UNIT),
         civ=Civ.CHOSON,
-        name="Choson 8",
+        name="Choson 5",
         icon=Icon.PRIEST,
         rarity=Rarity.COMMON,
     ),
@@ -114,7 +85,7 @@ MODIFIERS = (
         groups=(Group.BUILDINGS,),
         tags=(Tag.BUILDING, Tag.TEAM),
         civ=Civ.CHOSON,
-        name="Choson 9",
+        name="Choson 6",
         icon=Icon.BUILDING,
         rarity=Rarity.COMMON,
     ),

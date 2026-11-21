@@ -63,7 +63,9 @@ Meta upgrades (docs/hub.md) hand more of these buildings to the player at the st
 The player's tech tree out of the box: everything of the Stone Age (villagers, House, Barracks and Clubman, Granary,
 Storage Pit, Dock and Fishing Boat), and in the Tool Age only the Slinger, the Archery Range and Bowman, the Stable
 and Scout, the Scout Ship, Light Transport and Trade Boat, the Market and Farm. No techs but Tool Age itself: every
-other tech is a meta upgrade (the Bronze Age comes with reaching tier 3 in the hub).
+other tech is a meta upgrade (the Bronze Age comes with reaching tier 3 in the hub). A kept Archery Range, Stable or
+Market (meta upgrades) trains Bowmen, Scouts and builds Farms from the Stone Age: RoR switches those on with the
+building, not the age (kept on purpose). Everything else still waits for its age.
 
 The Allies' towers and walls are the tier the player has unlocked: Watch Towers and Small Walls for now. The player
 never builds walls or gates (RoR's gates come with walls); Watch Towers come with a meta upgrade. The player starts with
@@ -115,8 +117,8 @@ line in the Objectives panel (the Scouts text can't change during a game).
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's
 villagers and patrol around them. Destroying a base stops all of that and gives one decision reward (one more shop
-pick). Each base is an optional objective ("Optional: destroy the north-west island outpost (a
-boon choice)"): it's destroyed once all its buildings are, but its walls and farms (`scenarios/bases.py`).
+pick). Each base is an optional objective ("Destroy Western Outpost"; also Eastern Outpost,
+Southern Farming, Mining and Military Districts, Western Military District): it's destroyed once all its buildings are, but its walls and farms (`scenarios/bases.py`).
 
 **Invulnerable.** Everything of the City States (2) can't be attacked.
 
