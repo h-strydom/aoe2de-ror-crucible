@@ -1,6 +1,7 @@
 from aoe2ed import xs
 from aoe2ed.session import SESSIONS
 
+from crucible import meta
 from crucible.scenarios import bases, run, waves
 
 
@@ -22,6 +23,9 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walk in"} <= names
         assert "Wave: City States sent" in names
         assert {"Wave: timer (Hard)", "Lane: Capital west is Legion"} <= names
+        assert {"Meta: load currency", "Meta: bank currency"} <= names  # each wave pays its age's resource
+        bank = next(t for t in s.trigger_manager.triggers if t.name == "Meta: bank currency")
+        assert {e.message for e in bank.effects if e.message} == set(meta.CURRENCY)
         assert not any(n.startswith("Legion: ") for n in names)  # the XS researches the Legion's techs itself
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 5", "Meta: kept buildings to age 3"} <= names
         assert {"Meta: starting building 70 2", "Allies: camp buildings cleared"} <= names

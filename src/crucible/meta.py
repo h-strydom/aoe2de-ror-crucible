@@ -16,6 +16,11 @@ MARKET, ARCHERY_RANGE, STABLE = 84, 87, 101
 TOWN_CENTER_AGE2, BARRACKS_AGE2 = 71, 498  # what the hub's tier 2 copies look like (Tool Age)
 TIERS = (5, 10)  # more levels bought (from any tier) to open each tier after the first: 5 for tier 2, 10 more for 3
 
+# The currency (docs/meta-v2.md): each wave defeated pays 1 of its Legion age's resource, banked under these keys.
+CURRENCY = ("meta_food", "meta_wood", "meta_gold", "meta_stone")
+CURRENCY_NAMES = ("Food", "Wood", "Gold", "Stone")
+CURRENCY_BY_AGE = (0, 1, 2, 3, 3)  # Stone, Tool, Bronze, Iron, Post-Iron -> a CURRENCY index
+
 
 @dataclass(frozen=True)
 class Place:

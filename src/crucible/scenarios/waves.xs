@@ -22,6 +22,7 @@ int crucibleWaveBoonTaken = -1;  // by boon: 1 once the Legion has it
 int crucibleWaveHas = -1;  // by unit (wave_table.units index): the Legion has one of these structures
 string crucibleWaveNews = "";  // this wave's announcements
 int crucibleWaveLaneSpawned = -1;  // by lane: units spawned this wave (where a support unit goes)
+int crucibleWaveAgeOf = -1;  // by wave: the Legion's age when it spawned (what defeating it pays)
 
 // each lane: its archetype; each slot (lane * 2 + slot): its path (families, -1 past the end), where on it, how many
 int crucibleWaveLaneArchetype = -1;
@@ -595,6 +596,7 @@ void crucibleWaveSpawnSupport(int set = 0) {
 void crucibleWaveWalkIn() {
     int set = crucibleWaveLaneSet(crucibleWave);
     crucibleWaveNews = "";
+    xsArraySetInt(crucibleWaveAgeOf, crucibleWave, crucibleWaveAge);
 
     for (lane = 0; < cCrucibleWaveLanes) {
         if (crucibleWaveLaneIn(lane, set)) {
@@ -726,6 +728,16 @@ bool crucibleWaveStaged() {
     return ((walking > 0) && (waiting == walking));
 }
 
+// A defeated wave pays 1 of its age's resource into the campaign bank (banked at once: a lost run still pays).
+void crucibleWavePay(int wave = 0) {
+    int currency = xsArrayGetInt(crucibleWaveCurrencyByAge, xsArrayGetInt(crucibleWaveAgeOf, wave));
+    int variable = xsArrayGetInt(crucibleWaveCurrencyVariable, currency);
+    xsSetTriggerVariable(variable, xsTriggerVariable(variable) + 1);
+    xsSetTriggerVariable(cCrucibleWaveBankVariable, 1);
+    xsChatData("Wave " + wave + " defeated: +1 " + xsArrayGetString(crucibleWaveCurrencyName, currency) + " ("
+        + xsTriggerVariable(variable) + " banked)");
+}
+
 // Each sent wave with no unit left alive is defeated: count it once. Wave 0 gives free Poor boons; later waves a
 // choice (two every cCrucibleWaveDoubleEvery), with the tier-up chances growing per wave.
 void crucibleWaveCountDefeated() {
@@ -747,7 +759,7 @@ void crucibleWaveCountDefeated() {
                 xsArraySetInt(crucibleWaveDefeated, wave, 1);
                 crucibleWaveDefeatedCount++;
                 xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterRelics, crucibleWaveDefeatedCount);
-                xsChatData("Wave %d defeated", wave);
+                crucibleWavePay(wave);
                 crucibleShopTierBonus = crucibleWaveDefeatedCount * cCrucibleWaveTierUpPerWave;
 
                 if (wave == 0) {
@@ -834,6 +846,8 @@ rule crucibleWaveStart
     crucibleWaveBoonTaken = xsArrayCreateInt(cCrucibleWaveBoons + 1, 0, "crucible wave boon taken");
     crucibleWaveHas = xsArrayCreateInt(cCrucibleWaveUnits, 0, "crucible wave has");
     crucibleWaveLaneSpawned = xsArrayCreateInt(cCrucibleWaveLanes, 0, "crucible wave lane spawned");
+    crucibleWaveAgeOf = xsArrayCreateInt(cCrucibleWaveCapacity, 0, "crucible wave age of");
+    crucibleWaveCurrencyData();
     int difficulty = xsGetDifficulty();
 
     if ((difficulty >= 0) && (difficulty < xsArrayGetSize(crucibleWaveDifficultyOf))) {

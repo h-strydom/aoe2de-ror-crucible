@@ -27,6 +27,9 @@ The XS (waves.xs) decides; triggers do: XS sets a variable, a looping trigger ac
 from dataclasses import dataclass
 from pathlib import Path
 
+from aoe2ed import blocks
+
+from crucible import meta
 from crucible.boons.model import Tier
 from crucible.datamod.shop import SEND_WAVE
 from crucible.scenarios import wave_table as table
@@ -61,6 +64,7 @@ WALK_VARIABLE = "crucible_wave_walk"  # lanes walking in: 1 the Capital's, 2 the
 SEND_VARIABLE = "crucible_wave_send"  # lanes sent, the same
 TIMER_VARIABLE = "crucible_wave_timer"  # difficulty + 1: restart the timer at its time
 BUTTON_VARIABLE = "crucible_wave_button"  # 1: button on, 2: off
+BANK_VARIABLE = "crucible_bank_currency"  # 1: store the currency in the campaign bank
 
 Tile = tuple[int, int]
 Box = tuple[int, int, int, int]  # x1, y1, x2, y2, inclusive
@@ -273,10 +277,14 @@ def _triggers(ctx, tech: int) -> None:
         ctx.var(variable)
 
     ctx.trigger("Wave: no button at start", [], [_button(tech, on=False)])
+    blocks.bank.load(ctx, dict.fromkeys(meta.CURRENCY, 0), name="Meta: load currency")
+    ctx.var(BANK_VARIABLE)
+    store = [{"type": "store_key_value", "variable": ctx.var(key), "message": key} for key in meta.CURRENCY]
     _objective(ctx)
     ctx.triggers(
         _on(BUTTON_VARIABLE, 1, "Wave: button on", [_button(tech, on=True)]),
         _on(BUTTON_VARIABLE, 2, "Wave: button off", [_button(tech, on=False)]),
+        _on(BANK_VARIABLE, 1, "Meta: bank currency", store),  # as it's earned: a lost run still pays
         *(
             _on(TIMER_VARIABLE, d + 1, f"Wave: timer ({d.name.title()})", _timer(table.SEND_TIMES[d]))
             for d in Difficulty
@@ -491,6 +499,8 @@ def data(game, techs: dict[str, int]) -> list[str]:
         _strings("crucibleWaveBoonName", [boon.title.replace('"', "") for boon, _, _ in boons]),
         _ints("crucibleWaveBoonImproves", [v for _, _, improves in boons for v in improves], default=0),
         _strings("crucibleWaveTierName", [t.title for t in Tier]),
+        _ints("crucibleWaveCurrencyByAge", list(meta.CURRENCY_BY_AGE)),
+        _strings("crucibleWaveCurrencyName", list(meta.CURRENCY_NAMES)),
         _ints("crucibleWaveAgeTech", [table.AGE_TECHS.get(age, -1) for age in ages]),
         _strings("crucibleWaveAgeName", [a.title for a in ages]),
         _ints("crucibleWaveDifficultyOf", [int(table.GAME_DIFFICULTY.get(g, table.FALLBACK)) for g in range(5)]),
@@ -543,6 +553,7 @@ def xs(ctx, tech: int, game, techs: dict[str, int]) -> str:
         f"const int cCrucibleWaveBoons = {len(legion_boons(game, techs))};",
         f"const int cCrucibleWaveTiers = {len(Tier)};",
         f"const int cCrucibleWaveNewsTime = {NEWS_TIME};",
+        f"const int cCrucibleWaveBankVariable = {_variable_id(ctx, BANK_VARIABLE)};",
         f"const int cCrucibleWaveAgeUpStart = {table.AGE_UP_START};",
         f"const int cCrucibleWaveAgeUpStep = {table.AGE_UP_STEP};",
         f"const int cCrucibleWaveMaxSteps = {table.MAX_STEPS};",
@@ -564,6 +575,14 @@ def xs(ctx, tech: int, game, techs: dict[str, int]) -> str:
         f"vector cCrucibleWaveWonderAt = vector({wonder.x}, {wonder.y}, 0.0);",
         f"const float cCrucibleWaveAtWonder = {float(AT_WONDER * AT_WONDER)};",
         *data(game, techs),
+        "int crucibleWaveCurrencyVariable = -1;  // by currency: its trigger variable (the bank's key)",
+        "void crucibleWaveCurrencyData() {",
+        f'    crucibleWaveCurrencyVariable = xsArrayCreateInt({len(meta.CURRENCY)}, -1, "crucible wave currency");',
+        *(
+            f"    xsArraySetInt(crucibleWaveCurrencyVariable, {n}, {_variable_id(ctx, key)});"
+            for n, key in enumerate(meta.CURRENCY)
+        ),
+        "}",
         "int crucibleWaveLaneVariable(int lane = 0) {",
         *(f"    if (lane == {n}) {{ return ({v}); }}" for n, v in enumerate(lane_variables.split(", "))),
         "    return (-1);",
