@@ -3,6 +3,7 @@ the Walls or Watch Tower upgrade), the City States made invulnerable. It runs on
 have taken the player's buildings back. (The Allies' other buildings are removed then too: run.py.)
 """
 
+TOWER_LOG_EVERY, TOWER_LOGS = 30, 6  # TEMPORARY: tower HP in chat every 30 s for 3 minutes
 TOWER_HP = (40, 75)  # a tower starts between these, in percent of its full HP (10-50 was too low, 2026-11-21)
 
 START = 3  # seconds: after the kept buildings, towers and walls are made anew (about 1-2 s)
@@ -44,6 +45,9 @@ def start(
         f"    crucibleRunTowers({owner}, {unit}, {hp});" for owner in (allies, player) for unit, hp in towers.items()
     )
     invulnerable_calls = "\n".join(f"    crucibleRunInvulnerable({unit});" for unit in city_states)
+    log_calls = "\n".join(
+        f"    text = text + crucibleRunTowerHp({owner}, {unit});" for owner in (allies, player) for unit in towers
+    )
 
     return f"""// ---- crucible run: start ----
 void crucibleRunWalls(int owner = -1, int type = -1, int hp = 0) {{
@@ -70,6 +74,45 @@ void crucibleRunTowers(int owner = -1, int type = -1, int hp = 0) {{
     }}
 }}
 
+// TEMPORARY (towers ended up far below the roll, 2026-11-21): each tower's HP and its type's full HP, in chat.
+string crucibleRunTowerHp(int owner = -1, int type = -1) {{
+    int ids = xsGetPlayerUnitIds(owner, type, -1);
+    string text = "";
+    int hp = 0;
+
+    for (i = 0; < xsArrayGetSize(ids)) {{
+        hp = xsGetUnitHitpoints(xsArrayGetInt(ids, i));
+        text = text + " p" + owner + ":" + hp;
+    }}
+
+    if (xsArrayGetSize(ids) > 0) {{
+        int full = xsGetObjectAttribute(owner, type, cHitpoints, 0);
+        text = text + " (full " + full + ")";
+    }}
+
+    return (text);
+}}
+
+void crucibleRunTowerLog(string when = "") {{
+    string text = "Towers " + when + ":";
+{log_calls}
+    xsChatData(text);
+}}
+
+int crucibleRunTowerLogs = 0;
+
+rule crucibleRunTowerWatch
+    inactive
+    minInterval {TOWER_LOG_EVERY}
+{{
+    crucibleRunTowerLogs++;
+    crucibleRunTowerLog("at " + xsGetTime() + " s");
+
+    if (crucibleRunTowerLogs >= {TOWER_LOGS}) {{
+        xsDisableSelf();
+    }}
+}}
+
 void crucibleRunInvulnerable(int type = -1) {{
     int ids = xsGetPlayerUnitIds({invulnerable}, type, -1);
     // splash hits a unit whose blast defence level is at least the attack's (catapults 2, buildings 2-3, units 3):
@@ -92,6 +135,8 @@ rule crucibleRunStart
 {wall_calls}
 {tower_calls}
 {invulnerable_calls}
+    crucibleRunTowerLog("rolled");
+    xsEnableRule("crucibleRunTowerWatch");
     xsDisableSelf();
 }}
 """
