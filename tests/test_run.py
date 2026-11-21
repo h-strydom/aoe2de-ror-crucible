@@ -19,7 +19,7 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert s.player_manager.active_players == 5
         assert s.sections["FileHeader"].unknown_numbers == [11]
         names = {t.name for t in s.trigger_manager.triggers}
-        assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walks in"} <= names
+        assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walk in", "Wave: all lanes sent"} <= names
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 7", "Meta: kept buildings to age 3"} <= names
         assert {"Meta: Clubmen", "No hub buttons", "No data mod", "No data mod: defeat"} <= names
         assert {"Win: claim victory or fight on", "Win: claim victory", "Player: no walls or gates"} <= names
@@ -40,3 +40,10 @@ def test_lanes_are_straight():
     for lane in (*waves.CAPITAL, *waves.CITY_STATES):
         spawn, stage, target = lane.spawn[1], lane.stage[1], lane.target[1]
         assert spawn[0] == stage[0] == target[0] or spawn[1] == stage[1] == target[1], lane.name
+
+
+def test_lanes_spawn_short_of_staging():
+    for lane in waves.LANES:
+        sx1, sy1, sx2, sy2 = lane.spawned
+        tx1, ty1, tx2, ty2 = lane.staged
+        assert sx2 < tx1 or tx2 < sx1 or sy2 < ty1 or ty2 < sy1, lane.name  # a send never takes a new wave

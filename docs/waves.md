@@ -1,6 +1,7 @@
-# Waves: proposal
+# Waves
 
-Suggestions to review; nothing here is built yet. Unit ages are RoR's own (read from the data file): Hoplites, Stone
+Built 2026-11-21: the numbers live in `src/crucible/scenarios/wave_table.py` (this page is the reasoning), the
+running of them in `scenarios/waves.py` and `waves.xs`. Unit ages are RoR's own (read from the data file): Hoplites, Stone
 Throwers and Priests come with their Bronze Age buildings; Composite Bowmen are Bronze; Ballistas, Catapults,
 elephants, horse archers and the Long Swordsman are Iron; the last upgrades (Legionary, Centurion, Cataphract,
 Armored Elephant, Heavy Horse Archer, Heavy Catapult, Helepolis) are the post-Iron wave.
@@ -91,8 +92,17 @@ Totals (two groups; wave 9: four): Standard 6, 8, 8, 10, 12, 14, 18, 20, 24, 56;
 - Difficulty changes sizes, the Legion's age clock and the Priest extras; the 5-minute timer never changes
   (docs/arena.md).
 
+## How it runs
+
+- The XS reads the game difficulty (`xsGetDifficulty`): Easiest and Standard play Standard, Moderate Moderate, Hard
+  and up Hard. It rolls the lanes' archetypes, then spawns each group with `xsCreateUnit` in rows inwards from the
+  spawn row and keeps the ids, so a wave is staged when all its living units are on a staging row and defeated when
+  none is left.
+- The Legion doesn't age itself (no techs): only which units it spawns follows the clock.
+- Archetypes are named in chat as each wave walks in ("Wave 3 (Tool Age), Capital west: Cavalry, ...").
+
 ## Open
 
-- Wave 9: 56 to 88 units in all, spawned a row at a time; too big?
-- Do archetypes stay hidden, or does the wave's name say it ("Capital west: Cavalry")?
+- Wave 9: 56 to 88 units in all; too big? Tune after a playtest.
+- The Legion researching its age techs (armour, attack) with the clock.
 - A Priests or Siege archetype for later tiers?

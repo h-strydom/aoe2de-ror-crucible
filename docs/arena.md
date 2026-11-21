@@ -72,29 +72,22 @@ never builds walls or gates (RoR's gates come with walls); Watch Towers come wit
 City Watch researched. The Allies age up when the player does: their buildings take the new age's look, still at 1 HP.
 Fish (not whales) hold twice their food, as fishing ships don't move on to the next fish they can see.
 
-**Ages.** The City States (2) start in the Iron Age (eye candy). The Legion (3) starts in the Stone Age and ages up with
-the waves: its bases around the map get stronger too, so leaving them makes them more dangerous.
+**Ages.** The City States (2) start in the Iron Age (eye candy). The Legion (3) starts in the Stone Age; its waves follow an
+age clock by difficulty (docs/waves.md). It doesn't research the ages itself yet (to do: then its bases around the map
+get stronger too, so leaving them makes them more dangerous).
 
-**Waves.** The waves are the Legion's (3), spawned at the City States (2), one every 5 minutes, alternating:
-- capital waves: two armies from the Capital, one per lane
-- city-state waves: two smaller armies, one from each of the Western and Eastern City States
+**Waves.** The waves are the Legion's (3), spawned at the City States (2), one every 5 minutes (docs/waves.md;
+the numbers are in `scenarios/wave_table.py`). Wave 0 comes at once from the Capital and is sent as soon as it's in
+position; killing it gives a free choice of Poor boons. Then they alternate:
+- capital waves (1, 3, 5, 7): two groups from the Capital, one per lane
+- city-state waves (2, 4, 6, 8): one group from each of the Western and Eastern City States
+- wave 9: all four lanes (and any wave after it, fighting on).
 
-After each capital and city-state pair the Legion ages up: it gets every tech of the new age, and the new age's units
-join the wave pool. Units already on the map get the techs too.
-
-| Wave | Time | Age | From | Example |
-|---|---|---|---|---|
-| 1 | 5:00 | Stone | Capital | 4 + 4 Clubmen |
-| 2 | 10:00 | Stone | city states | 6 + 4 Clubmen |
-| 3 | 15:00 | Tool (up) | Capital | Axemen, Slingers, Scouts, Bowmen join |
-| 4 | 20:00 | Tool | city states | |
-| 5 | 25:00 | Bronze (up) | Capital | Bronze Age units join |
-| 6 | 30:00 | Bronze | city states | |
-| 7 | 35:00 | Iron (up) | Capital | Iron Age units join |
-| 8 | 40:00 | Iron | city states | |
-| 9 | 45:00 | post-Iron (up) | all three | the last, massive wave |
-
-post-Iron: the last upgrades, such as Ballista to Helepolis, Catapult to Heavy Catapult, Phalangite to Centurion.
+The difficulty picks each group's size and the Legion's age clock (which age's units a wave brings). At the start of a
+run each lane rolls an archetype (Swordsmen, Phalanx, Cavalry, Elephants, Bowmen, Horse archers, Chariots; no two the
+same) that picks its units from the Legion's Tool Age on; before that every group is Clubmen and Slingers. Every wave
+brings melee and ranged units, siege from the Bronze Age on, and Priests on Moderate and Hard. Chat names each wave's
+age and lanes' archetypes as it walks in.
 
 **Staging.** Each lane is three rows of three tiles: where a wave spawns (the map edge), where it waits (a row
 inside the spawn base) and where it attacks to (in the player's base). A wave spawns a row at a time and walks in,
@@ -104,10 +97,9 @@ the west and east of the Wonder; each side City State's lane ends beside the Cap
 
 **Sending a wave.** When the waiting wave is in position, the "Send next wave" button on the Wonder comes on. A wave
 is sent 5 minutes after the one before (the first at 5:00), or as soon as the player clicks; a click starts the 5
-minutes again. A sent wave that brings an age up brings it early: the player can send waves 1 and 2 at once, fight
-the Clubmen, and then meet Tool Age units at 5:00. Sending a wave doesn't clear it: a wave is cleared when every unit
+minutes again. Sending early brings later waves (and their ages) early. Sending a wave doesn't clear it: a wave is cleared when every unit
 in it is dead. The player sees each wave's units wherever they go (not the rest of the Legion). A timer shows the time to the next send; the objective counts
-defeated waves to 9 ("Defeat 9 waves (n/9)"), and chat names each one as it falls. Waves clump as they walk, so only
+defeated waves to 10 ("Defeat 10 waves (n/10)"), and chat names each one as it falls. Waves clump as they walk, so only
 the middle tile of each row matters as a reference.
 
 **Boons.** Each wave defeated (and each Legion base destroyed) gives one decision in the shop (`shop/`): two boon
