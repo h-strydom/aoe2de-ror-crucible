@@ -80,6 +80,9 @@ PLAYERS = {  # player -> its fields
 ENEMIES = (Faction.CITY_STATES, Faction.LEGION)
 FRIENDS = (Faction.PLAYER, Faction.ALLIES)
 KEEPS = (TOWN_CENTER, WONDER)  # what the player starts with
+# The Allies keep one unattackable house far from everything (the north edge, east of the Capital): with only walls
+# and towers left once the camp is cleared, the game defeated them (playtest 2026-11-21).
+KEEPER, KEEPER_AT = 70, (178.0, 5.0)
 
 
 def _diplomacy(handle: str) -> None:
@@ -90,6 +93,14 @@ def _diplomacy(handle: str) -> None:
 
     for friend in FRIENDS:
         diplomacy_set(handle, friend, list(ENEMIES), "ENEMY")
+
+
+def _camp(s) -> tuple[int, int, int, int]:
+    """The box round the Allies' units (the base they were handed), a tile out: x1, y1, x2, y2."""
+    units = s.unit_manager.units[Faction.ALLIES]
+    xs, ys = [int(u.x) for u in units], [int(u.y) for u in units]
+
+    return min(xs) - 1, min(ys) - 1, max(xs) + 1, max(ys) + 1
 
 
 def _hand_over(s) -> list[int]:
@@ -123,6 +134,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             _hand_over(s)
             run_rules.tier_one_towers(s, Faction.ALLIES)
             allied = sorted({u.unit_const for u in s.unit_manager.units[Faction.ALLIES]})
+            camp = _camp(s)
+            keeper = s.unit_manager.add_unit(player=Faction.ALLIES, unit_const=KEEPER, x=KEEPER_AT[0], y=KEEPER_AT[1])
 
             for k, (x, y) in enumerate(VILLAGERS):
                 villager = VILLAGER_MALE if k % 2 == 0 else VILLAGER_FEMALE
@@ -146,13 +159,22 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                     allies=Faction.ALLIES,
                     player=Faction.PLAYER,
                     invulnerable=Faction.CITY_STATES,
+                    keeper=keeper.reference_id,
                 )
             )
             ctx.xs(run_rules.fish_xs(fish))
-            ctx.trigger(  # the Allies' houses, Granary, Temple and the rest: out of the way
+            ctx.trigger(  # the Allies' houses, Granary, Temple and the rest in the camp: out of the way
                 "Allies: camp buildings cleared",
                 [{"type": "timer", "timer": run_xs.START}],
-                [{"type": "remove_object", "source_player": Faction.ALLIES, "object_list_unit_id": t} for t in cleared],
+                [
+                    {
+                        "type": "remove_object",
+                        "source_player": Faction.ALLIES,
+                        "object_list_unit_id": t,
+                        "area": list(camp),
+                    }
+                    for t in cleared
+                ],
             )
             run_rules.add(
                 ctx,

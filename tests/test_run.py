@@ -24,6 +24,7 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert {"Legion: Bronze Age", "Legion: Alchemy", "Wave: timer (Hard)", "Lane: Capital west is Legion"} <= names
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 5", "Meta: kept buildings to age 3"} <= names
         assert {"Meta: starting building 70 2", "Allies: camp buildings cleared"} <= names
+        assert any(u.unit_const == run.KEEPER for u in units[run.Faction.ALLIES])
         assert {"Meta: Clubmen", "No hub buttons", "No data mod", "No data mod: defeat"} <= names
         assert "Player: no walls or gates" in names and not any(n.startswith("Win: ") for n in names)
         assert {f"Base: {name}" for name, _ in bases.BASES} <= names  # an optional objective per Legion base

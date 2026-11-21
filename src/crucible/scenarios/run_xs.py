@@ -1,10 +1,13 @@
 """The XS crucible_run starts with: the base's walls and towers randomly damaged (the Allies', or the player's with
-the Walls or Watch Tower upgrade), the City States made invulnerable. It runs once, at START: after the meta upgrades
-have taken the player's buildings back. (The Allies' other buildings are removed then too: run.py.)
+the Walls or Watch Tower upgrade), the City States and the Allies' keeper house made invulnerable. It runs once, at
+START: after the meta upgrades have taken the player's buildings back. (The Allies' other buildings in the camp are
+removed then too: run.py.)
+
+A roll between `low` and `high` is `low + xsGetRandomNumberLH(0, high - low + 1)`: RoR's xsGetRandomNumberLH(low, high)
+returned 0 to high - low, not low to high (towers rolled 40-75% came out 4-34%, playtest 2026-11-21).
 """
 
-TOWER_LOG_EVERY, TOWER_LOGS = 30, 6  # TEMPORARY: tower HP in chat every 30 s for 3 minutes
-TOWER_HP = (40, 75)  # a tower starts between these, in percent of its full HP (10-50 was too low, 2026-11-21)
+TOWER_HP = (40, 75)  # a tower starts between these, in percent of its full HP
 
 START = 3  # seconds: after the kept buildings, towers and walls are made anew (about 1-2 s)
 
@@ -18,12 +21,17 @@ WALL_STATES = (
 )
 
 
+def roll(low: int, high: int) -> str:
+    """XS for a random int from `low` to `high`, both included."""
+    return f"({low} + xsGetRandomNumberLH(0, {high - low + 1}))"
+
+
 def _wall_rolls() -> str:
     rolls, total = [], 0
 
     for chance, low, high in WALL_STATES:
         total += chance
-        rolls.append(f"if (roll < {total}) {{ percent = xsGetRandomNumberLH({low}, {high + 1}); }}")
+        rolls.append(f"if (roll < {total}) {{ percent = {roll(low, high)}; }}")
 
     return "\n        else ".join(rolls)
 
@@ -36,8 +44,10 @@ def start(
     allies: int,
     player: int,
     invulnerable: int,
+    keeper: int = -1,
 ) -> str:
-    """`walls`, `towers`: type -> its full HP."""
+    """`walls`, `towers`: type -> its full HP. `keeper`: the Allies' house that keeps them in the game (its reference
+    id), made unattackable."""
     wall_calls = "\n".join(
         f"    crucibleRunWalls({owner}, {unit}, {hp});" for owner in (allies, player) for unit, hp in walls.items()
     )
@@ -45,9 +55,7 @@ def start(
         f"    crucibleRunTowers({owner}, {unit}, {hp});" for owner in (allies, player) for unit, hp in towers.items()
     )
     invulnerable_calls = "\n".join(f"    crucibleRunInvulnerable({unit});" for unit in city_states)
-    log_calls = "\n".join(
-        f"    text = text + crucibleRunTowerHp({owner}, {unit});" for owner in (allies, player) for unit in towers
-    )
+    keeper_call = f"    xsSetUnitProperty({keeper}, cUnitAttackable, 0);" if keeper >= 0 else ""
 
     return f"""// ---- crucible run: start ----
 void crucibleRunWalls(int owner = -1, int type = -1, int hp = 0) {{
@@ -69,47 +77,8 @@ void crucibleRunTowers(int owner = -1, int type = -1, int hp = 0) {{
     int percent = 0;
 
     for (i = 0; < xsArrayGetSize(ids)) {{
-        percent = xsGetRandomNumberLH({TOWER_HP[0]}, {TOWER_HP[1] + 1});
+        percent = {roll(*TOWER_HP)};
         xsSetUnitProperty(xsArrayGetInt(ids, i), cUnitHitpoints, hp * percent / 100);
-    }}
-}}
-
-// TEMPORARY (towers ended up far below the roll, 2026-11-21): each tower's HP and its type's full HP, in chat.
-string crucibleRunTowerHp(int owner = -1, int type = -1) {{
-    int ids = xsGetPlayerUnitIds(owner, type, -1);
-    string text = "";
-    int hp = 0;
-
-    for (i = 0; < xsArrayGetSize(ids)) {{
-        hp = xsGetUnitHitpoints(xsArrayGetInt(ids, i));
-        text = text + " p" + owner + ":" + hp;
-    }}
-
-    if (xsArrayGetSize(ids) > 0) {{
-        int full = xsGetObjectAttribute(owner, type, cHitpoints, 0);
-        text = text + " (full " + full + ")";
-    }}
-
-    return (text);
-}}
-
-void crucibleRunTowerLog(string when = "") {{
-    string text = "Towers " + when + ":";
-{log_calls}
-    xsChatData(text);
-}}
-
-int crucibleRunTowerLogs = 0;
-
-rule crucibleRunTowerWatch
-    inactive
-    minInterval {TOWER_LOG_EVERY}
-{{
-    crucibleRunTowerLogs++;
-    crucibleRunTowerLog("at " + xsGetTime() + " s");
-
-    if (crucibleRunTowerLogs >= {TOWER_LOGS}) {{
-        xsDisableSelf();
     }}
 }}
 
@@ -135,8 +104,7 @@ rule crucibleRunStart
 {wall_calls}
 {tower_calls}
 {invulnerable_calls}
-    crucibleRunTowerLog("rolled");
-    xsEnableRule("crucibleRunTowerWatch");
+{keeper_call}
     xsDisableSelf();
 }}
 """
