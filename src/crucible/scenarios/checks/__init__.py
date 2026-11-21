@@ -6,6 +6,6 @@ players and how big a map it needs.
 Standing rule: delete a test's module once it's confirmed in game.
 """
 
-from crucible.scenarios.checks import boons, walls
+from crucible.scenarios.checks import boons
 
-TESTS = {module.NAME: module for module in (boons, walls)}
+TESTS = {module.NAME: module for module in (boons,)}
