@@ -1,5 +1,6 @@
 """Test: every tier of every boon (crucible.boons) does what it should, shown on the units it changes and read back
-from the game.
+from the game. Kept, unlike other checks: it's rebuilt from crucible.boons, so it can't go stale; rerun it after
+changing boons (confirmed all as expected, 2026-11-21).
 
 On the map: for each tier, the units its commands change (with the earlier units of a line: the Clubman for an
 Axeman boon), owned by the player that gets that tier, each labelled with what it should now be: the caption over
