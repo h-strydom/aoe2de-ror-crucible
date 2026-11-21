@@ -1,3 +1,6 @@
+> **Superseded (2026-11-22):** the hub is now built on `assets/metaprogression.aoe2scenario` as planned in
+> docs/meta-v2.md (tiers on players 2-6, the currency, the Wonder's global upgrades). This page describes the old hub.
+
 # The hub
 
 `assets/meta.aoe2scenario` is the camp between runs, made by hand in the editor (`crucible map save meta` /

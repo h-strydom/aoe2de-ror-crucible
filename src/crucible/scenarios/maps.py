@@ -1,4 +1,5 @@
-"""The hand-made maps, kept in the repo (assets/) as made in the editor: the arena (the run map) and meta (the hub).
+"""The hand-made maps, kept in the repo (assets/) as made in the editor: the arena (the run map) and the hub
+(metaprogression).
 
 `crucible map save <map>` copies the game's copy into the repo after editing; `crucible map install <map>` puts the
 repo's copy in the game. The builds (crucible_run, crucible_hub) read them from assets/.
@@ -12,7 +13,8 @@ from aoe2ed.config import paths
 ROOT = Path(__file__).resolve().parents[3]
 MAPS = {  # map -> its scenario's name, in the game and in assets/
     "arena": "crucible_arena",
-    "meta": "meta",
+    "meta": "meta",  # the old hub (retired once the new one is played)
+    "hub": "metaprogression",  # the hub (docs/meta-v2.md)
 }
 
 
