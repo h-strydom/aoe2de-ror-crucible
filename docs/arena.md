@@ -115,7 +115,8 @@ line in the Objectives panel (the Scouts text can't change during a game).
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's
 villagers and patrol around them. Destroying a base stops all of that and gives one decision reward (one more shop
-pick).
+pick). Each base is an optional objective ("Optional: destroy the north-west island outpost (a
+boon choice)"): it's destroyed once all its buildings are, but its walls and farms (`scenarios/bases.py`).
 
 **Invulnerable.** Everything of the City States (2) can't be attacked.
 

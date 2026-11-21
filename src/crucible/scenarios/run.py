@@ -20,7 +20,7 @@ from crucible.bonuses.compile.targets import with_ages
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import SEND_WAVE
-from crucible.scenarios import boon_list, datamod_check, run_meta, run_rules, run_xs, waves
+from crucible.scenarios import bases, boon_list, datamod_check, run_meta, run_rules, run_xs, waves
 from crucible.scenarios.maps import asset
 from crucible.shop import pool as shop_pool
 from crucible.shop import scenario as shop
@@ -162,6 +162,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             shop.add(ctx, config, techs, slots=meta.BOON_SLOTS.key, speed=meta.BOON_SPEED.key)  # before the waves
             boon_list.add(ctx, shop_pool.boons(config), techs, player=Faction.PLAYER)
             waves.add(ctx, techs)
+            bases.add(ctx, s)  # optional objectives: a boon choice per Legion base destroyed
             town_center = next(u for u in s.unit_manager.units[Faction.PLAYER] if u.unit_const == TOWN_CENTER)
             run_meta.add(
                 ctx,

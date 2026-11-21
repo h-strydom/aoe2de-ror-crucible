@@ -1,7 +1,7 @@
 from aoe2ed import xs
 from aoe2ed.session import SESSIONS
 
-from crucible.scenarios import run, waves
+from crucible.scenarios import bases, run, waves
 
 
 def test_run_hands_the_base_to_the_allies(tmp_path, techs):
@@ -23,6 +23,7 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 7", "Meta: kept buildings to age 3"} <= names
         assert {"Meta: Clubmen", "No hub buttons", "No data mod", "No data mod: defeat"} <= names
         assert {"Win: claim victory or fight on", "Win: claim victory", "Player: no walls or gates"} <= names
+        assert {f"Base: {name}" for name, _ in bases.BASES} <= names  # an optional objective per Legion base
         assert {"Allies: age 3", "Meta: Granary 1 placed"} <= names
         assert any(n.startswith("Boon: ") for n in names)
 
