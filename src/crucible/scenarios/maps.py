@@ -13,7 +13,6 @@ from aoe2ed.config import paths
 ROOT = Path(__file__).resolve().parents[3]
 MAPS = {  # map -> its scenario's name, in the game and in assets/
     "arena": "crucible_arena",
-    "meta": "meta",  # the old hub (retired once the new one is played)
     "hub": "metaprogression",  # the hub (docs/meta-v2.md)
 }
 

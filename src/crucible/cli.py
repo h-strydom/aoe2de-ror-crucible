@@ -28,13 +28,13 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="don't build: compare what the last play wrote with what the picked tests expect (tests with a report)",
     )
-    maps = sub.add_parser("map", help="the hand-made maps kept in assets/: the arena and meta (the hub)")
+    maps = sub.add_parser("map", help="the hand-made maps kept in assets/: the arena and the hub")
     maps.add_argument(
         "action",
         choices=("save", "install"),
         help="save: copy the game's copy into the repo after editing; install: put the repo's copy in the game",
     )
-    maps.add_argument("name", choices=("arena", "meta"))
+    maps.add_argument("name", choices=("arena", "hub"))
     campaign = sub.add_parser(
         "campaign",
         help="build the data mod, crucible_hub, crucible_run and the Crucible campaign that plays them in turn",
