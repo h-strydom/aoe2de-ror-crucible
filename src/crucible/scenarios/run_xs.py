@@ -1,7 +1,7 @@
-"""The XS crucible_run starts with: the base's walls randomly damaged, none destroyed (the Allies', or the player's with
-the Walls upgrade; towers stay whole, playtest 2026-11-21), the City States and the Allies' keeper house made
-invulnerable. It runs once, at START: after the meta upgrades have taken the player's buildings back. (The Allies' other
-buildings in the camp are destroyed then too: run.py.)
+"""The XS crucible_run starts with: the Allies' walls randomly damaged, none destroyed (walls handed to the player and
+all towers start whole, playtests 2026-11-21 and 22), the City States and the Allies' keeper house made invulnerable.
+It runs once, at START: after the meta upgrades have taken the player's buildings back. (The Allies' other buildings in
+the camp are destroyed then too: run.py.)
 
 A roll between `low` and `high` is `low + xsGetRandomNumberLH(0, high - low + 1)`: RoR's xsGetRandomNumberLH(low, high)
 returned 0 to high - low, not low to high (towers rolled 40-75% came out 4-34%, playtest 2026-11-21).
@@ -45,7 +45,7 @@ def start(
     """`walls`: type -> its full HP. `keeper`: the Allies' house that keeps them in the game (its reference
     id), made unattackable."""
     wall_calls = "\n".join(
-        f"    crucibleRunWalls({owner}, {unit}, {hp});" for owner in (allies, player) for unit, hp in walls.items()
+        f"    crucibleRunWalls({allies}, {unit}, {hp});" for unit, hp in walls.items()  # the player's start whole
     )
     invulnerable_calls = "\n".join(f"    crucibleRunInvulnerable({unit});" for unit in city_states)
     keeper_call = f"    xsSetUnitProperty({keeper}, cUnitAttackable, 0);" if keeper >= 0 else ""

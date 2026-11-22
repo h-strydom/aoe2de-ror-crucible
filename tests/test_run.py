@@ -30,7 +30,11 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 5", "Meta: kept buildings to age 3"} <= names
         assert {"Meta: starting building 70 2", "Allies: camp buildings cleared"} <= names
         assert any(u.unit_const == run.KEEPER for u in units[run.Faction.ALLIES])
-        assert {"Meta: Clubmen", "No hub buttons", "No data mod", "No data mod: defeat"} <= names
+        assert {"No hub buttons", "No data mod", "No data mod: defeat"} <= names
+        # starting soldiers follow their lines; towers and walls by tier; units unlocked by age
+        assert {"Meta: melee 281", "Meta: melee 77", "Meta: Bowmen 2 as 39", "Meta: Cavalry 5 as 283"} <= names
+        assert {"Meta: towers as 234", "Meta: walls as 117", "Meta: Academy unlocks unit 93"} <= names
+        assert {"Meta: Iron Age unlocks 103", "Meta: starting resources 5"} <= names
         assert {"Player: no walls or gates", "Win: claim victory offered", "Win: claim victory"} <= names
         cleared = next(t for t in s.trigger_manager.triggers if t.name == "Allies: camp buildings cleared")
         assert cleared.effects and all(e.effect_type == 14 for e in cleared.effects)  # killed: rubble, not removed

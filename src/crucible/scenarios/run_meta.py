@@ -1,20 +1,25 @@
-"""The meta upgrades in crucible_run: loaded from the campaign bank at the start, each level giving the player one
-more of something (meta.py). Outside the Crucible campaign nothing is loaded, so a standalone run gets none.
+"""The meta upgrades in crucible_run (docs/meta-v2.md): loaded from the campaign bank at the start, each level giving
+the player one more of something or unlocking units and techs (meta.py). Outside the Crucible campaign nothing is
+loaded, so a standalone run gets none.
 
-Buildings kept come from the base the Allies were handed, nearest the Town Center first; they change hands before
-the Allies' buildings drop to 1 HP (run_xs waits for it).
+Buildings kept come from the base the Allies were handed, nearest the Town Center first (the Academy, Government
+Center and Temple too); they change hands before the Allies' other buildings are destroyed (run.py).
 
-Starting soldiers stand in slots by the Wonder, placed by hand (2026-11-17): Clubmen fill the first three melee slots
-(Axemen instead with the Axemen upgrade), 2 more Axemen the other two; Bowmen fill the ranged slots, the Scout its own.
+Starting soldiers stand in slots by the Wonder, placed by hand (2026-11-17), as their line's latest upgrade bought:
+melee Clubmen, then Axemen, Short, Broad, Long Swordsmen; Bowmen, then Improved, Composite Bowmen, Horse Archers;
+Cavalry, then Heavy Cavalry; the Scout.
 
-Other upgrades (and the Bronze Age, given at tier 3) unlock techs locked by run_rules (unlocks()), or hand the player
-the base's Small Walls (still damaged: run_xs rolls them after; the Fortified Walls round the camp stay the
-Allies') or towers (the Watch Tower upgrade: they're
-Watch Towers, run_rules.tier_one_towers). Like kept buildings, they're made anew for the player: a unit that changes
-hands keeps its old owner's stats, so the player's boons (tower population, building line of sight) missed them.
+Upgrades unlock techs locked by run_rules (UNLOCKS, with the Market's, Storage Pit's, Government Center's and Temple's
+rows by age) and units (UNIT_UNLOCKS, each once the player reaches its age). A tech is switched back on only once its
+own prerequisites are met: Enable/Disable Technology skips them, so a tech switched on at the start could be
+researched in any age. The Bronze and Iron Ages come with hub tiers 3 and 4.
 
-A tech is switched back on only once its own prerequisites are met: Enable/Disable Technology skips them, so a tech
-switched on at the start could be researched in any age.
+The towers and walls are handed over remade for the player (a unit that changes hands keeps its old owner's stats, so
+the player's boons missed them): towers as the latest tower upgrade bought (Watch, Sentry, Guard), the Small Walls as
+Small or Medium Walls, undamaged; the camp's Fortified Walls with the Fortified Wall upgrade.
+
+The Wonder's upgrades: starting resources (triggers), and resources lasting longer, the resource densities and the
+villagers' training time and cost (XS, at the start).
 """
 
 from math import dist
@@ -24,18 +29,20 @@ from aoe2ed import blocks
 from crucible import meta
 
 VILLAGER_MALE, VILLAGER_FEMALE = 83, 293
-HOUSE, CLUBMAN, AXEMAN, BOWMAN, SCOUT = 70, 281, 531, 4, 448
-SMALL_WALL = 72  # the Walls upgrade hands over the Small Walls; the Fortified Walls round the camp stay the Allies'
+HOUSE, SCOUT = 70, 448
+SMALL_WALL, MEDIUM_WALL, FORTIFIED_WALL = 72, 117, 155
 TOWERS = (79, 234, 235, 236)  # Watch, Sentry, Guard, Ballista Tower
 LOOKS_ONLY = (HOUSE,)  # kept by a change of hands (no buttons to lose); the rest are created anew
 AGE_TECHS = ((1, 101), (2, 102), (3, 103))  # (the age reached, its tech): Tool, Bronze, Iron
 UPGRADE_UNIT = 3  # effect command
 CURRENT_AGE = 6  # resource
+TRAIN_TIME, FOOD_COST = 101, 103  # unit attributes
+WHALE_CLASS = 63
 SLOTS = {  # where starting soldiers stand: tiles, in the order they fill
     "melee": ((104, 114), (105, 114), (105, 115), (104, 115), (103, 114)),
     "ranged": ((105, 117), (105, 118), (104, 118), (104, 117), (103, 118)),
     "scout": ((105, 120),),
-    "cavalry": ((103, 120), (103, 121), (103, 122)),
+    "cavalry": ((103, 120), (103, 121), (103, 122), (102, 120), (102, 121)),
     "siege": ((102, 116),),
 }
 STARTING = ((HOUSE, meta.STARTING_HOUSES),)  # kept in every run: the type, how many (nearest the Town Center)
@@ -48,21 +55,114 @@ KEPT = {  # upgrade -> (the building type each level keeps, how many of that typ
     meta.MARKET_UPGRADE.key: (meta.MARKET, 0),
     meta.ARCHERY_RANGE_UPGRADE.key: (meta.ARCHERY_RANGE, 0),
     meta.STABLE_UPGRADE.key: (meta.STABLE, 0),
+    meta.ACADEMY_UPGRADE.key: (meta.ACADEMY, 0),
+    meta.GOVERNMENT_CENTER_UPGRADE.key: (meta.GOVERNMENT_CENTER, 0),
+    meta.TEMPLE_UPGRADE.key: (meta.TEMPLE, 0),
 }
-BRONZE_AGE, AXE, WATCH_TOWER = 102, 63, 16  # techs
-STORAGE_PIT_ROW = (46, 40, 41, 42)  # its Tool Age techs: Tool Working, Leather Armor for soldiers, archers, cavalry
+
+# Upgrade -> the techs it unlocks (each still waits for its prerequisites).
+UNLOCKS = {
+    meta.BRONZE_AGE.key: (102,),
+    meta.IRON_AGE.key: (103,),
+    meta.AXE.key: (63,),
+    meta.TOWER.key: (16,),
+    meta.SENTRY_TOWER.key: (12,),
+    meta.GUARD_TOWER.key: (15,),  # no Ballista Tower
+    meta.WHEEL.key: (28,),
+    meta.BROAD_SWORD.key: (65,),
+    meta.IMPROVED_BOW.key: (56,),
+    meta.COMPOSITE_BOW.key: (57,),
+    meta.LONG_SWORD.key: (66,),
+    meta.HEAVY_CAVALRY_UPGRADE.key: (71,),
+    meta.PHALANGITE.key: (73,),
+    meta.CATAPULT_UPGRADE.key: (54,),
+    meta.LEGIONARY_UPGRADE.key: (77,),
+    meta.HEAVY_HORSE_ARCHERS.key: (38,),
+    meta.CATAPHRACTS.key: (78,),
+    meta.ARMORED_ELEPHANTS.key: (125,),
+    meta.SCYTHE_CHARIOTS.key: (126,),
+    meta.CENTURIONS.key: (79,),
+    meta.HEAVY_CATAPULTS.key: (36,),
+    meta.HELEPOLISES.key: (27,),
+}
+# Upgrade -> (building, age) whose techs of that age it unlocks: the buildings' rows.
+ROWS = {
+    meta.MARKET_TECHS.key: (meta.MARKET, 1),
+    meta.MARKET_TECHS_2.key: (meta.MARKET, 2),
+    meta.MARKET_TECHS_3.key: (meta.MARKET, 3),
+    meta.STORAGE_PIT_TECHS.key: (meta.STORAGE_PIT, 1),
+    meta.STORAGE_PIT_TECHS_2.key: (meta.STORAGE_PIT, 2),
+    meta.STORAGE_PIT_TECHS_3.key: (meta.STORAGE_PIT, 3),
+    meta.GOVERNMENT_TECHS.key: (meta.GOVERNMENT_CENTER, 2),
+    meta.GOVERNMENT_TECHS_2.key: (meta.GOVERNMENT_CENTER, 3),
+    meta.TEMPLE_TECHS.key: (meta.TEMPLE, 2),
+    meta.TEMPLE_TECHS_2.key: (meta.TEMPLE, 3),
+}
+OWN_UPGRADE = (28,)  # Wheel: its own upgrade, not in the Market's row
+# Upgrade -> (unit, the age the player needs) it unlocks.
+UNIT_UNLOCKS = {
+    meta.ACADEMY_UPGRADE.key: ((meta.ACADEMY, 2), (93, 2)),  # and Hoplites
+    meta.SIEGE_WORKSHOP_UPGRADE.key: ((meta.SIEGE_WORKSHOP, 2), (280, 2)),  # and Stone Throwers
+    meta.TEMPLE_UPGRADE.key: ((meta.TEMPLE, 2), (125, 2)),  # and Priests
+    meta.GOVERNMENT_CENTER_UPGRADE.key: ((meta.GOVERNMENT_CENTER, 2),),
+    meta.WHEEL.key: ((1370, 2), (5, 2)),  # Chariots, Chariot Archers
+    meta.SHORT_SWORD.key: ((74, 2),),
+    meta.CAMEL.key: ((329, 2),),
+    meta.CAVALRY_UPGRADE.key: ((38, 2),),
+    meta.HORSE_ARCHERS.key: ((39, 3),),
+    meta.BALLISTA_UPGRADE.key: ((279, 3),),
+    meta.ELEPHANT_ARCHERS.key: ((873, 3),),
+    meta.WAR_ELEPHANTS.key: ((1132, 3),),
+}
+# Starting soldiers: a line's units by the upgrade that brings each (none: from the start).
+MELEE_LINE = (
+    ("", meta.CLUBMAN),
+    (meta.AXE.key, meta.AXEMAN),
+    (meta.SHORT_SWORD.key, meta.SHORT_SWORDSMAN),
+    (meta.BROAD_SWORD.key, meta.BROAD_SWORDSMAN),
+    (meta.LONG_SWORD.key, meta.LONG_SWORDSMAN),
+)
+RANGED_LINE = (
+    ("", meta.BOWMAN),
+    (meta.IMPROVED_BOW.key, meta.IMPROVED_BOWMAN),
+    (meta.COMPOSITE_BOW.key, meta.COMPOSITE_BOWMAN),
+    (meta.HORSE_ARCHERS.key, meta.HORSE_ARCHER),
+)
+CAVALRY_LINE = (("", meta.CAVALRY), (meta.HEAVY_CAVALRY_UPGRADE.key, meta.HEAVY_CAVALRY))
+TOWER_LINE = ((meta.TOWER.key, 79), (meta.SENTRY_TOWER.key, 234), (meta.GUARD_TOWER.key, 235))
+WALL_LINE = ((meta.WALLS.key, SMALL_WALL), (meta.MEDIUM_WALL.key, MEDIUM_WALL))
+STARTING_RESOURCES = {"FOOD_STORAGE": 50, "WOOD_STORAGE": 50, "GOLD_STORAGE": 20, "STONE_STORAGE": 20}  # a level
+LASTING = 2  # percent more a resource holds, a level
+DENSITY = 2  # how many times as much a density upgrade gives
+VILLAGER_SPEED = 10  # percent faster a level
+VILLAGER_COST = 5  # food less a level
 
 
-def unlocks(data, market_techs: list[int]) -> dict[str, dict[int, list[int]]]:
-    """Upgrade -> each tech it unlocks -> that tech's prerequisites (all needed: RoR's counts match).
-    `market_techs`: run_rules.techs_at(data, meta.MARKET)."""
-    techs = {
-        meta.BRONZE_AGE.key: (BRONZE_AGE,),
-        meta.AXE.key: (AXE,),
-        meta.MARKET_TECHS.key: tuple(market_techs),
-        meta.STORAGE_PIT_TECHS.key: STORAGE_PIT_ROW,
-        meta.TOWER.key: (WATCH_TOWER,),
-    }
+def _age(data, tech: int) -> int:
+    required = data.techs[tech].required_techs
+
+    return next((age for age, age_tech in reversed(AGE_TECHS) if age_tech in required), 0)
+
+
+def _chain(chains: dict[int, dict[int, int]], building: int) -> set[int]:
+    for first, chain in chains.items():
+        if building == first or building in chain.values():
+            return {first, *chain.values()}
+
+    return {building}
+
+
+def unlocks(data) -> dict[str, dict[int, list[int]]]:
+    """Upgrade -> each tech it unlocks -> that tech's prerequisites (all needed: RoR's counts match)."""
+    from crucible.scenarios.run_rules import techs_at
+
+    chains = age_chains(data)
+    techs = {key: tuple(found) for key, found in UNLOCKS.items()}
+
+    for key, (building, age) in ROWS.items():
+        at = sorted({t for place in _chain(chains, building) for t in techs_at(data, place)})
+        first = min(a for b, a in ROWS.values() if b == building)  # a tech with no age (Jihad) joins the first row
+        techs[key] = tuple(t for t in at if (_age(data, t) or first) == age and t not in OWN_UPGRADE)
 
     return {
         key: {tech: [r for r in data.techs[tech].required_techs if r >= 0] for tech in found}
@@ -72,6 +172,18 @@ def unlocks(data, market_techs: list[int]) -> dict[str, dict[int, list[int]]]:
 
 def _at_least(key: str, level: int) -> list[dict]:
     return [{"type": "variable_value", "variable": key, "comparison": "LARGER_OR_EQUAL", "quantity": level}]
+
+
+def _below(key: str, level: int) -> list[dict]:
+    return [{"type": "variable_value", "variable": key, "comparison": "LESS", "quantity": level}]
+
+
+def _latest(line: tuple, n: int) -> list[dict]:
+    """Conditions: the nth of `line` is the latest bought (its upgrade bought, the next one not)."""
+    key = line[n][0]
+    later = line[n + 1][0] if n + 1 < len(line) else ""
+
+    return (_at_least(key, 1) if key else []) + (_below(later, 1) if later else [])
 
 
 def age_chains(data) -> dict[int, dict[int, int]]:
@@ -85,6 +197,29 @@ def age_chains(data) -> dict[int, dict[int, int]]:
                 chains.setdefault(command.a, {})[age] = command.b
 
     return chains
+
+
+def gaia_resources(s, data) -> dict[str, list[int]]:
+    """The map's gaia resource types by what the Wonder's upgrades call them: natural food (forage, hunt, fish), wood,
+    mining (gold, stone and whales)."""
+    gaia = data.civs[0].units
+    found: dict[str, set[int]] = {"food": set(), "wood": set(), "mining": set()}
+
+    for unit in s.unit_manager.units[0]:
+        kind = gaia[unit.unit_const] if unit.unit_const < len(gaia) else None
+        storage = [r for r in (kind.resource_storages if kind else []) if r.type in (0, 1, 2, 3) and r.amount > 0]
+
+        if not storage:
+            continue
+
+        if kind.class_ == WHALE_CLASS or storage[0].type in (2, 3):
+            found["mining"].add(unit.unit_const)
+        elif storage[0].type == 1:
+            found["wood"].add(unit.unit_const)
+        else:
+            found["food"].add(unit.unit_const)
+
+    return {k: sorted(v) for k, v in found.items()}
 
 
 def _keep(ctx, name: str, conditions: list[dict], unit, allies: int, player: int) -> None:
@@ -108,14 +243,14 @@ def _keep(ctx, name: str, conditions: list[dict], unit, allies: int, player: int
     _remake(ctx, name, conditions, [unit], allies, player)
 
 
-def _remake(ctx, name: str, conditions: list[dict], units: list, allies: int, player: int) -> None:
-    """Remove the Allies' `units`, then a second later create the same for the player on their tiles."""
+def _remake(ctx, name: str, conditions: list[dict], units: list, allies: int, player: int, kind: int = -1) -> None:
+    """Remove the Allies' `units`, then a second later create the same (or `kind`) for the player on their tiles."""
     placed = f"{name} placed"
     remove = {"type": "remove_object", "source_player": allies, "selected_object_ids": [u.reference_id for u in units]}
     create = [
         {
             "type": "create_object",
-            "object_list_unit_id": unit.unit_const,
+            "object_list_unit_id": kind if kind >= 0 else unit.unit_const,
             "source_player": player,
             "location": [int(unit.x), int(unit.y)],
         }
@@ -167,9 +302,10 @@ def add(
     villagers,
     chains: dict[int, dict[int, int]],
     unlocked: dict[str, dict[int, list[int]]],
+    resources: dict[str, list[int]] | None = None,
 ) -> None:
     """`villagers`: where each extra villager starts (tile centres), in order. `chains`: age_chains(). `unlocked`:
-    unlocks()."""
+    unlocks(). `resources`: gaia_resources()."""
     blocks.bank.load(ctx, dict.fromkeys(meta.KEYS, 0), name="Meta: load upgrades")
 
     for level, (x, y) in enumerate(villagers[: meta.VILLAGERS.levels], start=1):
@@ -222,9 +358,40 @@ def add(
                 [{"type": "enable_disable_technology", "source_player": player, "technology": tech, "enabled": 1}],
             )
 
-    for upgrade, types in ((meta.WALLS, (SMALL_WALL,)), (meta.TOWER, TOWERS)):
-        units = [u for u in s.unit_manager.units[allies] if u.unit_const in types]
-        _remake(ctx, f"Meta: {upgrade.label}", _at_least(upgrade.key, 1), units, allies, player)
+    for key, units in UNIT_UNLOCKS.items():
+        for unit, age in units:
+            ctx.trigger(
+                f"Meta: {meta.TITLES[key]} unlocks unit {unit}",
+                _at_least(key, 1)
+                + [
+                    {"type": "accumulate_attribute", "source_player": player, "attribute": CURRENT_AGE, "quantity": age}
+                ],
+                [{"type": "enable_disable_object", "source_player": player, "object_list_unit_id": unit, "enabled": 1}],
+            )
+
+    _defences(ctx, s, allies, player)
+    _wonder(ctx, player, resources or {})
+
+
+def _defences(ctx, s, allies: int, player: int) -> None:
+    """The base's towers as the latest tower upgrade bought, its Small Walls as Small or Medium Walls (undamaged:
+    run_xs damages only the Allies'), and the camp's Fortified Walls with their own upgrade."""
+    towers = [u for u in s.unit_manager.units[allies] if u.unit_const in TOWERS]
+    walls = [u for u in s.unit_manager.units[allies] if u.unit_const == SMALL_WALL]
+    fortified = [u for u in s.unit_manager.units[allies] if u.unit_const == FORTIFIED_WALL]
+
+    for n, (key, kind) in enumerate(TOWER_LINE):
+        later = _below(TOWER_LINE[n + 1][0], 1) if n + 1 < len(TOWER_LINE) else []
+        conditions = _at_least(meta.TOWER.key, 1) + _at_least(key, 1) + later
+        _remake(ctx, f"Meta: towers as {kind}", conditions, towers, allies, player, kind)
+
+    for n, (key, kind) in enumerate(WALL_LINE):
+        later = _below(WALL_LINE[n + 1][0], 1) if n + 1 < len(WALL_LINE) else []
+        conditions = _at_least(meta.WALLS.key, 1) + _at_least(key, 1) + later
+        _remake(ctx, f"Meta: walls as {kind}", conditions, walls, allies, player, kind)
+
+    if fortified:
+        _remake(ctx, "Meta: Fortified Walls", _at_least(meta.FORTIFIED_WALL.key, 1), fortified, allies, player)
 
 
 def _create(unit: int, player: int, tiles) -> list[dict]:
@@ -235,20 +402,102 @@ def _create(unit: int, player: int, tiles) -> list[dict]:
 
 
 def _soldiers(ctx, player: int) -> None:
-    """3 Clubmen in the first melee slots, Axemen with the Axemen upgrade; 2 more Axemen in the next two. Bowmen: 3,
-    then 2 more; the Scout."""
-    melee, ranged = SLOTS["melee"], SLOTS["ranged"]
-    clubmen = _at_least(meta.CLUBMEN.key, 1)
-    no_axe = [{"type": "variable_value", "variable": meta.AXE.key, "comparison": "LESS", "quantity": 1}]
+    """3 melee in the first melee slots (Clubmen), 2 more with the Axemen upgrade; 3 then 2 Bowmen; a Cavalry a level;
+    the Scout. Each as its line's latest upgrade bought (MELEE_LINE...)."""
+    melee, ranged, cavalry = SLOTS["melee"], SLOTS["ranged"], SLOTS["cavalry"]
     first = melee[: meta.CLUBMEN_PER_LEVEL]
-    ctx.trigger("Meta: Clubmen", clubmen + no_axe, _create(CLUBMAN, player, first))
-    ctx.trigger("Meta: Clubmen as Axemen", clubmen + _at_least(meta.AXE.key, 1), _create(AXEMAN, player, first))
     more = melee[len(first) : len(first) + meta.AXEMEN.amounts[0]]
-    ctx.trigger("Meta: Axemen", _at_least(meta.AXEMEN.key, 1), _create(AXEMAN, player, more))
-    done = 0
 
-    for level, amount in enumerate(meta.BOWMEN.amounts, start=1):
-        tiles, done = ranged[done : done + amount], done + amount
-        ctx.trigger(f"Meta: Bowmen {level}", _at_least(meta.BOWMEN.key, level), _create(BOWMAN, player, tiles))
+    for n, (_, unit) in enumerate(MELEE_LINE):
+        latest = _latest(MELEE_LINE, n)
+        ctx.trigger(f"Meta: melee {unit}", _at_least(meta.CLUBMEN.key, 1) + latest, _create(unit, player, first))
+        ctx.trigger(f"Meta: more melee {unit}", _at_least(meta.AXEMEN.key, 1) + latest, _create(unit, player, more))
+
+    for n, (_, unit) in enumerate(RANGED_LINE):
+        done = 0
+
+        for level, amount in enumerate(meta.BOWMEN.amounts, start=1):
+            tiles, done = ranged[done : done + amount], done + amount
+            conditions = _at_least(meta.BOWMEN.key, level) + _latest(RANGED_LINE, n)
+            ctx.trigger(f"Meta: Bowmen {level} as {unit}", conditions, _create(unit, player, tiles))
+
+    for n, (_, unit) in enumerate(CAVALRY_LINE):
+        for level, tile in enumerate(cavalry[: meta.CAVALRY_UPGRADE.levels], start=1):
+            conditions = _at_least(meta.CAVALRY_UPGRADE.key, level) + _latest(CAVALRY_LINE, n)
+            ctx.trigger(f"Meta: Cavalry {level} as {unit}", conditions, _create(unit, player, [tile]))
 
     ctx.trigger("Meta: Scout", _at_least(meta.SCOUT.key, 1), _create(SCOUT, player, SLOTS["scout"]))
+
+
+def _variable_id(ctx, name: str) -> int:
+    ctx.var(name)
+
+    return next(v.variable_id for v in ctx.scenario.trigger_manager.variables if v.name == name)
+
+
+def _wonder(ctx, player: int, resources: dict[str, list[int]]) -> None:
+    """Starting resources (a trigger a level); lasting resources, densities and the villagers' time and cost (XS)."""
+    for level in range(1, meta.STARTING_RESOURCES.levels + 1):
+        ctx.trigger(
+            f"Meta: starting resources {level}",
+            _at_least(meta.STARTING_RESOURCES.key, level),
+            [
+                {
+                    "type": "modify_resource",
+                    "tribute_list": resource,
+                    "source_player": player,
+                    "operation": "ADD",
+                    "quantity": amount,
+                }
+                for resource, amount in STARTING_RESOURCES.items()
+            ],
+        )
+
+    def level(upgrade: meta.Upgrade) -> str:
+        return f"xsTriggerVariable({_variable_id(ctx, upgrade.key)})"
+
+    density = {"food": meta.FOOD_DENSITY, "wood": meta.WOOD_DENSITY, "mining": meta.MINING_DENSITY}
+    calls = [
+        f"    crucibleMetaResources({unit}, percent, {level(density[kind])});"
+        for kind, units in resources.items()
+        for unit in units
+    ]
+    villagers = "\n".join(
+        f"    xsEffectAmount(cMulAttribute, {unit}, {TRAIN_TIME}, 1.0 - 0.01 * {VILLAGER_SPEED} * speed, {player});\n"
+        f"    xsEffectAmount(cAddAttribute, {unit}, {FOOD_COST}, 0.0 - {VILLAGER_COST} * cost, {player});"
+        for unit in (VILLAGER_MALE, VILLAGER_FEMALE)
+    )
+    nl = "\n"
+    ctx.xs(f"""// ---- crucible run: the Wonder's upgrades ----
+// Each of `type`'s resources holds `percent` percent, times DENSITY with its density upgrade.
+void crucibleMetaResources(int type = -1, int percent = 100, int dense = 0) {{
+    int ids = xsGetPlayerUnitIds(0, type, -1);
+    int id = -1;
+    int factor = percent;
+
+    if (dense > 0) {{
+        factor = factor * {DENSITY};
+    }}
+
+    for (i = 0; < xsArrayGetSize(ids)) {{
+        id = xsArrayGetInt(ids, i);
+        xsSetUnitProperty(id, cUnitAttributeHeld, xsGetUnitProperty(id, cUnitAttributeHeld) * factor / 100);
+    }}
+}}
+
+rule crucibleMetaWonder
+    active
+    minInterval 1
+{{
+    if (xsGetTime() < 2) {{
+        return;  // after the bank's load
+    }}
+
+    int percent = 100 + {LASTING} * {level(meta.RESOURCES_LAST)};
+{nl.join(calls)}
+    int speed = {level(meta.VILLAGER_SPEED)};
+    int cost = {level(meta.VILLAGER_COST)};
+{villagers}
+    xsDisableSelf();
+}}
+""")

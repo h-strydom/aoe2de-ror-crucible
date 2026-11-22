@@ -196,7 +196,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 town_center=(town_center.x, town_center.y),
                 villagers=META_VILLAGERS,
                 chains=run_meta.age_chains(data),
-                unlocked=run_meta.unlocks(data, run_rules.tool_age_techs(data, run_rules.techs_at(data, meta.MARKET))),
+                unlocked=run_meta.unlocks(data),
+                resources=run_meta.gaia_resources(s, data),
             )
             ctx.trigger(
                 "No hub buttons",  # the hub's upgrades are data mod techs on every Town Center and Barracks

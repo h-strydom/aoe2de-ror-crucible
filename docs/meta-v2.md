@@ -70,9 +70,12 @@ Archer, Elephant Archer, War and Armored Elephant, Heavy Catapult, Helepolis, an
 1. Currency: earned in the run, banked per wave. *Built.*
 2. The new hub: tiers on players 2-6, places, captions, the Wonder, reset with refund, the stockpile. *Built
    (2026-11-22): every upgrade on offer in the hub; the run applies only the old ones yet.*
-3. Run effects for tiers 1-2 (mostly today's), walls undamaged.
+3. Run effects for tiers 1-2 (mostly today's), walls undamaged. *Built.*
 4. Run effects for tiers 3-5: unit and tech access per upgrade, starting unit upgrades, tower and wall tiers, ages.
-5. The Wonder's effects in the run.
+   *Built (2026-11-22): run_meta's UNLOCKS, ROWS (the buildings' techs by age), UNIT_UNLOCKS (each once the player
+   reaches its age), the starting lines, the tower and wall lines.*
+5. The Wonder's effects in the run. *Built: starting resources, lasting resources and densities (gaia resources
+   multiplied at the start), villager training time and cost.*
 
 ## Open
 
