@@ -42,7 +42,7 @@ SLOTS = {  # where starting soldiers stand: tiles, in the order they fill
     "melee": ((104, 114), (105, 114), (105, 115), (104, 115), (103, 114)),
     "ranged": ((105, 117), (105, 118), (104, 118), (104, 117), (103, 118)),
     "scout": ((105, 120),),
-    "cavalry": ((103, 120), (103, 121), (103, 122), (102, 120), (102, 121)),
+    "cavalry": ((103, 120), (103, 121), (103, 122)),
     "siege": ((102, 116),),
 }
 STARTING = ((HOUSE, meta.STARTING_HOUSES),)  # kept in every run: the type, how many (nearest the Town Center)

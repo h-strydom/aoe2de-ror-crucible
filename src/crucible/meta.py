@@ -446,7 +446,7 @@ CAVALRY_UPGRADE = Upgrade(
     "Cavalry can be trained, and each level starts each run with one more.",
     "stable_3",
     2,
-    5,
+    3,
     shows=(CAVALRY,),
 )
 GOVERNMENT_TECHS = Upgrade(
