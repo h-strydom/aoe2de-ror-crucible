@@ -29,12 +29,13 @@ SMALL_WALL, MEDIUM_WALL, FORTIFIED_WALL = 72, 117, 155
 TIERS = (5, 10, 20, 20)  # more levels bought (from any tier) to open tiers 2, 3, 4, 5
 TIER_PLAYERS = {1: 2, 2: 3, 3: 4, 4: 5, 5: 6}  # tier -> its player in the hub map
 TIER_AGES = {1: 0, 2: 1, 3: 2, 4: 3, 5: 3}  # tier -> the age its buildings look (Stone 0 to Iron 3)
-# Opening a tier hands over its player's buildings of these types (the rest are bought: the Academy, ...).
+# Opening a tier hands over its player's buildings of these types. Its other buildings are places that open only if
+# the tier before had theirs (a Bronze Age Stable once the Tool Age Stable is bought: playtest 2026-11-22).
 TIER_GIVEN = {
     2: (TOWN_CENTER, GRANARY, STORAGE_PIT),
-    3: (TOWN_CENTER, GRANARY, STORAGE_PIT, BARRACKS, ARCHERY_RANGE, STABLE, MARKET),
-    4: (TOWN_CENTER, GRANARY, STORAGE_PIT, BARRACKS, ARCHERY_RANGE, STABLE, MARKET),
-    5: (BARRACKS, ARCHERY_RANGE, STABLE, ACADEMY, SIEGE_WORKSHOP),
+    3: (TOWN_CENTER, GRANARY, STORAGE_PIT),
+    4: (TOWN_CENTER, GRANARY, STORAGE_PIT),
+    5: (),
 }
 START_GIVEN = {TOWN_CENTER: 1, HOUSE: 2}  # tier 1's, the player's from the start (and 4 villagers: START_VILLAGERS)
 START_VILLAGERS = 4
@@ -102,27 +103,27 @@ PLACES = (
     Place("town_center_3", TOWN_CENTER, 3),
     Place("granary_3", GRANARY, 3),
     Place("storage_pit_3", STORAGE_PIT, 3),
-    Place("market_3", MARKET, 3),
-    Place("barracks_3", BARRACKS, 3),
-    Place("archery_range_3", ARCHERY_RANGE, 3),
-    Place("stable_3", STABLE, 3),
+    Place("market_3", MARKET, 3, "meta_market"),
+    Place("barracks_3", BARRACKS, 3, "meta_barracks_2"),
+    Place("archery_range_3", ARCHERY_RANGE, 3, "meta_archery_range"),
+    Place("stable_3", STABLE, 3, "meta_stable"),
     Place("government_center_3", GOVERNMENT_CENTER, 3, "meta_government_center"),
     Place("temple_3", TEMPLE, 3, "meta_temple"),
     Place("granary_4", GRANARY, 4),
     Place("storage_pit_4", STORAGE_PIT, 4),
-    Place("market_4", MARKET, 4),
-    Place("barracks_4", BARRACKS, 4),
-    Place("archery_range_4", ARCHERY_RANGE, 4),
-    Place("stable_4", STABLE, 4),
+    Place("market_4", MARKET, 4, "meta_market"),
+    Place("barracks_4", BARRACKS, 4, "meta_barracks_2"),
+    Place("archery_range_4", ARCHERY_RANGE, 4, "meta_archery_range"),
+    Place("stable_4", STABLE, 4, "meta_stable"),
     Place("academy_4", ACADEMY, 4, "meta_academy"),
     Place("siege_workshop_4", SIEGE_WORKSHOP, 4, "meta_siege_workshop"),
     Place("government_center_4", GOVERNMENT_CENTER, 4, "meta_government_center"),
     Place("temple_4", TEMPLE, 4, "meta_temple"),
-    Place("barracks_5", BARRACKS, 5),
-    Place("archery_range_5", ARCHERY_RANGE, 5),
-    Place("stable_5", STABLE, 5),
-    Place("academy_5", ACADEMY, 5),
-    Place("siege_workshop_5", SIEGE_WORKSHOP, 5),
+    Place("barracks_5", BARRACKS, 5, "meta_barracks_2"),
+    Place("archery_range_5", ARCHERY_RANGE, 5, "meta_archery_range"),
+    Place("stable_5", STABLE, 5, "meta_stable"),
+    Place("academy_5", ACADEMY, 5, "meta_academy"),
+    Place("siege_workshop_5", SIEGE_WORKSHOP, 5, "meta_siege_workshop"),
 )
 
 # ---- the Wonder: global upgrades, more as the tiers open ----
@@ -408,6 +409,7 @@ SHORT_SWORD = Upgrade(
     "Your starting melee are Short Swordsmen, and Short Swordsmen can be trained.",
     "barracks_3",
     1,
+    requires=(("meta_axe", 1),),
     shows=(SHORT_SWORDSMAN,),
 )
 BROAD_SWORD = Upgrade(
@@ -425,6 +427,7 @@ IMPROVED_BOW = Upgrade(
     "Your starting Bowmen are Improved Bowmen, and Improved Bow can be researched.",
     "archery_range_3",
     1,
+    requires=(("meta_bowmen", 1),),
     shows=(IMPROVED_BOWMAN,),
 )
 COMPOSITE_BOW = Upgrade(

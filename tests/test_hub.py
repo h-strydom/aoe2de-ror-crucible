@@ -74,3 +74,37 @@ def test_campaign_plays_the_hub_then_the_run(tmp_path, techs):
     assert built.name == campaign.NAME
     assert [s.filename for s in built.scenarios] == ["crucible_hub.aoe2scenario", "crucible_run.aoe2scenario"]
     assert built.data_sets() == [11]
+
+
+def test_every_unit_handed_over_once(tmp_path, techs):
+    from collections import Counter
+
+    o = SESSIONS.open(hub.build(tmp_path, techs))
+
+    try:
+        s = o.scenario
+        spots = Counter(
+            (e.source_player, e.object_list_unit_id, e.area_x1, e.area_y1)
+            for t in s.trigger_manager.triggers
+            for e in t.effects
+            if e.effect_type == 18 and e.object_list_unit_id not in (-1, None) and e.area_x1 not in (-1, None)
+        )
+        assert spots and all(count == 1 for count in spots.values())  # the Axemen upgrade and Axemen don't share
+
+        for player, types in ((2, (*hub.VILLAGERS, hub.HOUSE, meta.CLUBMAN)), (3, (meta.AXEMAN, meta.BOWMAN))):
+            for unit in (u for u in s.unit_manager.units[player] if u.unit_const in types):
+                assert (player, unit.unit_const, int(unit.x), int(unit.y)) in spots
+
+        off = next(t for t in s.trigger_manager.triggers if t.name == "Hub: only the hub's buttons")
+        disabled = {e.technology for e in off.effects if e.technology not in (-1, None)}
+        assert {techs[key] for key in hub.SHOP_TECHS} <= disabled  # no Send next wave or boon choices on the Wonder
+    finally:
+        SESSIONS.close(o.handle)
+
+
+def test_tier_buildings_need_the_tier_before():
+    for key in ("barracks_3", "stable_3", "archery_range_4", "market_4", "academy_5", "siege_workshop_5"):
+        assert meta.place(key).opened_by, key
+
+    assert all(meta.TIER_GIVEN[tier] == (meta.TOWN_CENTER, meta.GRANARY, meta.STORAGE_PIT) for tier in (2, 3, 4))
+    assert ("meta_axe", 1) in meta.SHORT_SWORD.requires

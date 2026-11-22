@@ -23,7 +23,7 @@ act on it (Enable/Disable Technology, Change Ownership, Change Object Caption: X
 
 Upgrades and the currency are kept in the campaign bank (only inside the Crucible campaign; a standalone hub forgets
 them). A decision at the start, left open while the player shops, either resets every upgrade (refunding what they
-cost; it takes effect on the next start) or saves and wins: the victory starts the run.
+cost) or saves; either way it wins, and the victory starts the run.
 """
 
 from math import dist
@@ -37,6 +37,7 @@ from crucible import meta
 from crucible.datamod import count_icons
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
+from crucible.datamod.shop import SEND_WAVE, choice_key
 from crucible.scenarios import datamod_check
 from crucible.scenarios.maps import asset
 
@@ -47,12 +48,14 @@ VILLAGERS = meta.VILLAGER_TYPES
 REVEAL_MAP = 203  # resource: 2 = the whole map visible, no fog
 GARRISON_CAPACITY = 2
 ON_OFFER, AFFORDABLE = "(*)", "(!)"
+NO_CAPTION = " "  # an empty caption left the old "(!)" up (playtest 2026-11-22)
 RESET_VARIABLE = "hub_reset"  # 1: refund (XS), 2: clear the upgrades (triggers)
 RELICS = 7  # the resource objective text knows as "Relics Captured"
 TIER_COUNTERS = (2, 3, 4, 5)  # whose relics count towards tier 2, 3, 4, 5: nothing else uses them
 STOCKPILE = ("FOOD_STORAGE", "WOOD_STORAGE", "GOLD_STORAGE", "STONE_STORAGE")  # meta.CURRENCY, in order
 XS_RESOURCES = ("cAttributeFood", "cAttributeWood", "cAttributeGold", "cAttributeStone")
 AGES = {1: "DARK", 2: "FEUDAL", 3: "CASTLE", 4: "IMPERIAL", 5: "IMPERIAL"}  # tier -> its player's age (its looks)
+SHOP_TECHS = (SEND_WAVE, choice_key(1), choice_key(2))  # the run's buttons on the Wonder: off in the hub
 
 
 def _units(s, player: int, types) -> list:
@@ -89,6 +92,20 @@ def _place_variable(place: meta.Place) -> str:
 
 def _move(player: int, refs: list[int], to: int = PLAYER) -> dict:
     return {"type": "change_ownership", "source_player": player, "target_player": to, "selected_object_ids": refs}
+
+
+def _hand_over(player: int, unit, to: int = PLAYER) -> dict:
+    """One unit to the player, by its type and tile (not its reference id: units bought by id were left behind in
+    play, playtest 2026-11-22)."""
+    x, y = int(unit.x), int(unit.y)
+
+    return {
+        "type": "change_ownership",
+        "source_player": player,
+        "target_player": to,
+        "object_list_unit_id": unit.unit_const,
+        "area": [x, y, x, y],
+    }
 
 
 def _setup(o, techs: dict[str, int]) -> dict[str, object]:
@@ -133,22 +150,26 @@ def _setup(o, techs: dict[str, int]) -> dict[str, object]:
 
 
 def _plan(s, buildings: dict[str, object]) -> dict[str, list[list[dict]]]:
-    """Each upgrade's effects by level: its place's player's units of `shows` handed over (nearest the place first)."""
+    """Each upgrade's effects by level: its place's player's units of `shows` handed over (nearest the place first),
+    each unit to one upgrade only (the Axemen upgrade's three, then the Axemen's two)."""
     plans = {}
     clubmen = []
+    taken = set()
 
     for upgrade in meta.UPGRADES:
         if not upgrade.shows:
             continue
 
         place = meta.place(upgrade.place)
-        units = _by_distance(_units(s, place.player, upgrade.shows), buildings[place.key])
+        found = _units(s, place.player, upgrade.shows)
+        units = [u for u in _by_distance(found, buildings[place.key]) if u.reference_id not in taken]
         per = upgrade.per or ((1,) * upgrade.levels if upgrade.levels > 1 else (len(units),))
         levels, done = [], 0
 
         for amount in per:
-            refs = [u.reference_id for u in units[done : done + amount]]
-            levels.append([_move(place.player, refs)] if refs else [])
+            chosen = units[done : done + amount]
+            taken.update(u.reference_id for u in chosen)
+            levels.append([_hand_over(place.player, u) for u in chosen])
             done += amount
 
         if upgrade is meta.CLUBMEN:
@@ -176,8 +197,8 @@ def _start(ctx, techs: dict[str, int]) -> None:
             for u in trained
         ),
         *(
-            {"type": "enable_disable_technology", "source_player": PLAYER, "technology": techs[u.tech], "enabled": 0}
-            for u in meta.UPGRADES
+            {"type": "enable_disable_technology", "source_player": PLAYER, "technology": tech, "enabled": 0}
+            for tech in [*(techs[u.tech] for u in meta.UPGRADES), *(techs[key] for key in SHOP_TECHS)]
         ),
     ]
     town_centers = [techs[p.copy_key] for p in meta.PLACES if p.unit == meta.TOWN_CENTER]
@@ -284,7 +305,7 @@ def _place_triggers(ctx, place: meta.Place, building) -> None:
         *(
             _on(variable, value, f"Hub: {place.key} {label}", [*give, caption | {"message": text}])
             for value, label, text in (
-                (1, "nothing on offer", ""),
+                (1, "nothing on offer", NO_CAPTION),
                 (2, "on offer", ON_OFFER),
                 (3, "affordable", AFFORDABLE),
             )
@@ -335,12 +356,10 @@ def _tier_objectives(ctx, s) -> None:
 
 def _reset(ctx) -> None:
     """A decision at every start, left open while the player shops: reset every upgrade to nothing bought (refunding
-    what they cost: XS adds it to the stockpile, then the triggers clear the bank), or save and win (the hub ends and
-    the run starts; every purchase is stored as it's made). The hub shows a reset from its next start (everything
-    already bought stays in view, nothing more can be bought), and a one-button decision still offers to save and
-    win."""
+    what they cost: XS adds it to the stockpile, then the triggers clear the bank) and win, or save and win (the hub
+    ends and the run starts; every purchase is stored as it's made)."""
     ctx.var(RESET_VARIABLE)
-    decision, after_reset = ctx.next_decision_id(), ctx.next_decision_id()
+    decision = ctx.next_decision_id()
     zero = [
         effect
         for key in meta.KEYS
@@ -374,31 +393,11 @@ def _reset(ctx) -> None:
             "conditions": [
                 {"type": "variable_value", "variable": RESET_VARIABLE, "comparison": "EQUAL", "quantity": 2}
             ],
-            "effects": [
-                *zero,
-                *_bank_currency(),
-                {
-                    "type": "send_chat",
-                    "source_player": PLAYER,
-                    "message": "Upgrades reset and refunded. Restart the mission (menu, Restart) to start over.",
-                },
-                {
-                    "type": "create_decision",
-                    "decision_id": after_reset,
-                    "message": "Upgrades reset. Start the run with nothing?",
-                    "message_option1": "Save and win",
-                    "message_option2": "",
-                },
-            ],
+            "effects": [*zero, *_bank_currency(), *win],  # cleared, and on to the run
         },
         {
             "name": "Hub: save and win",
             "conditions": [{"type": "decision_triggered", "decision_id": decision, "decision_option": 2}],
-            "effects": win,
-        },
-        {
-            "name": "Hub: save and win after a reset",
-            "conditions": [{"type": "decision_triggered", "decision_id": after_reset, "decision_option": 1}],
             "effects": win,
         },
     )
