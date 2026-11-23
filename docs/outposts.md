@@ -55,8 +55,13 @@ added by hand.
 
 Each outpost rolls an **archetype** as a wave lane does (Infantry, Bowmen, Cavalry, Phalanx, Chariots...,
 docs/evolving-waves.md); its defenders, bullies, guards and attackers are that archetype's lines at the Legion's
-current age. The Legion's upgrades are shared, so an outpost's units have every upgrade the waves have. They scale
-with the waves: the defender count and the party sizes grow with the Legion's age as well as the outpost's level.
+current age. Outposts never roll upgrades of their own: they inherit the Legion's (shared), so an outpost's units
+have every upgrade the waves have. They scale like the waves but less (2026-11-23): they grow slowly all run, and
+faster while left alone (a level each tick they aren't turtled); the defender count and party sizes grow with the
+Legion's age as well as the level.
+
+**Rewards.** An outpost's attack waves award nothing. Destroying the outpost gives the boon choice (its objective,
+`scenarios/bases.py`).
 
 The sea outposts also keep **ships** around their islands, which defend the outpost and bully the player's docks and
 fishing boats they can reach (map hack). With no player dock to bully, and nothing else to do, a sea outpost attacks:
@@ -74,5 +79,4 @@ attack-moves the Wonder. Two transports until two can't carry the wave, then the
 ## Open
 
 - the numbers: defenders per level, the level cap, party sizes per pressure, tick length per difficulty
-- whether an outpost's attack wave counts as a wave (pays and gives a boon choice when defeated); for now it doesn't
 - the four walled posts: left as they are
