@@ -1,7 +1,7 @@
-"""Tiered boons to effect commands, through crucible.bonuses' compilers: each effect of a tier's step is compiled as
-a modifier would be (its own stat and subject, or the boon's). A stat whose command sets a value rather than adding
-to it (TOTALS) is compiled from the total up to that tier: the steps come in order, so the last one bought sets
-what all of them make."""
+"""Boons to effect commands, through crucible.bonuses' compilers: each effect of a level is compiled as a modifier
+would be (its own stat and subject, or the boon's). A stat whose command sets a value rather than adding to it
+(TOTALS) is compiled from the total up to that level: the levels come in order, so the last one bought sets what
+all of them make."""
 
 from dataclasses import dataclass
 
@@ -10,7 +10,7 @@ from genieutils.datfile import DatFile
 from crucible.bonuses.compile import Command
 from crucible.bonuses.compile.stats import COMPILERS
 from crucible.bonuses.model import Change, Group, Stat
-from crucible.boons.model import Boon, Effect, Tier
+from crucible.boons.model import Boon, Effect
 
 TOTALS = (Stat.RESEARCH_TIME, Stat.RESEARCH_SPEED, Stat.CONVERSION_RESISTANCE)
 
@@ -27,11 +27,11 @@ class Resolved:
     techs: tuple[str, ...]
 
 
-def resolve(boon: Boon, tier: Tier, n: int, effect: Effect) -> Resolved:
+def resolve(boon: Boon, level: int, n: int, effect: Effect) -> Resolved:
     own = effect.targets is None and effect.groups is None and effect.techs is None
 
     return Resolved(
-        id=f"{boon.id} {tier.name.lower()} {n}",
+        id=f"{boon.id} {level} {n}",
         change=effect.change,
         stat=effect.stat or boon.stat,
         targets=boon.targets if own else effect.targets or (),
@@ -40,16 +40,16 @@ def resolve(boon: Boon, tier: Tier, n: int, effect: Effect) -> Resolved:
     )
 
 
-def commands(boon: Boon, tier: Tier, data: DatFile) -> list[Command]:
-    """Every effect of the tier; NotImplementedError if one doesn't compile yet."""
+def commands(boon: Boon, level: int, data: DatFile) -> list[Command]:
+    """Every effect of the level; NotImplementedError if one doesn't compile yet."""
     found = []
-    totals = {Boon._key(e): e for e in boon.total(tier)}
+    totals = {Boon._key(e): e for e in boon.total(level)}
 
-    for n, effect in enumerate(boon.steps[tier]):
+    for n, effect in enumerate(boon.steps[level]):
         if (effect.stat or boon.stat) in TOTALS:
             effect = totals[Boon._key(effect)]
 
-        resolved = resolve(boon, tier, n, effect)
+        resolved = resolve(boon, level, n, effect)
 
         if resolved.stat not in COMPILERS:
             raise NotImplementedError(f"{resolved.id}: {resolved.stat} doesn't compile yet")

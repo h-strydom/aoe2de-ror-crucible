@@ -1,24 +1,9 @@
 """Carthaginians: "Elephant, Camel, and Naval civilization" (RoR string 120163)."""
 
 from crucible.bonuses.model import Civ, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, ladder
+from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Rarity, Subject, extra
 
 BOONS = (
-    Boon(
-        civ=Civ.CARTHAGINIANS,
-        number=1,
-        title="All resources",
-        stat=Stat.ALL_RESOURCES,
-        domain=Domain.ECONOMY,
-        kind=Kind.RESOURCES,
-        subjects=(
-            Subject.FOOD,
-            Subject.WOOD,
-            Subject.STONE,
-            Subject.GOLD,
-        ),
-        tiers=ladder(Tier.POOR, flat(50), flat(200), flat(500)),
-    ),
     Boon(
         civ=Civ.CARTHAGINIANS,
         number=2,
@@ -36,7 +21,8 @@ BOONS = (
             Subject.HOPLITE,
         ),
         buildings=(Building.ACADEMY,),
-        tiers=ladder(Tier.COMMON, pct(0.15), pct(0.25), pct(0.4)),
+        rarity=Rarity.COMMON,
+        effects=(pct(0.08),),
     ),
     Boon(
         civ=Civ.CARTHAGINIANS,
@@ -55,12 +41,13 @@ BOONS = (
             Building.STABLE,
             Building.ARCHERY_RANGE,
         ),
-        tiers=ladder(Tier.COMMON, pct(0.15), pct(0.25), pct(0.4)),
+        rarity=Rarity.RARE,
+        effects=(pct(0.08),),
     ),
     Boon(
         civ=Civ.CARTHAGINIANS,
         number=4,
-        title="Camel Riders: HP",
+        title="Camel Riders: HP, pierce armour",
         stat=Stat.HP,
         targets=("camel_rider",),
         domain=Domain.MILITARY,
@@ -70,7 +57,12 @@ BOONS = (
             Subject.CAVALRY,
         ),
         buildings=(Building.STABLE,),
-        tiers=ladder(Tier.POOR, pct(0.1), pct(0.15), pct(0.25)),
+        rarity=Rarity.COMMON,
+        effects=(
+            pct(0.06),
+            extra(flat(1), Stat.PIERCE_ARMOUR),
+        ),
+        note="Merged: sumerians_4, palmyrans_6",
     ),
     Boon(
         civ=Civ.CARTHAGINIANS,
@@ -82,7 +74,8 @@ BOONS = (
         kind=Kind.COMBAT,
         subjects=(Subject.SHIP,),
         buildings=(Building.DOCK,),
-        tiers=ladder(Tier.POOR, pct(0.15), pct(0.25), pct(0.4)),
+        rarity=Rarity.COMMON,
+        effects=(pct(0.08),),
     ),
     Boon(
         civ=Civ.CARTHAGINIANS,
@@ -100,19 +93,8 @@ BOONS = (
             Subject.TRANSPORT,
         ),
         buildings=(Building.DOCK,),
-        tiers=ladder(Tier.POOR, pct(0.25), pct(0.4), pct(0.6)),
-    ),
-    Boon(
-        civ=Civ.CARTHAGINIANS,
-        number=7,
-        title="Nobility: Research cost",
-        stat=Stat.COST,
-        techs=("nobility",),
-        domain=Domain.RESEARCH,
-        kind=Kind.DISCOUNT,
-        subjects=(Subject.GOVERNMENT_CENTER,),
-        buildings=(Building.GOVERNMENT_CENTER,),
-        tiers=ladder(Tier.POOR, pct(-0.5), pct(-0.75), pct(-1)),
+        rarity=Rarity.COMMON,
+        effects=(pct(0.1),),
     ),
     Boon(
         civ=Civ.CARTHAGINIANS,
@@ -128,6 +110,8 @@ BOONS = (
         ),
         buildings=(Building.ACADEMY,),
         flags=(Flag.TEAM,),
-        tiers=ladder(Tier.POOR, pct(0.2), pct(0.4), pct(0.6)),
+        rarity=Rarity.LEGENDARY,
+        effects=(pct(0.6),),
+        levels=1,
     ),
 )

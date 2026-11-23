@@ -1,7 +1,7 @@
 """Lac Viet: "Archer civilization" (RoR string 120166)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, extra, ladder
+from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Rarity, Subject
 
 BOONS = (
     Boon(
@@ -17,7 +17,8 @@ BOONS = (
             Subject.FOOD,
         ),
         buildings=(Building.TOWN_CENTER,),
-        tiers=ladder(Tier.POOR, pct(0.15), pct(0.25), pct(0.4)),
+        rarity=Rarity.COMMON,
+        effects=(pct(0.1),),
     ),
     Boon(
         civ=Civ.LAC_VIET,
@@ -32,7 +33,9 @@ BOONS = (
             Subject.ARCHER,
             Subject.CAVALRY,
         ),
-        tiers=ladder(Tier.IMPROVED, pct(0.15), pct(0.25), pct(0.4)),
+        rarity=Rarity.LEGENDARY,
+        effects=(pct(0.5),),
+        levels=1,
     ),
     Boon(
         civ=Civ.LAC_VIET,
@@ -56,7 +59,8 @@ BOONS = (
             Subject.SIEGE,
         ),
         buildings=(Building.ARCHERY_RANGE,),
-        tiers=ladder(Tier.MASTERCRAFTED, flat(1), flat(2), (flat(3), extra(flat(1), Stat.PIERCE_ARMOUR))),
+        rarity=Rarity.RARE,
+        effects=(flat(1),),
     ),
     Boon(
         civ=Civ.LAC_VIET,
@@ -74,6 +78,8 @@ BOONS = (
             Subject.FOOD,
         ),
         flags=(Flag.TEAM,),
-        tiers=ladder(Tier.POOR, pct(0.25), pct(0.5), pct(1)),
+        rarity=Rarity.LEGENDARY,
+        effects=(pct(0.9),),
+        levels=1,
     ),
 )

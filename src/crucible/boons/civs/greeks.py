@@ -1,7 +1,7 @@
 """Greeks: "Infantry and Naval civilization" (RoR string 120151)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, ladder
+from crucible.boons.model import Boon, Building, Domain, Kind, Rarity, Subject
 
 BOONS = (
     Boon(
@@ -17,7 +17,9 @@ BOONS = (
             Subject.BUILDING,
         ),
         buildings=(Building.TOWN_CENTER,),
-        tiers=ladder(Tier.IMPROVED, pct(0.1), pct(0.2), pct(0.3)),
+        rarity=Rarity.LEGENDARY,
+        effects=(pct(0.3),),
+        levels=1,
     ),
     Boon(
         civ=Civ.GREEKS,
@@ -36,7 +38,8 @@ BOONS = (
             Subject.HOPLITE,
         ),
         buildings=(Building.ACADEMY,),
-        tiers=ladder(Tier.COMMON, pct(0.1), pct(0.2), pct(0.3)),
+        rarity=Rarity.COMMON,
+        effects=(pct(0.06),),
     ),
     Boon(
         civ=Civ.GREEKS,
@@ -55,7 +58,8 @@ BOONS = (
             Subject.HOPLITE,
         ),
         buildings=(Building.ACADEMY,),
-        tiers=ladder(Tier.COMMON, pct(-0.1), pct(-0.2), pct(-0.3)),
+        rarity=Rarity.COMMON,
+        effects=(pct(-0.06),),
     ),
     Boon(
         civ=Civ.GREEKS,
@@ -67,37 +71,7 @@ BOONS = (
         kind=Kind.SPEED,
         subjects=(Subject.SHIP,),
         buildings=(Building.DOCK,),
-        tiers=ladder(Tier.POOR, pct(0.1), pct(0.2), pct(0.3)),
-    ),
-    Boon(
-        civ=Civ.GREEKS,
-        number=5,
-        title="Polytheism, Astrology: Research cost",
-        stat=Stat.COST,
-        techs=(
-            "polytheism",
-            "astrology",
-        ),
-        domain=Domain.RESEARCH,
-        kind=Kind.DISCOUNT,
-        subjects=(Subject.PRIEST,),
-        buildings=(Building.TEMPLE,),
-        tiers=ladder(Tier.POOR, pct(-0.5), pct(-0.75), pct(-1)),
-    ),
-    Boon(
-        civ=Civ.GREEKS,
-        number=6,
-        title="Market: Cost",
-        stat=Stat.COST,
-        targets=("market",),
-        domain=Domain.ECONOMY,
-        kind=Kind.DISCOUNT,
-        subjects=(
-            Subject.MARKET,
-            Subject.BUILDING,
-        ),
-        buildings=(Building.MARKET,),
-        flags=(Flag.TEAM,),
-        tiers=ladder(Tier.POOR, pct(-0.25), pct(-0.5), pct(-1)),
+        rarity=Rarity.COMMON,
+        effects=(pct(0.05),),
     ),
 )

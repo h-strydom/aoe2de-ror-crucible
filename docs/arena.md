@@ -105,16 +105,15 @@ defeated waves ("Waves defeated: n"), and chat names each one as it falls. Waves
 the middle tile of each row matters as a reference.
 
 **Boons.** Each wave defeated (and each Legion base destroyed) gives one decision in the shop (`shop/`): two boon
-categories on the Wonder, each from a different tag axis ("Combat boons", "Stable boons"; never a civ or civ type,
-playtest 2026-11-23), drawn by weight: a category's weight starts at 10 and goes up 10 each time the player picks it,
-so the shop leans towards what they go for. Then a random boon of the one picked on each boon slot. The boons are the
-tiered ones (`crucible.boons`), and each tier is its own upgrade, stacking: a boon runs from its first tier to
-Heirloom, each tier adding a step (Assyrians' archer attack speed +11% a tier), and comes at its next tier only, back
-in the pool once that's bought. A percentage stops at its cap (discounts 75%, research time 1 s, other production
-speeds +90%); each tier past it adds an extra instead (research cost -5%, research time -10%, training or build
-speed +5%, cost -5%, or 25 of each resource). Each tier has its own price
-(`TIER_COSTS`: Poor free, Common 250 food, Improved 250 food 100 wood, Mastercrafted 250 food 100 gold, Legendary
-300 gold, Heirloom 300 food 300 gold), less the Wonder's boon discount. Every boon but drawbacks can come up. A boon
+categories on the Wonder, each from a different tag axis ("Combat boons", "Stable boons"; never a civ, civ type or
+flag, and only a tag with at least 4 boons, playtest 2026-11-23), drawn by weight: a category's weight starts at 10 and goes up 10 each time the player picks it,
+so the shop leans towards what they go for. Then a random boon of the one picked on each boon slot. The boons
+(`crucible.boons`, trimmed to 63 on 2026-11-23) each have a rarity and the effects one level adds: a stat boon can be
+bought 5 times, stacking (Assyrians' archer attack speed +8% a level), a big one (a production or research speed-up)
+once. A boon comes at its next level only, back in the pool once that's bought. A percentage stops at its cap
+(discounts 75%, research time 1 s, other production speeds +90%); each level past it adds an extra instead. Every
+level costs its rarity's price (`RARITY_COSTS`: common 200 food, rare 300 food 200 gold, legendary 400 food 400
+gold), less the Wonder's boon discount. Wave 0 gives the first level of a common boon on each slot, free. A boon
 goes on a free button of the Wonder's first two rows (1-10); boons only stack once all ten hold an unbought one. The
 Send next wave button is on 15, the two choices on 11 and 12. The boons bought aren't listed in game.
 

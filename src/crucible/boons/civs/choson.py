@@ -1,21 +1,9 @@
 """Choson: "Infantry and Tower civilization" (RoR string 120161)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, extra, ladder
+from crucible.boons.model import Boon, Building, Domain, Kind, Rarity, Subject
 
 BOONS = (
-    Boon(
-        civ=Civ.CHOSON,
-        number=1,
-        title="Axemen: HP",
-        stat=Stat.HP,
-        targets=("axeman",),
-        domain=Domain.MILITARY,
-        kind=Kind.DURABILITY,
-        subjects=(Subject.INFANTRY,),
-        buildings=(Building.BARRACKS,),
-        tiers=ladder(Tier.POOR, flat(5), flat(10), flat(15)),
-    ),
     Boon(
         civ=Civ.CHOSON,
         number=2,
@@ -34,41 +22,8 @@ BOONS = (
             Subject.SWORDSMAN,
         ),
         buildings=(Building.BARRACKS,),
-        tiers=ladder(
-            Tier.MASTERCRAFTED,
-            flat(15),
-            flat(30),
-            (flat(45), extra(flat(1), Stat.MELEE_ARMOUR), extra(flat(1), Stat.PIERCE_ARMOUR)),
-        ),
-        note="Starts mid-line in a run, so lower units gain more",
-    ),
-    Boon(
-        civ=Civ.CHOSON,
-        number=3,
-        title="Storage Pit: Research cost",
-        stat=Stat.COST,
-        techs=(
-            "leather_armor_for_infantry",
-            "leather_armor_archers",
-            "leather_armor_for_cavalry",
-            "scale_armor_for_infantry",
-            "scale_armor_archers",
-            "scale_armor_cavalry",
-            "toolworking",
-            "bronze_shield",
-            "chain_mail_for_infantry",
-            "chain_mail_archers",
-            "chain_mail_cavalry",
-            "metalworking",
-            "metallurgy",
-            "iron_shield",
-            "tower_shield",
-        ),
-        domain=Domain.RESEARCH,
-        kind=Kind.DISCOUNT,
-        subjects=(Subject.STORAGE_PIT,),
-        buildings=(Building.STORAGE_PIT,),
-        tiers=ladder(Tier.MASTERCRAFTED, pct(-0.4), pct(-0.6), (pct(-0.8), extra(pct(-0.5), Stat.RESEARCH_TIME))),
+        rarity=Rarity.RARE,
+        effects=(flat(8),),
     ),
     Boon(
         civ=Civ.CHOSON,
@@ -82,7 +37,8 @@ BOONS = (
             Subject.TOWER,
             Subject.BUILDING,
         ),
-        tiers=ladder(Tier.IMPROVED, flat(1), flat(2), flat(3)),
+        rarity=Rarity.RARE,
+        effects=(flat(1),),
     ),
     Boon(
         civ=Civ.CHOSON,
@@ -94,18 +50,7 @@ BOONS = (
         kind=Kind.DISCOUNT,
         subjects=(Subject.PRIEST,),
         buildings=(Building.TEMPLE,),
-        tiers=ladder(Tier.POOR, pct(-0.15), pct(-0.3), pct(-0.45)),
-    ),
-    Boon(
-        civ=Civ.CHOSON,
-        number=6,
-        title="Buildings: Line of sight",
-        stat=Stat.LINE_OF_SIGHT,
-        groups=(Group.BUILDINGS,),
-        domain=Domain.DEFENCE,
-        kind=Kind.VISION,
-        subjects=(Subject.BUILDING,),
-        flags=(Flag.TEAM,),
-        tiers=ladder(Tier.POOR, flat(2), flat(3), flat(4)),
+        rarity=Rarity.COMMON,
+        effects=(pct(-0.08),),
     ),
 )

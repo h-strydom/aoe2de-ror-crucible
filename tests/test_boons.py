@@ -2,22 +2,13 @@ import random
 
 import pytest
 
-from crucible.bonuses.model import Civ, Stat, flat, pct
+from crucible.bonuses.model import Civ, Rarity, Stat, flat, pct
 from crucible.boons import catalogue
-from crucible.boons.model import Boon, Domain, Effect, Flag, Kind, Subject, Tier, extra, ladder
+from crucible.boons.model import LEVELS, MIN_CATEGORY, Boon, Domain, Flag, Kind, Subject, extra
 
 
-def test_every_boon_is_valid_and_unique():
-    ids = [b.id for b in catalogue.ALL]
-
-    assert len(ids) == len(set(ids))
-    assert all(len(b.tiers) >= 1 for b in catalogue.ALL)
-    assert {Civ(c) for c in Civ} == {b.civ for b in catalogue.ALL}
-
-
-def test_ladder_adds_extras_and_text_shows_them():
-    tiers = ladder(Tier.LEGENDARY, pct(0.2), (pct(0.4), extra(flat(3), Stat.CARRY)))
-    boon = Boon(
+def _boon(**fields) -> Boon:
+    base = dict(
         civ=Civ.GREEKS,
         number=99,
         title="Test",
@@ -25,79 +16,78 @@ def test_ladder_adds_extras_and_text_shows_them():
         domain=Domain.ECONOMY,
         kind=Kind.GATHERING,
         subjects=(Subject.VILLAGER,),
-        tiers=tiers,
+        rarity=Rarity.COMMON,
+        effects=(pct(0.2),),
     )
 
-    assert sorted(tiers) == [Tier.LEGENDARY, Tier.HEIRLOOM]
-    assert boon.lowest is Tier.LEGENDARY
-    assert boon.text(Tier.LEGENDARY) == "+20%"
-    assert boon.text(Tier.HEIRLOOM) == "+20% & +3 carry capacity"  # the step over Legendary
+    return Boon(**(base | fields))
 
 
-def test_tiers_must_be_consecutive():
-    with pytest.raises(ValueError, match="consecutive"):
-        Boon(
-            civ=Civ.GREEKS,
-            number=99,
-            title="Gap",
-            stat=Stat.HP,
-            domain=Domain.MILITARY,
-            kind=Kind.DURABILITY,
-            subjects=(Subject.INFANTRY,),
-            tiers={Tier.POOR: (Effect(change=flat(1)),), Tier.IMPROVED: (Effect(change=flat(2)),)},
-        )
+def test_every_boon_is_valid_and_unique():
+    ids = [b.id for b in catalogue.ALL]
+
+    assert len(ids) == len(set(ids))
+    assert {Civ(c) for c in Civ} == {b.civ for b in catalogue.ALL}
+    assert all(b.levels in (1, LEVELS) for b in catalogue.ALL)
+    assert all(b.rarity is Rarity.LEGENDARY for b in catalogue.ALL if b.levels == 1)  # the big ones
 
 
-def test_choson_swordsmen_are_one_boon_up_to_heirloom():
-    swords = catalogue.query(Civ.CHOSON, Subject.SWORDSMAN)
+def test_a_level_adds_its_effects_and_text_shows_them():
+    boon = _boon(effects=(pct(0.2), extra(flat(3), Stat.CARRY)))
 
-    assert len(swords) == 1
-    assert max(swords[0].tiers) is Tier.HEIRLOOM
-    assert len(swords[0].tiers[Tier.HEIRLOOM]) == 3  # HP and 1/1 armour
-
-
-def test_offer_draws_each_choice_from_a_different_axis():
-    for seed in range(50):
-        choices = catalogue.offer(3, random.Random(seed))
-        axes = [type(category) for category, _ in choices]
-
-        assert len(choices) == 3
-        assert len(set(axes)) == 3
-        assert len({b.id for _, b in choices}) == 3
-        assert all(b.in_category(category) and not b.in_category(Flag.DRAWBACK) for category, b in choices)
+    assert list(boon.steps) == [1, 2, 3, 4, 5]
+    assert boon.text(1) == "+20% & +3 carry capacity"
+    assert {e.stat: e.change.amount for e in boon.total(5)} == {None: 1.0, Stat.CARRY: 15}
 
 
-def test_every_boon_steps_up_to_heirloom_and_stacks():
-    archers = catalogue.by_id("assyrians_2")  # written 11/22/33% from Common
+def test_levels_are_one_to_five():
+    with pytest.raises(ValueError, match="levels"):
+        _boon(levels=6)
 
-    assert list(archers.steps) == [Tier.COMMON, Tier.IMPROVED, Tier.MASTERCRAFTED, Tier.LEGENDARY, Tier.HEIRLOOM]
-    assert all(step[0].change.amount == 0.11 for step in archers.steps.values())  # +11% a step, stacking
-    assert archers.total(Tier.HEIRLOOM)[0].change.amount == 0.55
-    assert all(max(b.steps) is Tier.HEIRLOOM and all(b.steps.values()) for b in catalogue.ALL)
+    assert list(_boon(levels=1).steps) == [1]
+
+
+def test_stat_boons_stack_five_times():
+    archers = catalogue.by_id("assyrians_2")  # +8% attack speed a level
+
+    assert all(step[0].change.amount == 0.08 for step in archers.steps.values())
+    assert archers.total(LEVELS)[0].change.amount == 0.4
 
 
 def test_capped_cuts_overshoot_into_an_extra():
-    wheel = catalogue.by_id("hittites_4")  # Wheel research cost, written -25/-50/-100%: capped at -75%
-    totals = {(e.stat or wheel.stat): e.change.amount for e in wheel.total(Tier.HEIRLOOM)}
-    assert totals[Stat.COST] == -0.75
-    assert totals[Stat.RESEARCH_TIME] == -0.3  # three tiers past the cap: -10% research time each
-    time = catalogue.by_id("hittites_5")  # Wheel research time: capped at -100% (1 s), then cheaper research
-    assert {e.stat for e in time.steps[Tier.HEIRLOOM]} == {Stat.COST}
+    cheap = _boon(stat=Stat.COST, targets=("priest",), effects=(pct(-0.2),))  # capped at -75% on level 4
+
+    assert [s[0].change.amount for s in cheap.steps.values()][:4] == [-0.2, -0.2, -0.2, -0.15]
+    assert cheap.steps[5][0].stat is Stat.TRAINING_SPEED  # past the cap: faster training instead
+    fast = _boon(stat=Stat.TRAINING_SPEED, targets=("priest",), effects=(pct(0.3),))  # capped at +90% on level 3
+    totals = {(e.stat or fast.stat): e.change.amount for e in fast.total(5)}
+    assert totals == {Stat.TRAINING_SPEED: 0.9, Stat.COST: -0.1}
     assert all(
         e.change.amount >= -0.75
         for b in catalogue.ALL
-        for t in b.steps
-        for e in b.total(t)
+        for e in b.total(b.levels)
         if (e.stat or b.stat) in (Stat.COST, Stat.FOOD_COST, Stat.WOOD_COST) and e.change.mode.value == "%"
     )
 
-    houses = catalogue.by_id("lac_viet_4")  # build speed, written +25/+50/+100%: capped at +90%
-    totals = {(e.stat or houses.stat): e.change.amount for e in houses.total(Tier.HEIRLOOM)}
-    assert totals[Stat.BUILD_SPEED] == 0.9
-    assert totals[Stat.COST] == -0.15  # three tiers past the cap: 5% cheaper each
+
+def test_offer_draws_each_choice_from_a_different_axis():
+    choices = catalogue.choices()
+
+    for seed in range(50):
+        offered = catalogue.offer(3, random.Random(seed))
+        axes = [type(category) for category, _ in offered]
+
+        assert len(offered) == 3
+        assert len(set(axes)) == 3
+        assert len({b.id for _, b in offered}) == 3
+        assert all(b.in_category(c) and c in choices and not b.in_category(Flag.DRAWBACK) for c, b in offered)
 
 
-def test_civs_are_never_a_choice():
-    from crucible.boons.model import OFFER_AXES, CivType
+def test_choices_have_enough_boons_and_reach_every_boon():
+    from crucible.boons.model import CivType
 
-    assert Civ not in OFFER_AXES and CivType not in OFFER_AXES
+    choices = catalogue.choices()
+
+    assert all(len(catalogue.query(c)) >= MIN_CATEGORY for c in choices)
+    assert not any(isinstance(c, (Civ, CivType, Flag)) for c in choices)
+    assert all(any(b.in_category(c) for c in choices) for b in catalogue.ALL)

@@ -1,51 +1,29 @@
-"""Tiered boons: the redesign of the civ bonuses (docs/todo.md), kept here as the source of truth.
+"""Boons: the redesign of the civ bonuses (docs/todo.md), kept here as the source of truth.
 
-A boon is written as a run of rarity tiers (usually three in a row), each holding its total effects: the first is the
-boon's own stat on its own subject, any more are extras ("+60% work rate & +3 carry capacity"). Adding a tier is a
-new Tier member; moving a boon is changing its first tier; combining effects is adding to a tier's list.
-
-In play each tier is its own upgrade and they stack (playtest 2026-11-23): a boon's `steps` run from its first tier
-to Heirloom, each the increase over the tier before (Assyrians' archer attack speed, written 11/22/33%, is +11% a
-step), the last written step repeating up to Heirloom. The shop offers a boon's next step only.
+A boon has a rarity (how good it is: its price) and the effects one level of it adds: the first is the boon's own stat
+on its own subject, any more are extras ("+10% work rate & +2 carry capacity"). Each level is its own upgrade and they
+stack: a stat boon can be bought LEVELS times, a big one (a production or research speed-up) once (playtest
+2026-11-23: the six tiers were trimmed to these).
 
 Tags come from fixed axes, so an offer can draw each choice from a different axis (catalogue.offer): Domain, Kind
-(what it does), Subject, Building, Team and Drawback (OFFER_AXES). The civ and its types are tags too, but never a
-choice (playtest 2026-11-23).
-
-Not compiled into the data mod yet: crucible.bonuses (one fixed value per boon) still is.
+(what it does), Subject and Building (OFFER_AXES), each tag only with enough boons to choose from. The civ, its types
+and the flags are tags too, but never a choice (playtest 2026-11-23).
 """
 
-from enum import IntEnum, StrEnum
+from enum import StrEnum
 
 from aoe2ed import tables
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from crucible.bonuses.model import Change, Civ, Cost, Group, Icon, Mode, Stat, flat, pct
+from crucible.bonuses.model import Change, Civ, Cost, Group, Icon, Mode, Rarity, Stat, flat, pct
 
+LEVELS = 5  # how many times a stat boon can be bought
 
-class Tier(IntEnum):
-    """In order: a boon's tiers are consecutive members. Each costs its own price (TIER_COSTS)."""
-
-    POOR = 0
-    COMMON = 1
-    IMPROVED = 2
-    MASTERCRAFTED = 3
-    LEGENDARY = 4
-    HEIRLOOM = 5  # the Legendary effect plus something extra
-
-    @property
-    def title(self) -> str:
-        return self.name.title()
-
-
-# What a boon tier costs: one place to tune every price. A roll up costs the tier it rolled to.
-TIER_COSTS: dict[Tier, Cost] = {
-    Tier.POOR: Cost(),  # free
-    Tier.COMMON: Cost(food=250),
-    Tier.IMPROVED: Cost(food=250, wood=100),
-    Tier.MASTERCRAFTED: Cost(food=250, gold=100),
-    Tier.LEGENDARY: Cost(gold=300),
-    Tier.HEIRLOOM: Cost(food=300, gold=300),
+# What one level of a boon costs, by rarity: the same for every level (playtest 2026-11-23). Prices are placeholders.
+RARITY_COSTS: dict[Rarity, Cost] = {
+    Rarity.COMMON: Cost(food=200),
+    Rarity.RARE: Cost(food=300, gold=200),
+    Rarity.LEGENDARY: Cost(food=400, gold=400),
 }
 
 
@@ -174,13 +152,14 @@ CAPS = {
     Stat.BUILD_SPEED: SPEED_CAP,
     Stat.RESEARCH_SPEED: SPEED_CAP,
 }
-# What each tier past a capped cut adds instead (costs: Boon._overshoot picks research time or training/build speed)
+# What each level past a capped cut adds instead (costs: Boon._overshoot picks research time or training/build speed)
 OVERSHOOT = {
-    Stat.RESEARCH_TIME: (Stat.COST, pct(-0.05)),  # research time at 1 s: research costs 5% less a tier
+    Stat.RESEARCH_TIME: (Stat.COST, pct(-0.05)),  # research time at 1 s: research costs 5% less a level
     Stat.TRIBUTE_TAX: (Stat.ALL_RESOURCES, flat(25)),
     Stat.RESEARCH_SPEED: (Stat.ALL_RESOURCES, flat(25)),  # no stat for every tech's cost
 }
-OFFER_AXES: tuple[Axis, ...] = (Domain, Kind, Subject, Building, Flag)  # what a choice can be
+OFFER_AXES: tuple[Axis, ...] = (Domain, Kind, Subject, Building)  # what a choice can be
+MIN_CATEGORY = 4  # boons a tag needs to be a choice: no odd categories with two boons (playtest 2026-11-23)
 Category = Domain | Kind | Subject | Building | Civ | CivType | Flag
 
 
@@ -202,20 +181,6 @@ def extra(change: Change, stat: Stat, **subject) -> Effect:
     return Effect(change=change, stat=stat, **subject)
 
 
-Level = Change | Effect | tuple[Change | Effect, ...]
-
-
-def ladder(first: Tier, *levels: Level) -> dict[Tier, tuple[Effect, ...]]:
-    """Tiers from `first` up, one per level: a Change is the boon's own stat, a tuple adds extras."""
-    tiers = {}
-
-    for n, level in enumerate(levels):
-        items = level if isinstance(level, tuple) else (level,)
-        tiers[Tier(first + n)] = tuple(i if isinstance(i, Effect) else Effect(change=i) for i in items)
-
-    return tiers
-
-
 class Boon(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -231,22 +196,27 @@ class Boon(BaseModel):
     subjects: tuple[Subject, ...]
     buildings: tuple[Building, ...] = ()
     flags: tuple[Flag, ...] = ()
-    tiers: dict[Tier, tuple[Effect, ...]]
+    rarity: Rarity
+    effects: tuple[Effect, ...]  # what each level adds: a Change is the boon's own stat
+    levels: int = LEVELS
     note: str = ""
+
+    @field_validator("effects", mode="before")
+    @classmethod
+    def _effects_of(cls, value):
+        return tuple(i if isinstance(i, Effect) else Effect(change=i) for i in value)
 
     @model_validator(mode="after")
     def _valid(self) -> "Boon":
-        found = sorted(self.tiers)
+        if not self.effects:
+            raise ValueError(f"{self.id}: no effects")
 
-        if not found or found != list(range(found[0], found[-1] + 1)):
-            raise ValueError(f"{self.id}: tiers must be consecutive, got {[t.name for t in found]}")
-
-        if any(not effects for effects in self.tiers.values()):
-            raise ValueError(f"{self.id}: a tier without effects")
+        if not 1 <= self.levels <= LEVELS:
+            raise ValueError(f"{self.id}: {self.levels} levels, not 1 to {LEVELS}")
 
         game = self.civ.game
-        targets = {*self.targets, *(t for e in self._effects() for t in e.targets or ())}
-        techs = {*self.techs, *(t for e in self._effects() for t in e.techs or ())}
+        targets = {*self.targets, *(t for e in self.effects for t in e.targets or ())}
+        techs = {*self.techs, *(t for e in self.effects for t in e.techs or ())}
         unknown = [t for t in targets if tables.object_id(t.upper(), game) is None]
         unknown += [t for t in techs if tables.tech_id(t.upper(), game) is None]
 
@@ -255,28 +225,16 @@ class Boon(BaseModel):
 
         return self
 
-    def _effects(self) -> list[Effect]:
-        return [e for effects in self.tiers.values() for e in effects]
-
     @property
     def id(self) -> str:
         return f"{self.civ.value.replace(' ', '_')}_{self.number}"
-
-    @property
-    def lowest(self) -> Tier:
-        """Where the shop's roll starts."""
-        return min(self.tiers)
-
-    @property
-    def highest(self) -> Tier:
-        return max(self.steps)
 
     @staticmethod
     def _key(effect: Effect) -> tuple:
         return effect.stat, effect.targets, effect.groups, effect.techs
 
     def _overshoot(self, effect: Effect) -> Effect:
-        """What a tier past a capped cut adds: OVERSHOOT's extra for its stat, on the same subject."""
+        """What a level past a capped cut adds: OVERSHOOT's extra for its stat, on the same subject."""
         stat = effect.stat or self.stat
 
         if stat == Stat.COST and (effect.techs or (effect.techs is None and self.techs)):
@@ -292,41 +250,17 @@ class Boon(BaseModel):
         return effect.model_copy(update={"stat": stat, "change": change})
 
     @property
-    def steps(self) -> dict[Tier, tuple[Effect, ...]]:
-        """Each tier from the first to Heirloom: what it adds over the tier before (an effect new at a tier, or in
-        another mode, whole). Past the written tiers the last step repeats. A percentage stops at its cap (CAPS:
-        discounts at 75%, production speeds at +90%, other cuts at 100%); every tier after it adds the overshoot extra
-        instead (OVERSHOOT, stacking a tier at a time), so a boon always runs to Heirloom (playtest 2026-11-23)."""
-        found: dict[Tier, tuple[Effect, ...]] = {}
-        before: dict[tuple, Effect] = {}
-        last: tuple[Effect, ...] = ()
+    def steps(self) -> dict[int, tuple[Effect, ...]]:
+        """Each level, 1 to `levels`: its effects. A percentage stops at its cap (CAPS: discounts at 75%, production
+        speeds at +90%, other cuts at 100%); every level after it adds the overshoot extra instead (OVERSHOOT)."""
+        found: dict[int, tuple[Effect, ...]] = {}
         running: dict[tuple, float] = {}  # each percentage's total so far
 
-        for tier in Tier:
-            if tier < self.lowest:
-                continue
-
-            if tier in self.tiers:
-                step = []
-
-                for effect in self.tiers[tier]:
-                    old = before.get(self._key(effect))
-
-                    if old is None or old.change.mode is not effect.change.mode:
-                        step.append(effect)
-                    elif effect.change.amount != old.change.amount:
-                        amount = round(effect.change.amount - old.change.amount, 6)
-                        change = Change(amount=amount, mode=effect.change.mode)
-                        step.append(effect.model_copy(update={"change": change}))
-
-                last = tuple(step) or last
-                before = {self._key(e): e for e in self.tiers[tier]}
-
+        for level in range(1, self.levels + 1):
             step = []
 
-            for effect in last:
+            for effect in self.effects:
                 key, amount = self._key(effect), effect.change.amount
-
                 stat = effect.stat or self.stat
                 cap = CAPS.get(stat, -1.0 if amount < 0 else None)
 
@@ -343,16 +277,16 @@ class Boon(BaseModel):
 
                 step.append(effect)
 
-            found[tier] = tuple(step)
+            found[level] = tuple(step)
 
         return found
 
-    def total(self, tier: Tier) -> tuple[Effect, ...]:
-        """Every step up to `tier` added together (what a player with each of them has)."""
+    def total(self, level: int) -> tuple[Effect, ...]:
+        """Every level up to `level` added together (what a player with each of them has)."""
         summed: dict[tuple, Effect] = {}
 
-        for t, step in self.steps.items():
-            if t > tier:
+        for n, step in self.steps.items():
+            if n > level:
                 break
 
             for effect in step:
@@ -400,11 +334,11 @@ class Boon(BaseModel):
         """By identity: the axes share values as strings (Subject.MARKET == Building.MARKET == "Market")."""
         return any(c is category for c in self.categories)
 
-    def text(self, tier: Tier) -> str:
-        """A tier's step as text: "+60% & +3 carry capacity"."""
+    def text(self, level: int) -> str:
+        """What a level adds, as text: "+10% & +2 carry capacity"."""
         parts = []
 
-        for effect in self.steps.get(tier, ()):
+        for effect in self.steps.get(level, ()):
             words = [str(effect.change)]
 
             if effect.stat and effect.stat != self.stat:

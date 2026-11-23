@@ -1,7 +1,7 @@
 """Shang: "Economic and Cavalry civilization" (RoR string 120159)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, ladder
+from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Rarity, Subject
 
 BOONS = (
     Boon(
@@ -14,34 +14,8 @@ BOONS = (
         kind=Kind.DISCOUNT,
         subjects=(Subject.VILLAGER,),
         buildings=(Building.TOWN_CENTER,),
-        tiers=ladder(Tier.COMMON, flat(-5), flat(-10), flat(-20)),
-    ),
-    Boon(
-        civ=Civ.SHANG,
-        number=2,
-        title="Starting food",
-        stat=Stat.STARTING_FOOD,
-        domain=Domain.ECONOMY,
-        kind=Kind.RESOURCES,
-        subjects=(Subject.FOOD,),
-        flags=(Flag.DRAWBACK,),
-        tiers=ladder(Tier.POOR, flat(-40), flat(-80), flat(-120)),
-        note="Drawback: for the enemy or a curse, not a boon",
-    ),
-    Boon(
-        civ=Civ.SHANG,
-        number=3,
-        title="Walls: HP",
-        stat=Stat.HP,
-        groups=(Group.WALLS,),
-        domain=Domain.DEFENCE,
-        kind=Kind.DURABILITY,
-        subjects=(
-            Subject.WALL,
-            Subject.BUILDING,
-        ),
-        tiers=ladder(Tier.POOR, pct(0.6), pct(1), pct(2)),
-        note="Same as Babylonians 4",
+        rarity=Rarity.COMMON,
+        effects=(flat(-4),),
     ),
     Boon(
         civ=Civ.SHANG,
@@ -57,7 +31,8 @@ BOONS = (
         kind=Kind.COMBAT,
         subjects=(Subject.CAVALRY,),
         buildings=(Building.STABLE,),
-        tiers=ladder(Tier.COMMON, pct(0.1), pct(0.2), pct(0.3)),
+        rarity=Rarity.RARE,
+        effects=(pct(0.06),),
     ),
     Boon(
         civ=Civ.SHANG,
@@ -70,6 +45,7 @@ BOONS = (
         subjects=(Subject.BUILDING,),
         buildings=(Building.TOWN_CENTER,),
         flags=(Flag.TEAM,),
-        tiers=ladder(Tier.POOR, flat(4), flat(8), flat(12)),
+        rarity=Rarity.RARE,
+        effects=(flat(3),),
     ),
 )

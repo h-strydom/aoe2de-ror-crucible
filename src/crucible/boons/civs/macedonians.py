@@ -1,23 +1,9 @@
 """Macedonians: "Infantry civilization" (RoR string 120165)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, ladder
+from crucible.boons.model import Boon, Building, Domain, Kind, Rarity, Subject
 
 BOONS = (
-    Boon(
-        civ=Civ.MACEDONIANS,
-        number=1,
-        title="Non-ranged units: Line of sight",
-        stat=Stat.LINE_OF_SIGHT,
-        groups=(Group.NON_RANGED,),
-        domain=Domain.MILITARY,
-        kind=Kind.VISION,
-        subjects=(
-            Subject.INFANTRY,
-            Subject.CAVALRY,
-        ),
-        tiers=ladder(Tier.POOR, flat(1), flat(2), flat(3)),
-    ),
     Boon(
         civ=Civ.MACEDONIANS,
         number=2,
@@ -35,7 +21,8 @@ BOONS = (
             Subject.HOPLITE,
         ),
         buildings=(Building.ACADEMY,),
-        tiers=ladder(Tier.IMPROVED, flat(1), flat(2), flat(3)),
+        rarity=Rarity.RARE,
+        effects=(flat(1),),
     ),
     Boon(
         civ=Civ.MACEDONIANS,
@@ -53,7 +40,8 @@ BOONS = (
         kind=Kind.DISCOUNT,
         subjects=(Subject.SIEGE,),
         buildings=(Building.SIEGE_WORKSHOP,),
-        tiers=ladder(Tier.COMMON, pct(-0.15), pct(-0.25), pct(-0.4)),
+        rarity=Rarity.COMMON,
+        effects=(pct(-0.08),),
     ),
     Boon(
         civ=Civ.MACEDONIANS,
@@ -64,18 +52,7 @@ BOONS = (
         domain=Domain.MILITARY,
         kind=Kind.FAITH,
         subjects=(Subject.PRIEST,),
-        tiers=ladder(Tier.COMMON, pct(1), pct(3), pct(6)),
-    ),
-    Boon(
-        civ=Civ.MACEDONIANS,
-        number=5,
-        title="Houses: HP",
-        stat=Stat.HP,
-        targets=("house",),
-        domain=Domain.DEFENCE,
-        kind=Kind.DURABILITY,
-        subjects=(Subject.BUILDING,),
-        flags=(Flag.TEAM,),
-        tiers=ladder(Tier.POOR, flat(50), flat(100), flat(200)),
+        rarity=Rarity.COMMON,
+        effects=(pct(1),),
     ),
 )

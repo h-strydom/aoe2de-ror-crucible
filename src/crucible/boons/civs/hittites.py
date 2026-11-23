@@ -1,7 +1,7 @@
 """Hittites: "Archer and Siege civilization" (RoR string 120155)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, extra, ladder
+from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Rarity, Subject
 
 BOONS = (
     Boon(
@@ -14,7 +14,8 @@ BOONS = (
         kind=Kind.COMBAT,
         subjects=(Subject.ARCHER,),
         buildings=(Building.ARCHERY_RANGE,),
-        tiers=ladder(Tier.MASTERCRAFTED, flat(1), flat(2), (flat(3), extra(flat(1), Stat.RANGE))),
+        rarity=Rarity.LEGENDARY,
+        effects=(flat(1),),
     ),
     Boon(
         civ=Civ.HITTITES,
@@ -30,7 +31,8 @@ BOONS = (
         kind=Kind.COMBAT,
         subjects=(Subject.SIEGE,),
         buildings=(Building.SIEGE_WORKSHOP,),
-        tiers=ladder(Tier.COMMON, pct(0.25), pct(0.5), pct(0.75)),
+        rarity=Rarity.COMMON,
+        effects=(pct(0.1),),
     ),
     Boon(
         civ=Civ.HITTITES,
@@ -48,33 +50,8 @@ BOONS = (
         kind=Kind.COMBAT,
         subjects=(Subject.SHIP,),
         buildings=(Building.DOCK,),
-        tiers=ladder(Tier.COMMON, flat(1), flat(2), flat(3)),
-    ),
-    Boon(
-        civ=Civ.HITTITES,
-        number=4,
-        title="Wheel: Research cost",
-        stat=Stat.COST,
-        techs=("wheel",),
-        domain=Domain.RESEARCH,
-        kind=Kind.DISCOUNT,
-        subjects=(Subject.MARKET,),
-        buildings=(Building.MARKET,),
-        tiers=ladder(Tier.POOR, pct(-0.25), pct(-0.5), pct(-1)),
-        note="Could merge with Hittites 5",
-    ),
-    Boon(
-        civ=Civ.HITTITES,
-        number=5,
-        title="Wheel: Research time",
-        stat=Stat.RESEARCH_TIME,
-        techs=("wheel",),
-        domain=Domain.RESEARCH,
-        kind=Kind.PRODUCTION,
-        subjects=(Subject.MARKET,),
-        buildings=(Building.MARKET,),
-        tiers=ladder(Tier.POOR, pct(-0.25), pct(-0.5), pct(-1)),
-        note="Could merge with Hittites 4",
+        rarity=Rarity.RARE,
+        effects=(flat(1),),
     ),
     Boon(
         civ=Civ.HITTITES,
@@ -89,6 +66,7 @@ BOONS = (
             Subject.BUILDING,
         ),
         flags=(Flag.TEAM,),
-        tiers=ladder(Tier.COMMON, flat(2), flat(4), flat(6)),
+        rarity=Rarity.COMMON,
+        effects=(flat(2),),
     ),
 )

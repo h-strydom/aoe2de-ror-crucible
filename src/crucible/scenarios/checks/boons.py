@@ -1,15 +1,15 @@
-"""Test: every tier of every boon (crucible.boons) does what it should, shown on the units it changes and read back
+"""Test: every level of every boon (crucible.boons) does what it should, shown on the units it changes and read back
 from the game. Kept, unlike other checks: it's rebuilt from crucible.boons, so it can't go stale; rerun it after
 changing boons (confirmed all as expected, 2026-11-21).
 
-On the map: for each tier, the units its commands change (with the earlier units of a line: the Clubman for an
-Axeman boon), owned by the player that gets that tier, each labelled with what it should now be: the caption over
-it (if units show one) and its name, e.g. "Sumerians 1 Common: HP 25 -> 30". Click a unit to compare. The tiers are
+On the map: for each level, the units its commands change (with the earlier units of a line: the Clubman for an
+Axeman boon), owned by the player that gets that level, each labelled with what it should now be: the caption over
+it (if units show one) and its name, e.g. "Sumerians 1 (1/5): HP 25 -> 30". Click a unit to compare. The levels are
 spread over players 2 to 8 so no two on a player change a value another's label shows, or the same tech's cost
 (assign()): every label's
 "before" is the unit's own base value (the Greek civ's, bonus-less, Stone Age).
 
-In the log: XS researches the tier techs one at a time and reads every value their commands change, just before and
+In the log: XS researches the level techs one at a time and reads every value their commands change, just before and
 just after (the after read waits a tick), into crucible_check.xsdat. report() compares each after with what the
 command should make of the before, and each label's before with what the game read: this covers what clicking can't
 show (costs, work rate, research times, resources).
@@ -42,7 +42,7 @@ from crucible.bonuses.compile.stats import (
 )
 from crucible.boons import catalogue
 from crucible.boons.compile import commands
-from crucible.boons.model import Boon, Tier
+from crucible.boons.model import Boon
 from crucible.datamod import boons as boon_techs
 from crucible.datamod.civs import PLAYER as PLAYER_CIV
 
@@ -189,7 +189,7 @@ def _reads(command: tuple, data: DatFile) -> list[Read]:
 @dataclass(frozen=True)
 class Step:
     boon: Boon
-    tier: Tier
+    level: int
     key: str
     reads: tuple[Read, ...]
     player: int = 0
@@ -201,7 +201,7 @@ class Step:
 
     @property
     def title(self) -> str:
-        return f"{self.boon.civ.value.title()} {self.boon.number} {self.tier.title}"
+        return f"{self.boon.civ.value.title()} {self.boon.number} ({self.level}/{self.boon.levels})"
 
 
 def _affected(step: Step, data: DatFile) -> set[tuple]:
@@ -240,7 +240,7 @@ def assign(steps: list[Step], data: DatFile) -> list[Step]:
 
         taken[player][0].update(changed)
         taken[player][1].update(shown)
-        placed.append(Step(step.boon, step.tier, step.key, step.reads, player))
+        placed.append(Step(step.boon, step.level, step.key, step.reads, player))
 
     return placed
 
@@ -253,14 +253,14 @@ def plan(data: DatFile, techs: dict[str, int]) -> list[Step]:
     for boon in catalogue.ALL:
         seen = set()
 
-        for tier in sorted(boon.steps):
-            key = boon_techs.key(boon, tier)
-            compiled = tuple(commands(boon, tier, data)) if key in techs else ()
+        for level in sorted(boon.steps):
+            key = boon_techs.key(boon, level)
+            compiled = tuple(commands(boon, level, data)) if key in techs else ()
 
             if compiled and compiled not in seen:
                 seen.add(compiled)
                 reads = tuple(r for command in compiled for r in _reads(command, data))
-                steps.append(Step(boon, tier, key, reads))
+                steps.append(Step(boon, level, key, reads))
 
     return assign(steps, data)
 
@@ -360,7 +360,7 @@ rule crucibleBoonCheck
 {chr(10).join(dispatch)}
     if (crucibleBoonStepAt == {len(steps)}) {{
         crucibleBoonFinish();
-        xsChatData("Boons checked: %d tier techs", {len(steps)});
+        xsChatData("Boons checked: %d level techs", {len(steps)});
         xsDisableSelf();
     }}
     xsCloseFile();
@@ -420,9 +420,9 @@ def setup(o, ctx, techs: dict[str, int], top: int) -> str:
     shown = sum(len(s.shown) for s in steps)
 
     return (
-        f'BOONS: {len(steps)} tier techs are researched in the first seconds (wait for "Boons checked" in the '
-        f'chat). {shown} units show what their tier should do: the label over each unit and its name say "before '
-        f"-> after\"; click it to compare. Each tier's units belong to one player (colours), so tiers never mix. "
+        f'BOONS: {len(steps)} level techs are researched in the first seconds (wait for "Boons checked" in the '
+        f'chat). {shown} units show what their level should do: the label over each unit and its name say "before '
+        f"-> after\"; click it to compare. Each level's units belong to one player (colours), so levels never mix. "
         f"Costs, work rates, research times and resources ({reads} values in all) are in the log: quit, then run "
         f"`crucible check --test boons --report`."
     )

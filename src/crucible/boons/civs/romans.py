@@ -1,7 +1,7 @@
 """Romans: "Infantry civilization" (RoR string 120162)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, ladder
+from crucible.boons.model import Boon, Building, Domain, Kind, Rarity, Subject
 
 BOONS = (
     Boon(
@@ -27,8 +27,22 @@ BOONS = (
         ),
         domain=Domain.ECONOMY,
         kind=Kind.DISCOUNT,
-        subjects=(Subject.BUILDING,),
-        tiers=ladder(Tier.IMPROVED, pct(-0.1), pct(-0.2), pct(-0.3)),
+        subjects=(
+            Subject.BUILDING,
+            Subject.FOOD,
+            Subject.MARKET,
+            Subject.SHIP,
+        ),
+        buildings=(
+            Building.MARKET,
+            Building.DOCK,
+            Building.TOWN_CENTER,
+            Building.STABLE,
+            Building.ARCHERY_RANGE,
+        ),
+        rarity=Rarity.RARE,
+        effects=(pct(-0.08),),
+        note="Merged: egyptians_1, greeks_6, minoans_4, sumerians_5, yamato_5",
     ),
     Boon(
         civ=Civ.ROMANS,
@@ -42,7 +56,8 @@ BOONS = (
             Subject.TOWER,
             Subject.BUILDING,
         ),
-        tiers=ladder(Tier.COMMON, pct(-0.2), pct(-0.4), pct(-0.6)),
+        rarity=Rarity.COMMON,
+        effects=(pct(-0.1),),
     ),
     Boon(
         civ=Civ.ROMANS,
@@ -62,7 +77,8 @@ BOONS = (
             Subject.SWORDSMAN,
         ),
         buildings=(Building.BARRACKS,),
-        tiers=ladder(Tier.IMPROVED, pct(0.2), pct(0.35), pct(0.5)),
+        rarity=Rarity.RARE,
+        effects=(pct(0.08),),
     ),
     Boon(
         civ=Civ.ROMANS,
@@ -77,19 +93,7 @@ BOONS = (
         kind=Kind.COMBAT,
         subjects=(Subject.SIEGE,),
         buildings=(Building.SIEGE_WORKSHOP,),
-        tiers=ladder(Tier.COMMON, flat(1), flat(2), flat(3)),
-    ),
-    Boon(
-        civ=Civ.ROMANS,
-        number=5,
-        title="Priest: Heal speed",
-        stat=Stat.HEAL_SPEED,
-        targets=("priest",),
-        domain=Domain.MILITARY,
-        kind=Kind.FAITH,
-        subjects=(Subject.PRIEST,),
-        buildings=(Building.TEMPLE,),
-        flags=(Flag.TEAM,),
-        tiers=ladder(Tier.POOR, pct(0.25), pct(0.5), pct(1)),
+        rarity=Rarity.RARE,
+        effects=(flat(1),),
     ),
 )

@@ -1,7 +1,7 @@
 """Minoans: "Archer and Naval civilization" (RoR string 120154)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, ladder
+from crucible.boons.model import Boon, Building, Domain, Kind, Rarity, Subject
 
 BOONS = (
     Boon(
@@ -14,7 +14,8 @@ BOONS = (
         kind=Kind.DISCOUNT,
         subjects=(Subject.SHIP,),
         buildings=(Building.DOCK,),
-        tiers=ladder(Tier.COMMON, pct(-0.15), pct(-0.3), pct(-0.45)),
+        rarity=Rarity.COMMON,
+        effects=(pct(-0.07),),
     ),
     Boon(
         civ=Civ.MINOANS,
@@ -29,7 +30,8 @@ BOONS = (
         kind=Kind.COMBAT,
         subjects=(Subject.ARCHER,),
         buildings=(Building.ARCHERY_RANGE,),
-        tiers=ladder(Tier.IMPROVED, flat(1), flat(2), flat(3)),
+        rarity=Rarity.RARE,
+        effects=(flat(1),),
     ),
     Boon(
         civ=Civ.MINOANS,
@@ -44,22 +46,7 @@ BOONS = (
             Subject.FOOD,
         ),
         buildings=(Building.TOWN_CENTER,),
-        tiers=ladder(Tier.IMPROVED, pct(0.1), pct(0.2), pct(0.3)),
-    ),
-    Boon(
-        civ=Civ.MINOANS,
-        number=4,
-        title="Dock: Cost",
-        stat=Stat.COST,
-        targets=("dock",),
-        domain=Domain.ECONOMY,
-        kind=Kind.DISCOUNT,
-        subjects=(
-            Subject.SHIP,
-            Subject.BUILDING,
-        ),
-        buildings=(Building.DOCK,),
-        flags=(Flag.TEAM,),
-        tiers=ladder(Tier.POOR, pct(-0.2), pct(-0.4), pct(-0.6)),
+        rarity=Rarity.RARE,
+        effects=(pct(0.08),),
     ),
 )

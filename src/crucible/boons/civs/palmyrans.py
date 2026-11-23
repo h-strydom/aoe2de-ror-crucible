@@ -1,46 +1,25 @@
 """Palmyrans: "Camel and Trading civilization" (RoR string 120164)."""
 
 from crucible.bonuses.model import Civ, Group, Stat, flat, pct
-from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Subject, Tier, extra, ladder
+from crucible.boons.model import Boon, Building, Domain, Flag, Kind, Rarity, Subject, extra
 
 BOONS = (
     Boon(
         civ=Civ.PALMYRANS,
-        number=1,
-        title="Villager: Food cost",
-        stat=Stat.FOOD_COST,
-        groups=(Group.VILLAGERS,),
-        domain=Domain.ECONOMY,
-        kind=Kind.DISCOUNT,
-        subjects=(Subject.VILLAGER,),
-        buildings=(Building.TOWN_CENTER,),
-        flags=(Flag.DRAWBACK,),
-        tiers=ladder(Tier.POOR, flat(10), flat(25), flat(50)),
-        note="Drawback: for the enemy or a curse, not a boon",
-    ),
-    Boon(
-        civ=Civ.PALMYRANS,
         number=2,
-        title="Villager: Melee armour",
+        title="Villager: Melee and pierce armour",
         stat=Stat.MELEE_ARMOUR,
         groups=(Group.VILLAGERS,),
         domain=Domain.ECONOMY,
         kind=Kind.DURABILITY,
         subjects=(Subject.VILLAGER,),
         buildings=(Building.TOWN_CENTER,),
-        tiers=ladder(Tier.COMMON, flat(1), flat(2), flat(3)),
-    ),
-    Boon(
-        civ=Civ.PALMYRANS,
-        number=3,
-        title="Villager: Pierce armour",
-        stat=Stat.PIERCE_ARMOUR,
-        groups=(Group.VILLAGERS,),
-        domain=Domain.ECONOMY,
-        kind=Kind.DURABILITY,
-        subjects=(Subject.VILLAGER,),
-        buildings=(Building.TOWN_CENTER,),
-        tiers=ladder(Tier.COMMON, flat(1), flat(2), flat(3)),
+        rarity=Rarity.COMMON,
+        effects=(
+            flat(1),
+            extra(flat(1), Stat.PIERCE_ARMOUR),
+        ),
+        note="Merged: palmyrans_3",
     ),
     Boon(
         civ=Civ.PALMYRANS,
@@ -52,46 +31,8 @@ BOONS = (
         kind=Kind.GATHERING,
         subjects=(Subject.VILLAGER,),
         buildings=(Building.TOWN_CENTER,),
-        tiers=ladder(Tier.MASTERCRAFTED, pct(0.15), pct(0.25), (pct(0.35), extra(flat(3), Stat.CARRY))),
-    ),
-    Boon(
-        civ=Civ.PALMYRANS,
-        number=5,
-        title="Starting food",
-        stat=Stat.STARTING_FOOD,
-        domain=Domain.ECONOMY,
-        kind=Kind.RESOURCES,
-        subjects=(Subject.FOOD,),
-        tiers=ladder(Tier.POOR, flat(150), flat(300), flat(450)),  # 150 at Poor (playtest 2026-11-21)
-    ),
-    Boon(
-        civ=Civ.PALMYRANS,
-        number=6,
-        title="Camel Riders: Movement speed",
-        stat=Stat.SPEED,
-        targets=("camel_rider",),
-        domain=Domain.MILITARY,
-        kind=Kind.SPEED,
-        subjects=(
-            Subject.CAMEL,
-            Subject.CAVALRY,
-        ),
-        buildings=(Building.STABLE,),
-        tiers=ladder(Tier.POOR, pct(0.1), pct(0.25), pct(0.4)),
-    ),
-    Boon(
-        civ=Civ.PALMYRANS,
-        number=7,
-        title="Tribute tax",
-        stat=Stat.TRIBUTE_TAX,
-        domain=Domain.ECONOMY,
-        kind=Kind.DISCOUNT,
-        subjects=(
-            Subject.TRADE,
-            Subject.MARKET,
-        ),
-        buildings=(Building.MARKET,),
-        tiers=ladder(Tier.POOR, pct(-0.25), pct(-0.5), pct(-1)),
+        rarity=Rarity.LEGENDARY,
+        effects=(pct(0.06),),
     ),
     Boon(
         civ=Civ.PALMYRANS,
@@ -110,7 +51,8 @@ BOONS = (
             Subject.GOLD,
         ),
         buildings=(Building.DOCK,),
-        tiers=ladder(Tier.POOR, pct(0.2), pct(0.4), pct(0.6)),
+        rarity=Rarity.COMMON,
+        effects=(pct(0.1),),
     ),
     Boon(
         civ=Civ.PALMYRANS,
@@ -121,12 +63,8 @@ BOONS = (
         kind=Kind.PRODUCTION,
         subjects=(Subject.TECHNOLOGY,),
         flags=(Flag.TEAM,),
-        tiers=ladder(
-            Tier.MASTERCRAFTED,
-            pct(0.2),
-            pct(0.3),
-            (pct(0.5), extra(pct(0.1), Stat.WORK_RATE, groups=(Group.VILLAGERS,))),
-        ),
-        note="Palmyrans 9 Heirloom extra now +10% villager work rate (no stat for every tech's cost)",
+        rarity=Rarity.LEGENDARY,
+        effects=(pct(0.5),),
+        levels=1,
     ),
 )

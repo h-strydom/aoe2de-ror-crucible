@@ -3,7 +3,7 @@ import struct
 from aoe2ed import xs as xs_check
 
 from crucible.boons import catalogue
-from crucible.boons.model import TIER_COSTS, Tier
+from crucible.boons.model import RARITY_COSTS
 from crucible.datamod import boons as boon_techs
 from crucible.datamod.mod import DataMod, source_dat
 from crucible.scenarios.checks import boons
@@ -16,16 +16,16 @@ def _techs() -> dict[str, int]:
     return mod.manifest
 
 
-def test_every_tier_but_the_new_stats_compiles():
+def test_every_level_compiles():
     mod = DataMod.from_ror()
     skipped = boon_techs.add(mod)
-    tiers = sum(len(b.steps) for b in catalogue.ALL)
+    levels = sum(len(b.steps) for b in catalogue.ALL)
 
-    assert all("HP regeneration" in why or "conversion speed" in why for why in skipped.values())
-    assert len([k for k in mod.manifest if k.startswith("boon ")]) == tiers - len(skipped)
+    assert not skipped
+    assert len([k for k in mod.manifest if k.startswith("boon ")]) == levels
 
 
-def test_every_tier_tech_is_read_and_the_xs_checks():
+def test_every_level_tech_is_read_and_the_xs_checks():
     techs = _techs()
     steps = boons.plan(source_dat(), techs)
 
@@ -66,26 +66,23 @@ def test_labels_show_the_line_and_the_numbers():
     techs = _techs()
     data = source_dat()
     steps = boons.plan(data, techs)
-    swords = next(s for s in steps if s.key == "boon choson_2 heirloom")
-    axemen = next(s for s in steps if s.key == "boon choson_1 poor")
+    swords = next(s for s in steps if s.key == "boon choson_2 1")
+    villagers = next(s for s in steps if s.key == "boon palmyrans_2 1")
     units = data.civs[2].units
 
-    assert {units[u].name for u in axemen.shown} == {"Axeman", "Clubman"}  # the line's earlier unit too
-    assert boons.label(axemen, next(u for u in axemen.shown if units[u].name == "Clubman"), data) == "HP 40 -> 45"
-    assert "melee armour 1 -> 2" in boons.label(swords, swords.shown[0], data)
+    assert [units[u].name for u in swords.shown][:2] == ["Short Swordsman", "Broad Swordsman"]  # the whole line
+    assert boons.label(swords, swords.shown[0], data) == "HP 60 -> 68"
+    assert "pierce armour 0 -> 1" in boons.label(villagers, villagers.shown[0], data)
 
 
-def test_every_tier_costs_its_own_price():
+def test_every_level_costs_its_rarity():
     mod = DataMod.from_ror()
     boon_techs.add(mod)
 
     for boon in catalogue.ALL:
-        for tier in boon.steps:
-            key = boon_techs.key(boon, tier)
+        for level in boon.steps:
+            key = boon_techs.key(boon, level)
 
             if key in mod.manifest:
                 costs = [(c.type, c.amount) for c in mod.data.techs[mod.manifest[key]].resource_costs if c.amount]
-                assert costs == list(TIER_COSTS[tier].items()), key
-
-    assert not TIER_COSTS[Tier.POOR].items()  # free
-    assert TIER_COSTS[Tier.HEIRLOOM].items() == [(0, 300), (3, 300)]
+                assert costs == list(RARITY_COSTS[boon.rarity].items()), key

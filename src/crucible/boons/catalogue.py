@@ -8,7 +8,7 @@ import random
 from collections.abc import Iterable
 
 from crucible.boons.civs import CIVS
-from crucible.boons.model import OFFER_AXES, Boon, Category, Flag
+from crucible.boons.model import MIN_CATEGORY, OFFER_AXES, Boon, Category, Flag
 
 ALL: tuple[Boon, ...] = tuple(b for civ in CIVS for b in civ.BOONS)
 
@@ -23,11 +23,20 @@ def query(*categories: Category, exclude: Iterable[Category] = (), pool: Iterabl
     return [b for b in pool if all(b.in_category(c) for c in categories) and not any(b.in_category(c) for c in exclude)]
 
 
+def choices(pool: Iterable[Boon] = ALL) -> list[Category]:
+    """The tags a choice can be: of the offer axes, with at least MIN_CATEGORY boons in `pool` (drawbacks never
+    count)."""
+    pool = [b for b in pool if not b.in_category(Flag.DRAWBACK)]
+
+    return [c for axis in OFFER_AXES for c in axis if len(query(c, pool=pool)) >= MIN_CATEGORY]
+
+
 def offer(n: int, rng: random.Random, pool: Iterable[Boon] = ALL) -> list[tuple[Category, Boon]]:
     """Up to `n` (category, boon) choices: each category from a different axis, each boon different, drawbacks never
     offered."""
+    allowed = choices(pool)
     pool = [b for b in pool if not b.in_category(Flag.DRAWBACK)]
-    axes = [a for a in OFFER_AXES if a is not Flag]
+    axes = list(OFFER_AXES)
     rng.shuffle(axes)
     chosen: list[tuple[Category, Boon]] = []
 
@@ -36,7 +45,7 @@ def offer(n: int, rng: random.Random, pool: Iterable[Boon] = ALL) -> list[tuple[
             break
 
         taken = {b.id for _, b in chosen}
-        categories = [c for c in axis if any(b.id not in taken for b in query(c, pool=pool))]
+        categories = [c for c in axis if c in allowed and any(b.id not in taken for b in query(c, pool=pool))]
 
         if not categories:
             continue
