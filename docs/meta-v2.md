@@ -45,6 +45,8 @@ research the Bronze Age.
 - Granary: Sentry Tower (starting towers are Sentry Towers; research it), Medium Wall (starting walls are Medium).
 - Storage Pit, Market: their next rows. Market: Wheel (and Chariots, without their buildings' own unlocks).
 - Barracks: Short, then Broad Swordsmen (starting melee upgraded, and training them).
+- TC: the Dock's Bronze Age row (Fishing Ship, Medium War Ship, Merchant Ship): the hub map has no Dock, and the
+  Tool Age has no Dock techs (its ships come free). From the Bronze Age the run lets the player build Town Centers.
 - Archery Range: Improved, then Composite Bowmen (the same).
 - Stable: Camel Riders; Cavalry (a starting Cavalry, +1 a level up to 5).
 
@@ -53,6 +55,7 @@ research the Bronze Age.
 - Granary: Guard Tower (starting towers upgraded, research it; no Ballista Tower), Fortified Wall (the camp's
   Fortified Walls are yours; Medium Walls stay Medium).
 - Temple, Government Center: their Iron Age techs.
+- TC (its place, new 2026-11-23): the Dock's Iron Age row (Trireme, Heavy Transport, Catapult Trireme, Juggernaut).
 
 **Tier 5, player 6**: access only (starting units aren't upgraded): Legionary, Centurion, Cataphract, Heavy Horse
 Archer, Elephant Archer, War and Armored Elephant, Heavy Catapult, Helepolis, and their upgrades.
@@ -64,6 +67,9 @@ Archer, Elephant Archer, War and Armored Elephant, Heavy Catapult, Helepolis, an
 - With the Iron Age: an extra boon slot (1), resources last longer (+2%; 5 more), villager training speed (+10%; 5),
   villager cost (-5 food; 5).
 - With the Post-Iron tier: the final boon slot.
+
+Each tier player keeps a house in the hub map's north corner: buying everything left them with nothing, and the hub
+was won at once (playtest 2026-11-23).
 
 ## Build order
 

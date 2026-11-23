@@ -63,11 +63,8 @@ def test_only_what_applies():
 
 
 def test_cadence_and_scales():
-    assert table.SEND_TIMES == {
-        table.Difficulty.STANDARD: 300,
-        table.Difficulty.MODERATE: 180,
-        table.Difficulty.HARD: 120,
-    }
+    assert table.SEND_TIME == 300  # whatever the difficulty
+    assert [table.DIFFICULTY_FACTOR[d] for d in table.Difficulty] == [1, 2, 3]
     assert table.GROW_SCALE == table.UPGRADE_SCALE == table.SWAP_SCALE == 1  # curses raise these later
 
 
@@ -99,10 +96,11 @@ def test_structure_upgrades_improve_the_legions_bases():
     assert table.structures_from() == table.units().index("watch_tower")
 
 
-def test_legion_boons_help_a_spawned_army(techs):
-    boons = waves.legion_boons(source_dat(), techs)
-    assert len(boons) >= 20
-    assert all(boon.stat not in waves.USELESS_TO_THE_LEGION for boon, _, _ in boons)
+def test_heavy_units_take_more_points():
+    assert table.size("heavy_cavalry") == 1 and table.size("cataphract") == 2
+    assert table.size("war_elephant") == 2 and table.size("armored_elephant") == 4
+    assert table.size("centurion") == table.size("legionary") == 2
+    assert table.size("priest") == table.size("watch_tower") == 1
 
 
 def test_siege_upgrades_are_rarer_and_ages_wait():

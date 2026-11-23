@@ -12,7 +12,9 @@ Cavalry, then Heavy Cavalry; the Scout.
 Upgrades unlock techs locked by run_rules (UNLOCKS, with the Market's, Storage Pit's, Government Center's and Temple's
 rows by age) and units (UNIT_UNLOCKS, each once the player reaches its age). A tech is switched back on only once its
 own prerequisites are met: Enable/Disable Technology skips them, so a tech switched on at the start could be
-researched in any age. The Bronze and Iron Ages come with hub tiers 3 and 4.
+researched in any age. An age among them is checked as the player's current age (resource 6, as the unit unlocks
+do), not as its tech researched: every Iron Age Storage Pit tech stayed off (playtest 2026-11-23). The Bronze and
+Iron Ages come with hub tiers 3 and 4.
 
 The towers and walls are handed over remade for the player (a unit that changes hands keeps its old owner's stats, so
 the player's boons missed them): towers as the latest tower upgrade bought (Watch, Sentry, Guard), the Small Walls as
@@ -97,6 +99,8 @@ ROWS = {
     meta.GOVERNMENT_TECHS_2.key: (meta.GOVERNMENT_CENTER, 3),
     meta.TEMPLE_TECHS.key: (meta.TEMPLE, 2),
     meta.TEMPLE_TECHS_2.key: (meta.TEMPLE, 3),
+    meta.DOCK_TECHS.key: (meta.DOCK, 2),
+    meta.DOCK_TECHS_2.key: (meta.DOCK, 3),
 }
 OWN_UPGRADE = (28,)  # Wheel: its own upgrade, not in the Market's row
 # Upgrade -> (unit, the age the player needs) it unlocks.
@@ -169,6 +173,16 @@ def unlocks(data) -> dict[str, dict[int, list[int]]]:
         key: {tech: [r for r in data.techs[tech].required_techs if r >= 0] for tech in found}
         for key, found in techs.items()
     }
+
+
+def _prerequisite(tech: int, player: int) -> dict:
+    """A condition: `tech` researched, or for an age tech, the player in that age."""
+    age = next((age for age, age_tech in AGE_TECHS if age_tech == tech), None)
+
+    if age is not None:
+        return {"type": "accumulate_attribute", "source_player": player, "attribute": CURRENT_AGE, "quantity": age}
+
+    return {"type": "research_technology", "source_player": player, "technology": tech}
 
 
 def _at_least(key: str, level: int) -> list[dict]:
@@ -354,8 +368,7 @@ def add(
         for tech, required in techs.items():
             ctx.trigger(
                 f"Meta: {meta.TITLES[key]} unlocks {tech}",
-                _at_least(key, 1)
-                + [{"type": "research_technology", "source_player": player, "technology": r} for r in required],
+                _at_least(key, 1) + [_prerequisite(r, player) for r in required],
                 [{"type": "enable_disable_technology", "source_player": player, "technology": tech, "enabled": 1}],
             )
 

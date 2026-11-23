@@ -2,12 +2,16 @@
 // A wave spawns and walks in, waits staged (the Send button on), then is sent at its time or on a click; the next
 // spawns. Wave 0 is sent as soon as it's staged, without moving the clock. Before a lane spawns (but for wave 0) its
 // army takes a step: age up (shared), grow, upgrade (shared stat techs), swap (a slot's next line, or its path's next
-// family), nothing, or again; each done `scale` times. Once no upgrade is open, an upgrade is a boon. Support slots
+// family), nothing, or again; each done `scale` times (times the difficulty's factor). Once no upgrade is left in any
+// age, an upgrade grows instead. A slot holds grow points: a unit takes its size, the rest go to the weaker unit it
+// came from (crucibleWaveSlotTop). Support slots
 // (one per cCrucibleWaveWavesPerSupport waves) may take a siege unit or a Priest. Age ups, upgrades, boons and swaps
 // are announced in the middle of the screen, once a wave. The data block (wave_table) comes first.
+// Waves are sent every cCrucibleWaveSendTime seconds whatever the difficulty.
 
 int crucibleWave = 0;  // the wave walking in or waiting
 int crucibleWaveDifficulty = 0;  // wave_table.Difficulty
+int crucibleWaveFactor = 1;  // the difficulty's: the scale and the currency paid, times this
 int crucibleWaveSendEvery = 300;  // seconds
 bool crucibleWaveWalkPending = true;  // spawn crucibleWave once the last send has been acted on
 bool crucibleWaveReady = false;  // staged, button on
@@ -18,7 +22,6 @@ int crucibleWaveSendAt = 0;
 int crucibleWaveAge = 0;
 int crucibleWaveAgeChance = 0;  // percent
 int crucibleWaveUpgradeTaken = -1;  // by upgrade: 1 once researched
-int crucibleWaveBoonTaken = -1;  // by boon: 1 once the Legion has it
 int crucibleWaveSiegeLevel = -1;  // by family: the line a siege family is on (a rare upgrade moves it on)
 int crucibleWaveHas = -1;  // by unit (wave_table.units index): the Legion has one of these structures
 string crucibleWaveNews = "";  // this wave's announcements
@@ -30,7 +33,8 @@ int crucibleWaveLaneArchetype = -1;
 int crucibleWaveChain = -1;  // (lane * 2 + slot) * cCrucibleWaveStages + stage
 int crucibleWaveChainPos = -1;
 int crucibleWaveSlotLevel = -1;  // the line of its family it's on (a swap moves it up)
-int crucibleWaveSlotCount = -1;
+int crucibleWaveSlotCount = -1;  // grow points
+int crucibleWaveSlotBelow = -1;  // the weaker unit (units index) its leftover points field; -1 none
 
 // every spawned unit and its wave, to tell when a wave is staged and when it is defeated
 const int cCrucibleWaveCapacity = 8000;
@@ -121,6 +125,29 @@ string crucibleWaveSlotName(int lane = 0, int slot = 0) {
     return (xsArrayGetString(crucibleWaveUnitName, crucibleWaveSlotUnit(lane, slot)));
 }
 
+int crucibleWaveSize(int k = 0) {
+    return (xsArrayGetInt(crucibleWaveUnitSize, k));
+}
+
+// How many of its unit a slot fields: as many as its points buy.
+int crucibleWaveSlotTop(int lane = 0, int slot = 0) {
+    return (xsArrayGetInt(crucibleWaveSlotCount, crucibleWaveSlot(lane, slot)) / crucibleWaveSize(crucibleWaveSlotUnit(lane, slot)));
+}
+
+// How many of the weaker unit it came from a slot fields: its leftover points' worth (none if that unit isn't
+// smaller).
+int crucibleWaveSlotRest(int lane = 0, int slot = 0) {
+    int k = crucibleWaveSlot(lane, slot);
+    int below = xsArrayGetInt(crucibleWaveSlotBelow, k);
+    int size = crucibleWaveSize(crucibleWaveSlotUnit(lane, slot));
+
+    if ((below < 0) || (crucibleWaveSize(below) >= size)) {
+        return (0);
+    }
+
+    return ((xsArrayGetInt(crucibleWaveSlotCount, k) - crucibleWaveSlotTop(lane, slot) * size) / crucibleWaveSize(below));
+}
+
 bool crucibleWaveSiegeOpen(int family = 0) {
     return ((xsArrayGetInt(crucibleWaveFamilySlot, family) == cCrucibleWaveSiegeSlot)
         && (xsArrayGetInt(crucibleWaveLineAge, family * cCrucibleWaveLines) <= crucibleWaveAge));
@@ -167,6 +194,7 @@ bool crucibleWaveCanAdvance(int lane = 0, int slot = 0) {
 void crucibleWaveAdvance(int lane = 0, int slot = 0, string why = "swap") {
     int k = crucibleWaveSlot(lane, slot);
     string from = crucibleWaveSlotName(lane, slot);
+    xsArraySetInt(crucibleWaveSlotBelow, k, crucibleWaveSlotUnit(lane, slot));  // the leftover points field it
 
     if (crucibleWaveCanLineUp(lane, slot)) {
         xsArraySetInt(crucibleWaveSlotLevel, k, xsArrayGetInt(crucibleWaveSlotLevel, k) + 1);
@@ -243,8 +271,12 @@ bool crucibleWaveFielded(int k = 0) {
 
     for (lane = 0; < cCrucibleWaveLanes) {
         for (slot = 0; < 2) {
-            if ((xsArrayGetInt(crucibleWaveSlotCount, crucibleWaveSlot(lane, slot)) > 0)
-                && (crucibleWaveSlotUnit(lane, slot) == k)) {
+            if ((crucibleWaveSlotTop(lane, slot) > 0) && (crucibleWaveSlotUnit(lane, slot) == k)) {
+                return (true);
+            }
+
+            if ((crucibleWaveSlotRest(lane, slot) > 0)
+                && (xsArrayGetInt(crucibleWaveSlotBelow, crucibleWaveSlot(lane, slot)) == k)) {
                 return (true);
             }
         }
@@ -312,43 +344,8 @@ bool crucibleWaveUpgradeOpen(int u = 0, bool anyAge = false) {
     return (false);
 }
 
-// A boon the Legion could take now: not taken, and it improves something the Legion fields.
-bool crucibleWaveBoonOpen(int b = 0) {
-    if (xsArrayGetInt(crucibleWaveBoonTaken, b) == 1) {
-        return (false);
-    }
-
-    for (k = 0; < cCrucibleWaveUnits) {
-        if ((xsArrayGetInt(crucibleWaveBoonImproves, b * cCrucibleWaveUnits + k) == 1) && crucibleWaveFielded(k)) {
-            return (true);
-        }
-    }
-
-    return (false);
-}
-
-// Boon `b` for the Legion: its lowest tier, up one per scale above 1, down to a tier it has.
-void crucibleWaveTakeBoon(int b = 0, int scale = 1) {
-    int lowest = xsArrayGetInt(crucibleWaveBoonLowest, b);
-    int tier = lowest + scale - 1;
-
-    if (tier >= cCrucibleWaveTiers) {
-        tier = cCrucibleWaveTiers - 1;
-    }
-
-    while ((tier > lowest) && (xsArrayGetInt(crucibleWaveBoonTech, b * cCrucibleWaveTiers + tier) < 0)) {
-        tier--;
-    }
-
-    xsArraySetInt(crucibleWaveBoonTaken, b, 1);
-    crucibleWaveResearch(xsArrayGetInt(crucibleWaveBoonTech, b * cCrucibleWaveTiers + tier));
-    crucibleWaveAnnounce("Legion boon: " + xsArrayGetString(crucibleWaveBoonName, b) + " ("
-        + xsArrayGetString(crucibleWaveTierName, tier) + ")");
-}
-
-// A random open upgrade by weight (a stat upgrade, or a siege line's next step: rarer); once none is left in any age,
-// a random open boon. False if none is open.
-bool crucibleWaveUpgrade(int scale = 1) {
+// A random open upgrade by weight (a stat upgrade, or a siege line's next step: rarer). False if none is open.
+bool crucibleWaveUpgrade() {
     int total = 0;
     crucibleWaveRefreshStructures();
 
@@ -394,44 +391,7 @@ bool crucibleWaveUpgrade(int scale = 1) {
         }
     }
 
-    for (w = 0; < cCrucibleWaveUpgrades) {
-        if (crucibleWaveUpgradeOpen(w, true)) {
-            return (false);  // upgrades are left for a later age: not run out yet
-        }
-    }
-
-    for (x = 0; < cCrucibleWaveSiegeSteps) {
-        if (crucibleWaveSiegeStepOpen(x, true)) {
-            return (false);
-        }
-    }
-
-    int boons = 0;
-
-    for (b = 0; < cCrucibleWaveBoons) {
-        if (crucibleWaveBoonOpen(b)) {
-            boons++;
-        }
-    }
-
-    if (boons == 0) {
-        return (false);
-    }
-
-    int pick = xsGetRandomNumberLH(0, boons);
-
-    for (c = 0; < cCrucibleWaveBoons) {
-        if (crucibleWaveBoonOpen(c)) {
-            if (pick == 0) {
-                crucibleWaveTakeBoon(c, scale);
-                return (true);
-            }
-
-            pick--;
-        }
-    }
-
-    return (false);
+    return (false);  // none open now: the step grows instead (no boons for the Legion)
 }
 
 // The Legion's next age; with move-on, every lane's main slot moves on as far as the new age opens its path.
@@ -508,7 +468,7 @@ int crucibleWaveRollStep() {
 // `lane` evolves: one step, or more if a step says again (at most cCrucibleWaveMaxSteps). Steps 0 grow, 1 upgrade,
 // 2 swap, 3 nothing, 4 again; each done `scale` times; an upgrade or swap that can't happen grows instead.
 void crucibleWaveEvolve(int lane = 0) {
-    int scale = 1 + crucibleWave / cCrucibleWaveScaleEvery;
+    int scale = (1 + crucibleWave / cCrucibleWaveScaleEvery) * crucibleWaveFactor;
     int steps = 1;
     int done = 0;
     int step = 0;
@@ -536,7 +496,7 @@ void crucibleWaveEvolve(int lane = 0) {
         } else if (step == 3) {
         } else if (step == 1) {
             for (i = 0; < scale * cCrucibleWaveUpgradeScale) {
-                if (crucibleWaveUpgrade(scale)) {
+                if (crucibleWaveUpgrade()) {
                     n++;
                 }
             }
@@ -592,15 +552,23 @@ void crucibleWaveSpawn(int lane = 0, int n = 0, int k = -1) {
     }
 }
 
-// `lane`'s army.
+// `lane`'s army: each slot's unit, then the weaker one its leftover points field.
 void crucibleWaveSpawnGroup(int lane = 0) {
     int n = 0;
+    int unit = -1;  // declared outside the loop: XS runs a declaration in a loop only once
+    int below = -1;
 
     for (slot = 0; < 2) {
-        int unit = crucibleWaveSlotUnit(lane, slot);
+        unit = crucibleWaveSlotUnit(lane, slot);
+        below = xsArrayGetInt(crucibleWaveSlotBelow, crucibleWaveSlot(lane, slot));
 
-        for (i = 0; < xsArrayGetInt(crucibleWaveSlotCount, crucibleWaveSlot(lane, slot))) {
+        for (i = 0; < crucibleWaveSlotTop(lane, slot)) {
             crucibleWaveSpawn(lane, n, unit);
+            n++;
+        }
+
+        for (j = 0; < crucibleWaveSlotRest(lane, slot)) {
+            crucibleWaveSpawn(lane, n, below);
             n++;
         }
     }
@@ -726,6 +694,7 @@ void crucibleWaveSetUpLanes() {
     crucibleWaveChainPos = xsArrayCreateInt(cCrucibleWaveLanes * 2, 0, "crucibleWaveChainPos");
     crucibleWaveSlotLevel = xsArrayCreateInt(cCrucibleWaveLanes * 2, 0, "crucibleWaveSlotLevel");
     crucibleWaveSlotCount = xsArrayCreateInt(cCrucibleWaveLanes * 2, cCrucibleWaveStartCount, "crucibleWaveSlotCount");
+    crucibleWaveSlotBelow = xsArrayCreateInt(cCrucibleWaveLanes * 2, -1, "crucibleWaveSlotBelow");
     bool taken = true;  // declared outside the loop: XS runs a declaration in a loop only once
     int roll = 0;
 
@@ -795,13 +764,15 @@ bool crucibleWaveStaged() {
     return ((walking > 0) && (waiting == walking));
 }
 
-// A defeated wave pays 1 of its age's resource into the campaign bank (banked at once: a lost run still pays).
+// A defeated wave pays the difficulty's factor of its age's resource into the campaign bank (banked at once: a lost
+// run still pays).
 void crucibleWavePay(int wave = 0) {
     int currency = xsArrayGetInt(crucibleWaveCurrencyByAge, xsArrayGetInt(crucibleWaveAgeOf, wave));
     int variable = xsArrayGetInt(crucibleWaveCurrencyVariable, currency);
-    xsSetTriggerVariable(variable, xsTriggerVariable(variable) + 1);
+    xsSetTriggerVariable(variable, xsTriggerVariable(variable) + crucibleWaveFactor);
     xsSetTriggerVariable(cCrucibleWaveBankVariable, 1);
-    xsChatData("Wave " + wave + " defeated: +1 " + xsArrayGetString(crucibleWaveCurrencyName, currency) + " ("
+    xsChatData("Wave " + wave + " defeated: +" + crucibleWaveFactor + " "
+        + xsArrayGetString(crucibleWaveCurrencyName, currency) + " ("
         + xsTriggerVariable(variable) + " banked)");
 }
 
@@ -889,7 +860,7 @@ void crucibleWaveSend() {
 
     if (crucibleWave > 0) {
         crucibleWaveSendAt = xsGetTime() + crucibleWaveSendEvery;
-        xsSetTriggerVariable(cCrucibleWaveTimerVariable, crucibleWaveDifficulty + 1);
+        xsSetTriggerVariable(cCrucibleWaveTimerVariable, 1);
     }
 
     crucibleWave++;
@@ -910,7 +881,6 @@ rule crucibleWaveStart
     crucibleWaveLastY = xsArrayCreateFloat(cCrucibleWaveCapacity, -100.0, "crucible wave last y");
     crucibleWaveOne = xsArrayCreateInt(1, -1, "crucible wave one");
     crucibleWaveUpgradeTaken = xsArrayCreateInt(cCrucibleWaveUpgrades, 0, "crucible wave upgrade taken");
-    crucibleWaveBoonTaken = xsArrayCreateInt(cCrucibleWaveBoons + 1, 0, "crucible wave boon taken");
     crucibleWaveSiegeLevel = xsArrayCreateInt(cCrucibleWaveFamilies, 0, "crucible wave siege level");
 
     // siege and Priests at foot speed: at 0.66 they fell behind their wave
@@ -933,13 +903,15 @@ rule crucibleWaveStart
         crucibleWaveDifficulty = xsArrayGetInt(crucibleWaveDifficultyOf, 0);  // Extreme: as Hardest
     }
 
-    crucibleWaveSendEvery = xsArrayGetInt(crucibleWaveSendTime, crucibleWaveDifficulty);
+    crucibleWaveFactor = xsArrayGetInt(crucibleWaveDifficultyFactor, crucibleWaveDifficulty);
+    crucibleWaveSendEvery = cCrucibleWaveSendTime;
     crucibleWaveSendAt = crucibleWaveSendEvery;
     crucibleWaveAgeChance = cCrucibleWaveAgeUpStart;
     crucibleWaveSetUpLanes();
     xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterRelics, 0);
-    xsSetTriggerVariable(cCrucibleWaveTimerVariable, crucibleWaveDifficulty + 1);
-    xsChatData("Waves: difficulty %d (0 Standard, 1 Moderate, 2 Hard)", crucibleWaveDifficulty);
+    xsSetTriggerVariable(cCrucibleWaveTimerVariable, 1);
+    xsChatData("Waves: difficulty %d (0 Standard, 1 Moderate, 2 Hard), scale and currency times "
+        + crucibleWaveFactor, crucibleWaveDifficulty);
     xsDisableSelf();
 }
 

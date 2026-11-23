@@ -1,5 +1,5 @@
 """The XS crucible_run starts with: the Allies' walls randomly damaged, none destroyed (walls handed to the player and
-all towers start whole, playtests 2026-11-21 and 22), the City States and the Allies' keeper house made invulnerable.
+all towers start whole, playtests 2026-11-21 and 22), the City States made invulnerable.
 It runs once, at START: after the meta upgrades have taken the player's buildings back. (The Allies' other buildings in
 the camp are destroyed then too: run.py.)
 
@@ -40,15 +40,12 @@ def start(
     allies: int,
     player: int,
     invulnerable: int,
-    keeper: int = -1,
 ) -> str:
-    """`walls`: type -> its full HP. `keeper`: the Allies' house that keeps them in the game (its reference
-    id), made unattackable."""
+    """`walls`: type -> its full HP."""
     wall_calls = "\n".join(
         f"    crucibleRunWalls({allies}, {unit}, {hp});" for unit, hp in walls.items()  # the player's start whole
     )
     invulnerable_calls = "\n".join(f"    crucibleRunInvulnerable({unit});" for unit in city_states)
-    keeper_call = f"    xsSetUnitProperty({keeper}, cUnitAttackable, 0);" if keeper >= 0 else ""
 
     return f"""// ---- crucible run: start ----
 void crucibleRunWalls(int owner = -1, int type = -1, int hp = 0) {{
@@ -86,7 +83,6 @@ rule crucibleRunStart
 
 {wall_calls}
 {invulnerable_calls}
-{keeper_call}
     xsDisableSelf();
 }}
 """

@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 TOWN_CENTER, BARRACKS, WONDER, GRANARY, STORAGE_PIT = 109, 12, 276, 68, 562
 MARKET, ARCHERY_RANGE, STABLE = 84, 87, 101
-ACADEMY, GOVERNMENT_CENTER, SIEGE_WORKSHOP, TEMPLE, HOUSE = 103, 209, 49, 104, 70
+ACADEMY, GOVERNMENT_CENTER, SIEGE_WORKSHOP, TEMPLE, HOUSE, DOCK = 103, 209, 49, 104, 70, 45
 VILLAGER_TYPES = (83, 293)
 CLUBMAN, AXEMAN, BOWMAN, SCOUT = 281, 531, 4, 448
 SHORT_SWORDSMAN, BROAD_SWORDSMAN, LONG_SWORDSMAN, LEGIONARY = 74, 75, 77, 473
@@ -109,6 +109,7 @@ PLACES = (
     Place("stable_3", STABLE, 3, "meta_stable"),
     Place("government_center_3", GOVERNMENT_CENTER, 3, "meta_government_center"),
     Place("temple_3", TEMPLE, 3, "meta_temple"),
+    Place("town_center_4", TOWN_CENTER, 4),
     Place("granary_4", GRANARY, 4),
     Place("storage_pit_4", STORAGE_PIT, 4),
     Place("market_4", MARKET, 4, "meta_market"),
@@ -457,6 +458,8 @@ GOVERNMENT_TECHS = Upgrade(
     1,
 )
 TEMPLE_TECHS = Upgrade("meta_temple_techs", "Temple upgrades", "The Temple's Bronze Age upgrades.", "temple_3", 1)
+# the Dock's rows at the Town Centers (the hub map has no Dock); the Tool Age has none: its ships come free
+DOCK_TECHS = Upgrade("meta_dock_techs", "Dock upgrades", "The Dock's Bronze Age upgrades.", "town_center_3", 5)
 
 # ---- tier 4, player 5: the Iron Age ----
 GUARD_TOWER = Upgrade(
@@ -519,6 +522,9 @@ GOVERNMENT_TECHS_2 = Upgrade(
     1,
 )
 TEMPLE_TECHS_2 = Upgrade("meta_temple_techs_2", "Temple upgrades II", "The Temple's Iron Age upgrades.", "temple_4", 1)
+DOCK_TECHS_2 = Upgrade(
+    "meta_dock_techs_2", "Dock upgrades II", "The Dock's Iron Age upgrades.", "town_center_4", 1
+)
 
 # ---- tier 5, player 6: the last units (they don't upgrade your starting units) ----
 LEGIONARY_UPGRADE = Upgrade(
@@ -650,6 +656,7 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     CAVALRY_UPGRADE,
     GOVERNMENT_TECHS,
     TEMPLE_TECHS,
+    DOCK_TECHS,
     GUARD_TOWER,
     FORTIFIED_WALL,
     STORAGE_PIT_TECHS_3,
@@ -662,6 +669,7 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     BALLISTA_UPGRADE,
     GOVERNMENT_TECHS_2,
     TEMPLE_TECHS_2,
+    DOCK_TECHS_2,
     LEGIONARY_UPGRADE,
     HEAVY_HORSE_ARCHERS,
     ELEPHANT_ARCHERS,

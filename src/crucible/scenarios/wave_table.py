@@ -5,7 +5,13 @@ Units come in families (Swordsmen: Short, Broad, Long Swordsman, Legionary), eac
 swaps (playtest 2026-11-21: shared line upgrades made the Bronze Age jump too far at once). Each lane rolls an
 archetype at the start (no two the same): a main path for one slot and a support path for the other, each a chain of
 families ("Clubmen, Swordsmen"); where a path has a choice ("Bowmen, then Chariot Archers or not") it's rolled once, at
-the start. A lane's slot holds a family on its path, the line of it it's on, and a count.
+the start. A lane's slot holds a family on its path, the line of it it's on, and its grow points.
+
+A unit takes `size` points (playtest 2026-11-23: by wave 47 the lanes were walls of elephants and Centurions):
+elephants 2, a Post-Iron line twice the line below it (2 Heavy Cavalry make a Cataphract, 2 War Elephants an
+Armored Elephant). A slot fields as many of its unit as its points buy, and what's left as the weaker unit it came
+from (the line below, or the family before it): a heavy slot is a mix that condenses as it grows. A swap keeps the
+points, so Chariots becoming War Elephants halve in number.
 
 A step: first the age-up roll (AGE_UP_START percent, + AGE_UP_STEP for every step without one, back after one), else
 one of STEPS by weight:
@@ -18,10 +24,11 @@ one of STEPS by weight:
   MOVE_ON (off since a playtest: one or two waves into the Bronze Age the lanes had jumped to Hoplites and Composite
   Bowmen), an age up also moves every main slot on as far as the new age opens.
 Siege fields the furthest line its age has opened.
-Each is done `scale` times: 1, plus 1 every SCALE_EVERY waves, times that step's own scale (GROW_SCALE, UPGRADE_SCALE,
-SWAP_SCALE: what curses can raise later). An upgrade or swap that can't happen grows instead. Once the upgrades have
-run out for good (none left in any age), the Legion takes boons instead (one that improves something it fields, its
-tier rising with the scale).
+Each is done `scale` times: 1, plus 1 every SCALE_EVERY waves, times the difficulty's factor (DIFFICULTY_FACTOR:
+Moderate twice, Hard three times, and the currency a wave pays with it), times that step's own scale (GROW_SCALE,
+UPGRADE_SCALE, SWAP_SCALE: what curses can raise later). An upgrade or swap that can't happen grows instead; once the
+upgrades have run out for good, the Legion only grows (no boons for it: playtest 2026-11-23, the late game is
+for later).
 
 Upgrades also count the Legion's own towers, walls and buildings (its bases): tower and wall lines, Architecture.
 
@@ -72,7 +79,9 @@ class Step(IntEnum):
 # Extreme are Hard.
 GAME_DIFFICULTY = {4: Difficulty.STANDARD, 3: Difficulty.STANDARD, 2: Difficulty.MODERATE, 1: Difficulty.HARD}
 FALLBACK = Difficulty.HARD  # 0 (Hardest), -1 (Extreme)
-SEND_TIMES = {Difficulty.STANDARD: 300, Difficulty.MODERATE: 180, Difficulty.HARD: 120}  # seconds between waves
+SEND_TIME = 300  # seconds between waves, whatever the difficulty (playtest 2026-11-23)
+# The waves' scale and the currency a defeated wave pays, times this: Hard is meant for a run with meta upgrades
+DIFFICULTY_FACTOR = {Difficulty.STANDARD: 1, Difficulty.MODERATE: 2, Difficulty.HARD: 3}
 
 STEPS = {Step.GROW: 45, Step.UPGRADE: 30, Step.SWAP: 25, Step.NOTHING: 0, Step.AGAIN: 0}  # weights
 
@@ -111,6 +120,7 @@ class Line:
     unit: str
     age: Age  # when the Legion can field it
     tech: int = -1  # the tech that upgrades the family to it (-1: the family's first)
+    size: int = 1  # grow points one unit takes
 
     @property
     def title(self) -> str:
@@ -138,23 +148,27 @@ FAMILIES = (
             Line("short_swordsman", Age.BRONZE),
             Line("broad_swordsman", Age.BRONZE, 65),
             Line("long_swordsman", Age.IRON, 66),
-            Line("legionary", Age.POST_IRON, 77),
+            Line("legionary", Age.POST_IRON, 77, 2),
         ),
     ),
     Family(
         "Hoplites",
         Slot.MELEE,
-        (Line("hoplite", Age.BRONZE), Line("phalangite", Age.IRON, 73), Line("centurion", Age.POST_IRON, 79)),
+        (Line("hoplite", Age.BRONZE), Line("phalangite", Age.IRON, 73), Line("centurion", Age.POST_IRON, 79, 2)),
     ),
     Family("Scouts", Slot.MELEE, (Line("scout", Age.TOOL),)),
     Family(
         "Cavalry",
         Slot.MELEE,
-        (Line("cavalry", Age.BRONZE), Line("heavy_cavalry", Age.IRON, 71), Line("cataphract", Age.POST_IRON, 78)),
+        (Line("cavalry", Age.BRONZE), Line("heavy_cavalry", Age.IRON, 71), Line("cataphract", Age.POST_IRON, 78, 2)),
     ),
     Family("Camel Riders", Slot.MELEE, (Line("camel_rider", Age.BRONZE),)),
     Family("Chariots", Slot.MELEE, (Line("chariot", Age.BRONZE), Line("scythe_chariot", Age.IRON, 126))),
-    Family("Elephants", Slot.MELEE, (Line("war_elephant", Age.IRON), Line("armored_elephant", Age.POST_IRON, 125))),
+    Family(
+        "Elephants",
+        Slot.MELEE,
+        (Line("war_elephant", Age.IRON, size=2), Line("armored_elephant", Age.POST_IRON, 125, 4)),
+    ),
     Family("Slingers", Slot.RANGED, (Line("slinger", Age.STONE),)),
     Family(
         "Bowmen",
@@ -171,9 +185,9 @@ FAMILIES = (
     Family(
         "Horse Archers",
         Slot.RANGED,
-        (Line("horse_archer", Age.IRON), Line("heavy_horse_archer", Age.POST_IRON, 38)),
+        (Line("horse_archer", Age.IRON), Line("heavy_horse_archer", Age.POST_IRON, 38, 2)),
     ),
-    Family("Elephant Archers", Slot.RANGED, (Line("elephant_archer", Age.IRON),)),
+    Family("Elephant Archers", Slot.RANGED, (Line("elephant_archer", Age.IRON, size=2),)),
     Family(
         "Stone Throwers",
         Slot.SIEGE,
@@ -314,6 +328,11 @@ UPGRADE_UNIT = 3  # an effect command that turns one unit into another (a tower 
 
 def unit_id(name: str) -> int:
     return STRUCTURES[name] if name in STRUCTURES else tables.object_id(name.upper(), "ror")
+
+
+def size(unit: str) -> int:
+    """The grow points a unit of units() takes (1 for the Priest and structures)."""
+    return next((line.size for family in FAMILIES for line in family.lines if line.unit == unit), 1)
 
 
 def units() -> list[str]:

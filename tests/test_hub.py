@@ -93,7 +93,11 @@ def test_every_unit_handed_over_once(tmp_path, techs):
 
         for player, types in ((2, (*hub.VILLAGERS, hub.HOUSE, meta.CLUBMAN)), (3, (meta.AXEMAN, meta.BOWMAN))):
             for unit in (u for u in s.unit_manager.units[player] if u.unit_const in types):
-                assert (player, unit.unit_const, int(unit.x), int(unit.y)) in spots
+                if (unit.x, unit.y) not in hub.KEEPERS:  # a keeper house stays its player's
+                    assert (player, unit.unit_const, int(unit.x), int(unit.y)) in spots
+
+        for player, (x, y) in zip(meta.TIER_PLAYERS.values(), hub.KEEPERS, strict=True):
+            assert any((u.x, u.y) == (x, y) for u in s.unit_manager.units[player] if u.unit_const == hub.HOUSE)
 
         off = next(t for t in s.trigger_manager.triggers if t.name == "Hub: only the hub's buttons")
         disabled = {e.technology for e in off.effects if e.technology not in (-1, None)}

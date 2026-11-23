@@ -2,8 +2,8 @@
 
 A wave spawns at the map edge and walks, in line formation, to a staging row inside the spawn base. Once it is in
 position (every unit out of its spawn rows and either on the staging row or standing still: a big group's formation is
-wider than the row) the "Send next wave" button on the Wonder comes on. When the difficulty's time since the last
-send is up (5, 3 or 2 minutes), or when the player clicks, it marches out in formation, attack-moving straight down the
+wider than the row) the "Send next wave" button on the Wonder comes on. When 5 minutes have passed since the last
+send, or when the player clicks, it marches out in formation, attack-moving straight down the
 road to the player's base, and the next wave spawns and walks in. Wave 0 comes at once and is sent as soon as it's
 staged; then waves alternate: the Capital's two lanes, then one lane from each of the other City States. They never
 end: the run ends when the Wonder falls, or when the player claims victory (a decision, up all run). A sent unit
@@ -30,7 +30,6 @@ from pathlib import Path
 from aoe2ed import blocks
 
 from crucible import meta
-from crucible.boons.model import Tier
 from crucible.datamod.shop import SEND_WAVE
 from crucible.scenarios import wave_table as table
 from crucible.scenarios.wave_table import Age, Difficulty
@@ -62,7 +61,7 @@ TIMER = 0  # display timer slot
 
 WALK_VARIABLE = "crucible_wave_walk"  # lanes walking in: 1 the Capital's, 2 the City States'
 SEND_VARIABLE = "crucible_wave_send"  # lanes sent, the same
-TIMER_VARIABLE = "crucible_wave_timer"  # difficulty + 1: restart the timer at its time
+TIMER_VARIABLE = "crucible_wave_timer"  # 1: restart the timer
 BUTTON_VARIABLE = "crucible_wave_button"  # 1: button on, 2: off
 BANK_VARIABLE = "crucible_bank_currency"  # 1: store the currency in the campaign bank
 
@@ -218,60 +217,6 @@ def _objective(ctx) -> None:
     )
 
 
-def _useless() -> set:
-    from crucible.bonuses.model import Stat
-
-    return {  # it spawns its waves and never trains, builds, gathers or researches
-        Stat.COST,
-        Stat.FOOD_COST,
-        Stat.WOOD_COST,
-        Stat.TRAINING_SPEED,
-        Stat.BUILD_SPEED,
-        Stat.RESEARCH_SPEED,
-        Stat.RESEARCH_TIME,
-        Stat.POPULATION,
-        Stat.WORK_RATE,
-        Stat.CARRY,
-        Stat.FOOD,
-        Stat.ALL_RESOURCES,
-        Stat.STARTING_FOOD,
-        Stat.TRADE_GOLD,
-        Stat.TRIBUTE_TAX,
-    }
-
-
-USELESS_TO_THE_LEGION = _useless()
-
-
-def legion_boons(game, techs: dict[str, int]) -> list[tuple]:
-    """The boons the Legion can take once its upgrades run out: (boon, {tier: tech}, improves by unit index), for every
-    boon but drawbacks that compiles and improves something in wave_table.units()."""
-    from crucible.boons import catalogue
-    from crucible.boons.compile import commands
-    from crucible.boons.model import Flag
-    from crucible.datamod.boons import key
-
-    found = []
-
-    for boon in catalogue.ALL:
-        if Flag.DRAWBACK in boon.flags or boon.stat in USELESS_TO_THE_LEGION:
-            continue
-
-        tiers = {tier: techs[key(boon, tier)] for tier in boon.tiers if key(boon, tier) in techs}
-
-        try:
-            effect = [c for tier in tiers for c in commands(boon, tier, game)]
-        except NotImplementedError:
-            continue
-
-        improves = [int(table.improves_by(effect, game, unit)) for unit in table.units()]
-
-        if tiers and any(improves):
-            found.append((boon, tiers, improves))
-
-    return found
-
-
 def _triggers(ctx, tech: int) -> None:
     for variable in (WALK_VARIABLE, SEND_VARIABLE, TIMER_VARIABLE, BUTTON_VARIABLE):
         ctx.var(variable)
@@ -285,10 +230,7 @@ def _triggers(ctx, tech: int) -> None:
         _on(BUTTON_VARIABLE, 1, "Wave: button on", [_button(tech, on=True)]),
         _on(BUTTON_VARIABLE, 2, "Wave: button off", [_button(tech, on=False)]),
         _on(BANK_VARIABLE, 1, "Meta: bank currency", store),  # as it's earned: a lost run still pays
-        *(
-            _on(TIMER_VARIABLE, d + 1, f"Wave: timer ({d.name.title()})", _timer(table.SEND_TIMES[d]))
-            for d in Difficulty
-        ),
+        _on(TIMER_VARIABLE, 1, "Wave: timer", _timer(table.SEND_TIME)),
         *(
             _on(SEND_VARIABLE, value, f"Wave: {label} sent", [e for lane in lanes for e in _send(lane)])
             for value, (label, lanes) in SETS.items()
@@ -414,7 +356,7 @@ def _path(path: table.Path) -> list[int]:
     return cells
 
 
-def data(game, techs: dict[str, int]) -> list[str]:
+def data(game) -> list[str]:
     """The tables as XS arrays, declared and filled by crucibleWaveData(). `game`: the RoR data (what each upgrade
     improves). Indexes: unit k at its place in wave_table.units(); family f's line i at f * LINES + i (a unit index);
     archetype a's slot s's path p at ((a * 2 + s) * PATHS + p) * STAGES * OPTIONS; whether upgrade u improves unit k at
@@ -448,7 +390,6 @@ def data(game, techs: dict[str, int]) -> list[str]:
             ]
 
     upgrade_index = {u.tech: n for n, u in enumerate(table.UPGRADES)}
-    boons = legion_boons(game, techs)
     siege_steps = [
         (f, n)
         for f, family in enumerate(families)
@@ -457,6 +398,7 @@ def data(game, techs: dict[str, int]) -> list[str]:
     ]
     arrays = [
         _ints("crucibleWaveUnitId", [table.unit_id(u) for u in everyone]),
+        _ints("crucibleWaveUnitSize", [table.size(u) for u in everyone]),
         _strings("crucibleWaveUnitName", [u.replace("_", " ").title() for u in everyone]),
         _ints("crucibleWaveFamilySlot", [int(f.slot) for f in families]),
         _strings("crucibleWaveFamilyName", [f.name for f in families]),
@@ -511,17 +453,12 @@ def data(game, techs: dict[str, int]) -> list[str]:
                 for s in table.Support
             ],
         ),
-        _ints("crucibleWaveBoonTech", [boon_tiers.get(t, -1) for _, boon_tiers, _ in boons for t in Tier]),
-        _ints("crucibleWaveBoonLowest", [int(min(boon_tiers)) for _, boon_tiers, _ in boons]),
-        _strings("crucibleWaveBoonName", [boon.title.replace('"', "") for boon, _, _ in boons]),
-        _ints("crucibleWaveBoonImproves", [v for _, _, improves in boons for v in improves], default=0),
-        _strings("crucibleWaveTierName", [t.title for t in Tier]),
         _ints("crucibleWaveCurrencyByAge", list(meta.CURRENCY_BY_AGE)),
         _strings("crucibleWaveCurrencyName", list(meta.CURRENCY_NAMES)),
         _ints("crucibleWaveAgeTech", [table.AGE_TECHS.get(age, -1) for age in ages]),
         _strings("crucibleWaveAgeName", [a.title for a in ages]),
         _ints("crucibleWaveDifficultyOf", [int(table.GAME_DIFFICULTY.get(g, table.FALLBACK)) for g in range(5)]),
-        _ints("crucibleWaveSendTime", [table.SEND_TIMES[d] for d in Difficulty]),
+        _ints("crucibleWaveDifficultyFactor", [table.DIFFICULTY_FACTOR[d] for d in Difficulty]),
         _strings("crucibleWaveLaneName", [lane.name for lane in LANES]),
         _floats("crucibleWaveSpawnX", [lane.spawn[1][0] + 0.5 for lane in LANES]),
         _floats("crucibleWaveSpawnY", [lane.spawn[1][1] + 0.5 for lane in LANES]),
@@ -538,7 +475,7 @@ def data(game, techs: dict[str, int]) -> list[str]:
     ]
 
 
-def xs(ctx, tech: int, game, techs: dict[str, int]) -> str:
+def xs(ctx, tech: int, game) -> str:
     wonder = next(u for u in ctx.scenario.unit_manager.units[PLAYER] if u.unit_const == WONDER)
     siege_families = [f for f in table.FAMILIES if f.slot == table.Slot.SIEGE]
     lane_variables = ", ".join(str(_variable_id(ctx, lane_variable(n))) for n in range(len(LANES)))
@@ -568,8 +505,7 @@ def xs(ctx, tech: int, game, techs: dict[str, int]) -> str:
         f"const int cCrucibleWaveStructuresFrom = {table.structures_from()};",
         f"const int cCrucibleWaveSupports = {len(table.Support)};",
         f"const int cCrucibleWaveWavesPerSupport = {table.WAVES_PER_SUPPORT};",
-        f"const int cCrucibleWaveBoons = {len(legion_boons(game, techs))};",
-        f"const int cCrucibleWaveTiers = {len(Tier)};",
+        f"const int cCrucibleWaveSendTime = {table.SEND_TIME};",
         f"const bool cCrucibleWaveAgeGate = {'true' if table.AGE_GATE else 'false'};",
         f"const int cCrucibleWaveSiegeWeight = {table.SIEGE_WEIGHT};",
         f"const int cCrucibleWaveSiegeSteps = {sum(len(f.lines) - 1 for f in siege_families)};",
@@ -597,7 +533,7 @@ def xs(ctx, tech: int, game, techs: dict[str, int]) -> str:
         f"const int cCrucibleWaveWonder = {wonder.reference_id};",
         f"vector cCrucibleWaveWonderAt = vector({wonder.x}, {wonder.y}, 0.0);",
         f"const float cCrucibleWaveAtWonder = {float(AT_WONDER * AT_WONDER)};",
-        *data(game, techs),
+        *data(game),
         "int crucibleWaveCurrencyVariable = -1;  // by currency: its trigger variable (the bank's key)",
         "void crucibleWaveCurrencyData() {",
         f'    crucibleWaveCurrencyVariable = xsArrayCreateInt({len(meta.CURRENCY)}, -1, "crucible wave currency");',
@@ -627,4 +563,4 @@ def add(ctx, techs: dict[str, int], game) -> None:
     _triggers(ctx, tech)
     _captions(ctx, game)
     _claim(ctx)
-    ctx.xs(xs(ctx, tech, game, techs))
+    ctx.xs(xs(ctx, tech, game))

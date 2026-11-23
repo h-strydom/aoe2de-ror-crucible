@@ -22,6 +22,17 @@ COST, TRAIN_TIME, FOOD_COST, WOOD_COST = 100, 101, 103, 104
 
 # player resources
 FARM_FOOD, TRIBUTE_TAX, CONVERSION_RESISTANCE, RESEARCH_TIME, HEAL_RATE, CONSTRUCTION_RATE = 36, 46, 77, 86, 89, 195
+POPULATION_ROOM, HOUSE_COUNT = 4, 51  # 51: completed houses (each House's second storage)
+TOWN_CENTER_COUNT, TOWER_COUNT = 104, 105  # completed Town Centers and towers: spare resources (datamod.buildings)
+# Buildings counted in a player resource, by unit and by class. A room attribute reaches only buildings finished
+# later (a Town Center room boon did nothing for the starting Town Center, playtest 2026-11-23), so room also goes to
+# the player: the amount times the count, as RoR's Urbanization does for houses.
+COUNTED_UNITS = {
+    **dict.fromkeys((109, 71, 141, 142), TOWN_CENTER_COUNT),  # the Town Center in each age
+    **dict.fromkeys((70, 463, 464, 465), HOUSE_COUNT),
+    **dict.fromkeys((79, 234, 235, 236), TOWER_COUNT),
+}
+COUNTED_CLASSES = {52: TOWER_COUNT}
 
 
 def _flat_only(m: Modifier) -> None:
@@ -156,6 +167,19 @@ def work_rate(m: Modifier, data: DatFile) -> list[Command]:
     return _attribute(WORK_RATE)(m, data)
 
 
+def population(m: Modifier, data: DatFile) -> list[Command]:
+    """Room on the targets (their first storage) as they're built, and for those already standing: the player's room
+    plus the amount times their count (Urbanization's command: resource, -1, the count's resource, amount)."""
+    found = _attribute(STORAGE)(m, data)
+
+    if m.change.mode is not Mode.FLAT:
+        return found
+
+    counts = {COUNTED_UNITS.get(unit) if unit >= 0 else COUNTED_CLASSES.get(cls) for unit, cls in selectors(m, data)}
+
+    return found + [(RESOURCE, POPULATION_ROOM, -1, count, m.change.amount) for count in sorted(counts - {None})]
+
+
 def all_resources(m: Modifier, data: DatFile) -> list[Command]:
     _flat_only(m)
     return [(RESOURCE, r, ADD, -1, m.change.amount) for r in (FOOD, WOOD, STONE, GOLD)]
@@ -182,7 +206,7 @@ COMPILERS: dict[Stat, Callable[[Modifier, DatFile], list[Command]]] = {
     Stat.HEAL_SPEED: _resource(HEAL_RATE),
     Stat.REJUVENATION: _attribute(RELOAD),  # a priest's faith recharge is its reload attribute, higher is faster
     Stat.CONVERSION_RESISTANCE: _resource(CONVERSION_RESISTANCE, mode=SET),
-    Stat.POPULATION: _attribute(STORAGE),
+    Stat.POPULATION: population,
     Stat.FOOD: _resource(FARM_FOOD),
     Stat.ALL_RESOURCES: all_resources,
     Stat.STARTING_FOOD: _resource(FOOD),

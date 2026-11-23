@@ -80,9 +80,8 @@ PLAYERS = {  # player -> its fields
 ENEMIES = (Faction.CITY_STATES, Faction.LEGION)
 FRIENDS = (Faction.PLAYER, Faction.ALLIES)
 KEEPS = (TOWN_CENTER, WONDER)  # what the player starts with
-# The Allies keep one unattackable house far from everything (the north edge, east of the Capital): with only walls
-# and towers left once the camp is cleared, the game defeated them (playtest 2026-11-21).
-KEEPER, KEEPER_AT = 70, (178.0, 5.0)
+# The Allies may be defeated once the camp is cleared (only walls and towers left): it doesn't matter (playtest
+# 2026-11-23), so nothing keeps them in the game.
 
 
 def _diplomacy(handle: str) -> None:
@@ -135,7 +134,6 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             run_rules.tier_one_towers(s, Faction.ALLIES)
             allied = sorted({u.unit_const for u in s.unit_manager.units[Faction.ALLIES]})
             camp = _camp(s)
-            keeper = s.unit_manager.add_unit(player=Faction.ALLIES, unit_const=KEEPER, x=KEEPER_AT[0], y=KEEPER_AT[1])
 
             for k, (x, y) in enumerate(VILLAGERS):
                 villager = VILLAGER_MALE if k % 2 == 0 else VILLAGER_FEMALE
@@ -158,7 +156,6 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                     allies=Faction.ALLIES,
                     player=Faction.PLAYER,
                     invulnerable=Faction.CITY_STATES,
-                    keeper=keeper.reference_id,
                 )
             )
             ctx.xs(run_rules.fish_xs(fish))

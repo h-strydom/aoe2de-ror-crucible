@@ -22,14 +22,17 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         names = {t.name for t in s.trigger_manager.triggers}
         assert {"Wonder lost", "Shared vision", "Full vision", "Wave: Capital walk in"} <= names
         assert "Wave: City States sent" in names
-        assert {"Wave: timer (Hard)", "Lane: Capital west is Legion"} <= names
+        assert {"Wave: timer", "Lane: Capital west is Legion"} <= names
         assert {"Meta: load currency", "Meta: bank currency"} <= names  # each wave pays its age's resource
         bank = next(t for t in s.trigger_manager.triggers if t.name == "Meta: bank currency")
         assert {e.message for e in bank.effects if e.message} == set(meta.CURRENCY)
         assert not any(n.startswith("Legion: ") for n in names)  # the XS researches the Legion's techs itself
         assert {"Meta: load upgrades", "Meta: villager 6", "Meta: House 5", "Meta: kept buildings to age 3"} <= names
         assert {"Meta: starting building 70 2", "Allies: camp buildings cleared"} <= names
-        assert any(u.unit_const == run.KEEPER for u in units[run.Faction.ALLIES])
+        assert "Player: Town Centers from the Bronze Age" in names
+        assert {"Meta: Dock upgrades unlocks 4", "Meta: Dock upgrades II unlocks 25"} <= names
+        iron = next(t for t in s.trigger_manager.triggers if t.name == "Meta: Storage Pit upgrades III unlocks 117")
+        assert not any(c.condition_type == 9 and c.technology == 103 for c in iron.conditions)  # the age, not the tech
         assert {"No hub buttons", "No data mod", "No data mod: defeat"} <= names
         # starting soldiers follow their lines; towers and walls by tier; units unlocked by age
         assert {"Meta: melee 281", "Meta: melee 77", "Meta: Bowmen 2 as 39", "Meta: Cavalry 3 as 283"} <= names

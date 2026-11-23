@@ -150,3 +150,16 @@ spawn the better unit: no line-upgrade tech is researched (stat upgrades and age
 - Siege lines step up only by a rare Legion upgrade (SIEGE_WEIGHT 3 against a stat upgrade's 10), as do Engineering
   and Siege Craft: the Iron Age no longer brings catapults by itself.
 - The Legion's siege and Priests move at foot speed (1.0, from 0.66): they march with their wave.
+
+## Cadence, difficulty, heavy units, no Legion boons (playtest 2026-11-23)
+
+- Waves are sent every 5 minutes whatever the difficulty (SEND_TIME). Difficulty multiplies the scale instead, and the
+  currency a defeated wave pays with it: Standard 1, Moderate 2, Hard 3 (DIFFICULTY_FACTOR). Hard is meant for a run
+  with meta upgrades behind it.
+- Heavy units take more grow points (Line.size): War Elephants and Elephant Archers 2; a Post-Iron line twice the line
+  below (Legionary, Centurion, Cataphract, Heavy Horse Archer 2; Armored Elephant 4). A slot fields as many of its unit
+  as its points buy, the rest as the weaker unit it came from (the line below, or the family before), so a heavy slot
+  is a mix that condenses as it grows: 7 points of Cataphracts are 3 Cataphracts and a Heavy Cavalry, Chariots
+  becoming War Elephants halve in number. (Wave 47 with every meta upgrade was walls of elephants and Centurions.)
+- The Legion takes no boons: once its upgrades have run out for good, an upgrade step grows instead. What the late game
+  does comes later, with the other systems.
