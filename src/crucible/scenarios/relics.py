@@ -10,8 +10,8 @@ What they do is bought at the hub's towers, a stage a tower (meta: RUIN_TRICKLE.
 - artifacts: the building type works faster (work rate), then its units and techs cost less, then a Granary trickles
   food, a Storage Pit wood, a Town Center gold and stone (per building, capped), and towers regenerate.
 
-Unverified in game: the garrison (the copy's class and the buildings' garrison type, datamod/artifacts), the cap
-(resource 32) and the room (resource 4) from XS.
+Verified in game (2026-11-23): ruins pay; an artifact garrisons, and boosts and discounts a Town Center and a
+Barracks. Unverified: the cap (resource 32) and the room (resource 4) from XS, the towers' regeneration.
 """
 
 from crucible import meta
