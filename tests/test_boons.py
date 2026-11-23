@@ -30,7 +30,8 @@ def test_ladder_adds_extras_and_text_shows_them():
 
     assert sorted(tiers) == [Tier.LEGENDARY, Tier.HEIRLOOM]
     assert boon.lowest is Tier.LEGENDARY
-    assert boon.text(Tier.HEIRLOOM) == "+40% & +3 carry capacity"
+    assert boon.text(Tier.LEGENDARY) == "+20%"
+    assert boon.text(Tier.HEIRLOOM) == "+20% & +3 carry capacity"  # the step over Legendary
 
 
 def test_tiers_must_be_consecutive():
@@ -64,3 +65,22 @@ def test_offer_draws_each_choice_from_a_different_axis():
         assert len(set(axes)) == 3
         assert len({b.id for _, b in choices}) == 3
         assert all(b.in_category(category) and not b.in_category(Flag.DRAWBACK) for category, b in choices)
+
+
+def test_every_boon_steps_up_to_heirloom_and_stacks():
+    archers = catalogue.by_id("assyrians_2")  # written 11/22/33% from Common
+
+    assert list(archers.steps) == [Tier.COMMON, Tier.IMPROVED, Tier.MASTERCRAFTED, Tier.LEGENDARY, Tier.HEIRLOOM]
+    assert all(step[0].change.amount == 0.11 for step in archers.steps.values())  # +11% a step, stacking
+    assert archers.total(Tier.HEIRLOOM)[0].change.amount == 0.55
+    assert all(all(b.steps.values()) for b in catalogue.ALL)
+    wheel = catalogue.by_id("hittites_4")  # research cost -25/-50/-100%: ends at -100%
+    assert max(wheel.steps) is Tier.IMPROVED and wheel.total(Tier.IMPROVED)[0].change.amount == -1
+    ended = [b.id for b in catalogue.ALL if max(b.steps) is not Tier.HEIRLOOM]
+    assert len(ended) == 9  # the boons whose percentages reach -100%
+
+
+def test_civs_are_never_a_choice():
+    from crucible.boons.model import OFFER_AXES, CivType
+
+    assert Civ not in OFFER_AXES and CivType not in OFFER_AXES

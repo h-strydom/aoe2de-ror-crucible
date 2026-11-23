@@ -777,7 +777,7 @@ void crucibleWavePay(int wave = 0) {
 }
 
 // Each sent wave with no unit left alive is defeated: count it once. Wave 0 gives free Poor boons; later waves a
-// choice (two every cCrucibleWaveDoubleEvery), with the tier-up chances growing per wave.
+// choice (two every cCrucibleWaveDoubleEvery).
 void crucibleWaveCountDefeated() {
     bool alive = false;  // declared outside the loop: XS runs a declaration in a loop only once
 
@@ -798,7 +798,6 @@ void crucibleWaveCountDefeated() {
                 crucibleWaveDefeatedCount++;
                 xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterRelics, crucibleWaveDefeatedCount);
                 crucibleWavePay(wave);
-                crucibleShopTierBonus = crucibleWaveDefeatedCount * cCrucibleWaveTierUpPerWave;
 
                 if (wave == 0) {
                     crucibleShopOpenPoor();  // free Poor boons

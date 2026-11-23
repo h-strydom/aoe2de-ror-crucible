@@ -19,9 +19,8 @@ from crucible import meta
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import SEND_WAVE
-from crucible.scenarios import bases, boon_list, datamod_check, run_meta, run_rules, run_xs, waves
+from crucible.scenarios import bases, datamod_check, run_meta, run_rules, run_xs, waves
 from crucible.scenarios.maps import asset
-from crucible.shop import pool as shop_pool
 from crucible.shop import scenario as shop
 from crucible.shop.config import ShopConfig
 
@@ -143,10 +142,6 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             towers = {t: units[t].hit_points for t in allied if t in run_rules.TOWERS}
             cleared = [t for t in allied if t not in walls and t not in towers]  # removed once the meta has kept its
             city_states = sorted({u.unit_const for u in s.unit_manager.units[Faction.CITY_STATES]})
-            gaia = data.civs[0].units
-            fish = sorted(
-                {u.unit_const for u in s.unit_manager.units[0] if gaia[u.unit_const].class_ in run_rules.FISH_CLASSES}
-            )
 
             ctx = blocks.Ctx(s)
             ctx.xs(
@@ -158,7 +153,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                     invulnerable=Faction.CITY_STATES,
                 )
             )
-            ctx.xs(run_rules.fish_xs(fish))
+            ctx.xs(run_rules.fish_xs(Faction.PLAYER))
             ctx.trigger(  # the Allies' houses, Granary, Temple and the rest in the camp: destroyed (rubble a while)
                 "Allies: camp buildings cleared",
                 [{"type": "timer", "timer": run_xs.START}],
@@ -180,8 +175,15 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 locked=run_rules.locked(data),
             )
             config = ShopConfig()
-            shop.add(ctx, config, techs, slots=meta.BOON_SLOTS.key, speed=meta.BOON_SPEED.key)  # before the waves
-            boon_list.add(ctx, shop_pool.boons(config, techs), techs, player=Faction.PLAYER)
+            shop.add(  # before the waves
+                ctx,
+                config,
+                techs,
+                slots=meta.BOON_SLOTS.key,
+                speed=meta.BOON_SPEED.key,
+                discount=meta.BOON_DISCOUNT.key,
+                discounts=meta.BOON_DISCOUNTS,
+            )
             waves.add(ctx, techs, data)
             bases.add(ctx, s)  # optional objectives: a boon choice per Legion base destroyed
             town_center = next(u for u in s.unit_manager.units[Faction.PLAYER] if u.unit_const == TOWN_CENTER)
@@ -194,7 +196,6 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 villagers=META_VILLAGERS,
                 chains=run_meta.age_chains(data),
                 unlocked=run_meta.unlocks(data),
-                resources=run_meta.gaia_resources(s, data),
             )
             ctx.trigger(
                 "No hub buttons",  # the hub's upgrades are data mod techs on every Town Center and Barracks

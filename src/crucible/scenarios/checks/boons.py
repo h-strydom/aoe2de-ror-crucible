@@ -245,15 +245,20 @@ def assign(steps: list[Step], data: DatFile) -> list[Step]:
 
 
 def plan(data: DatFile, techs: dict[str, int]) -> list[Step]:
-    """Every tier tech in the data mod, in research order, with its reads and player."""
+    """Every tier tech in the data mod, in research order, with its reads and player: each boon's distinct steps once
+    (a repeated step compiles to the same commands, and every step of a boon on one map ran out of players)."""
     steps = []
 
     for boon in catalogue.ALL:
-        for tier in sorted(boon.tiers):
-            key = boon_techs.key(boon, tier)
+        seen = set()
 
-            if key in techs:
-                reads = tuple(r for command in commands(boon, tier, data) for r in _reads(command, data))
+        for tier in sorted(boon.steps):
+            key = boon_techs.key(boon, tier)
+            compiled = tuple(commands(boon, tier, data)) if key in techs else ()
+
+            if compiled and compiled not in seen:
+                seen.add(compiled)
+                reads = tuple(r for command in compiled for r in _reads(command, data))
                 steps.append(Step(boon, tier, key, reads))
 
     return assign(steps, data)

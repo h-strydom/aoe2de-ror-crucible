@@ -25,7 +25,7 @@ def add(mod: DataMod) -> dict[str, str]:
     skipped = {}
 
     for boon in catalogue.ALL:
-        for tier in boon.tiers:
+        for tier in boon.steps:
             try:
                 found = commands(boon, tier, mod.data)
             except NotImplementedError as error:

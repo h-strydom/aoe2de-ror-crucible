@@ -1,11 +1,16 @@
 """Tiered boons: the redesign of the civ bonuses (docs/todo.md), kept here as the source of truth.
 
-A boon covers a run of rarity tiers (usually three in a row); each tier it covers holds its effects: the first is the
+A boon is written as a run of rarity tiers (usually three in a row), each holding its total effects: the first is the
 boon's own stat on its own subject, any more are extras ("+60% work rate & +3 carry capacity"). Adding a tier is a
 new Tier member; moving a boon is changing its first tier; combining effects is adding to a tier's list.
 
+In play each tier is its own upgrade and they stack (playtest 2026-11-23): a boon's `steps` run from its first tier
+to Heirloom, each the increase over the tier before (Assyrians' archer attack speed, written 11/22/33%, is +11% a
+step), the last written step repeating up to Heirloom. The shop offers a boon's next step only.
+
 Tags come from fixed axes, so an offer can draw each choice from a different axis (catalogue.offer): Domain, Kind
-(what it does), Subject, Building, the civ and its types, Team and Drawback.
+(what it does), Subject, Building, Team and Drawback (OFFER_AXES). The civ and its types are tags too, but never a
+choice (playtest 2026-11-23).
 
 Not compiled into the data mod yet: crucible.bonuses (one fixed value per boon) still is.
 """
@@ -15,7 +20,7 @@ from enum import IntEnum, StrEnum
 from aoe2ed import tables
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from crucible.bonuses.model import Change, Civ, Cost, Group, Icon, Stat
+from crucible.bonuses.model import Change, Civ, Cost, Group, Icon, Mode, Stat
 
 
 class Tier(IntEnum):
@@ -42,8 +47,6 @@ TIER_COSTS: dict[Tier, Cost] = {
     Tier.LEGENDARY: Cost(gold=300),
     Tier.HEIRLOOM: Cost(food=300, gold=300),
 }
-# The shop's roll for a better tier than a boon's lowest: (tiers up, chance in percent), checked in order.
-TIER_UPS: tuple[tuple[int, int], ...] = ((2, 10), (1, 20))
 
 
 class Domain(StrEnum):
@@ -158,6 +161,7 @@ CIV_TYPES: dict[Civ, tuple[CivType, ...]] = {
 
 Axis = type[Domain] | type[Kind] | type[Subject] | type[Building] | type[Civ] | type[CivType] | type[Flag]
 AXES: tuple[Axis, ...] = (Domain, Kind, Subject, Building, Civ, CivType, Flag)
+OFFER_AXES: tuple[Axis, ...] = (Domain, Kind, Subject, Building, Flag)  # what a choice can be
 Category = Domain | Kind | Subject | Building | Civ | CivType | Flag
 
 
@@ -246,8 +250,84 @@ class Boon(BaseModel):
 
     @property
     def highest(self) -> Tier:
-        return max(self.tiers)
+        return max(self.steps)
 
+    @staticmethod
+    def _key(effect: Effect) -> tuple:
+        return effect.stat, effect.targets, effect.groups, effect.techs
+
+    @property
+    def steps(self) -> dict[Tier, tuple[Effect, ...]]:
+        """Each tier from the first to Heirloom: what it adds over the tier before (an effect new at a tier, or in
+        another mode, whole). Past the written tiers the last step repeats, until a percentage reaches -100% (a cost or
+        time can't fall further): the step that crosses it stops there, and the boon ends with it."""
+        found: dict[Tier, tuple[Effect, ...]] = {}
+        before: dict[tuple, Effect] = {}
+        last: tuple[Effect, ...] = ()
+        running: dict[tuple, float] = {}  # each percentage's total so far
+
+        for tier in Tier:
+            if tier < self.lowest:
+                continue
+
+            if tier in self.tiers:
+                step = []
+
+                for effect in self.tiers[tier]:
+                    old = before.get(self._key(effect))
+
+                    if old is None or old.change.mode is not effect.change.mode:
+                        step.append(effect)
+                    elif effect.change.amount != old.change.amount:
+                        amount = round(effect.change.amount - old.change.amount, 6)
+                        change = Change(amount=amount, mode=effect.change.mode)
+                        step.append(effect.model_copy(update={"change": change}))
+
+                last = tuple(step) or last
+                before = {self._key(e): e for e in self.tiers[tier]}
+
+            step = []
+
+            for effect in last:
+                key, amount = self._key(effect), effect.change.amount
+
+                if effect.change.mode is Mode.PERCENT and amount < 0:
+                    amount = max(amount, round(-1 - running.get(key, 0.0), 6))
+
+                    if amount >= 0:
+                        continue  # at -100% already
+
+                    running[key] = running.get(key, 0.0) + amount
+                    effect = effect.model_copy(update={"change": Change(amount=amount, mode=Mode.PERCENT)})
+
+                step.append(effect)
+
+            if not step:
+                break
+
+            found[tier] = tuple(step)
+
+        return found
+
+    def total(self, tier: Tier) -> tuple[Effect, ...]:
+        """Every step up to `tier` added together (what a player with each of them has)."""
+        summed: dict[tuple, Effect] = {}
+
+        for t, step in self.steps.items():
+            if t > tier:
+                break
+
+            for effect in step:
+                old = summed.get(self._key(effect))
+
+                if old is None or old.change.mode is not effect.change.mode:
+                    summed[self._key(effect)] = effect
+                else:
+                    amount = round(old.change.amount + effect.change.amount, 6)
+                    change = Change(amount=amount, mode=effect.change.mode)
+                    summed[self._key(effect)] = effect.model_copy(update={"change": change})
+
+        return tuple(summed.values())
 
     @property
     def icon(self) -> Icon:
@@ -283,10 +363,10 @@ class Boon(BaseModel):
         return any(c is category for c in self.categories)
 
     def text(self, tier: Tier) -> str:
-        """A tier as text: "+60% & +3 carry capacity"."""
+        """A tier's step as text: "+60% & +3 carry capacity"."""
         parts = []
 
-        for effect in self.tiers.get(tier, ()):
+        for effect in self.steps.get(tier, ()):
             words = [str(effect.change)]
 
             if effect.stat and effect.stat != self.stat:

@@ -105,14 +105,16 @@ defeated waves ("Waves defeated: n"), and chat names each one as it falls. Waves
 the middle tile of each row matters as a reference.
 
 **Boons.** Each wave defeated (and each Legion base destroyed) gives one decision in the shop (`shop/`): two boon
-categories on the Wonder, each from a different tag axis ("Combat boons", "Stable boons", "Yamato boons"), then a random
-boon of the one picked on each boon slot. The boons are the tiered ones (`crucible.boons`): a boon comes at its lowest
-tier, or 20% of the time one tier up and 10% two tiers up (capped at its top tier), each tier at its own price
+categories on the Wonder, each from a different tag axis ("Combat boons", "Stable boons"; never a civ or civ type,
+playtest 2026-11-23), drawn by weight: a category's weight starts at 10 and goes up 10 each time the player picks it,
+so the shop leans towards what they go for. Then a random boon of the one picked on each boon slot. The boons are the
+tiered ones (`crucible.boons`), and each tier is its own upgrade, stacking: a boon runs from its first tier to
+Heirloom, each tier adding a step (Assyrians' archer attack speed +11% a tier), and comes at its next tier only, back
+in the pool once that's bought (a percentage that reaches -100% ends the boon early). Each tier has its own price
 (`TIER_COSTS`: Poor free, Common 250 food, Improved 250 food 100 wood, Mastercrafted 250 food 100 gold, Legendary
-300 gold, Heirloom 300 food 300 gold; `TIER_UPS`). Every boon but drawbacks can come up. A boon goes on a free
-button of the Wonder's first two rows (1-10); boons only stack once all ten hold an unbought one. The Send next wave
-button is on 15, the two choices on 11 and 12. Each boon tier researched gets a line in the
-Objectives panel (the Scouts text can't change during a game).
+300 gold, Heirloom 300 food 300 gold), less the Wonder's boon discount. Every boon but drawbacks can come up. A boon
+goes on a free button of the Wonder's first two rows (1-10); boons only stack once all ten hold an unbought one. The
+Send next wave button is on 15, the two choices on 11 and 12. The boons bought aren't listed in game.
 
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's

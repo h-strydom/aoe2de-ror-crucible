@@ -19,7 +19,7 @@ def _techs() -> dict[str, int]:
 def test_every_tier_but_the_new_stats_compiles():
     mod = DataMod.from_ror()
     skipped = boon_techs.add(mod)
-    tiers = sum(len(b.tiers) for b in catalogue.ALL)
+    tiers = sum(len(b.steps) for b in catalogue.ALL)
 
     assert all("HP regeneration" in why or "conversion speed" in why for why in skipped.values())
     assert len([k for k in mod.manifest if k.startswith("boon ")]) == tiers - len(skipped)
@@ -29,7 +29,8 @@ def test_every_tier_tech_is_read_and_the_xs_checks():
     techs = _techs()
     steps = boons.plan(source_dat(), techs)
 
-    assert len(steps) == len([k for k in techs if k.startswith("boon ")])
+    assert len(steps) <= len([k for k in techs if k.startswith("boon ")])  # distinct steps once
+    assert {s.boon.id for s in steps} == {k.split()[1] for k in techs if k.startswith("boon ")}  # every boon
     assert all(step.reads for step in steps)
     assert {step.player for step in steps} <= set(boons.TIER_PLAYERS)
     assert boons.places(steps)  # the shown rows fit the map
@@ -79,7 +80,7 @@ def test_every_tier_costs_its_own_price():
     boon_techs.add(mod)
 
     for boon in catalogue.ALL:
-        for tier in boon.tiers:
+        for tier in boon.steps:
             key = boon_techs.key(boon, tier)
 
             if key in mod.manifest:

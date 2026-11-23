@@ -149,12 +149,16 @@ def cost(m: Modifier, data: DatFile) -> list[Command]:
     return _attribute(COST)(m, data)
 
 
+MIN_RESEARCH_TIME = 1  # "instant" is 1 s: at 0 the game researches a tech by itself (playtest 2026-11-23)
+
+
 def research_time(m: Modifier, data: DatFile) -> list[Command]:
+    """Set: the tech's time changed by the amount, at least MIN_RESEARCH_TIME."""
     found = []
 
     for tech in tech_ids(m):
         time = data.techs[tech].research_locations[0].research_time
-        found.append((TECH_TIME, tech, 1, ADD, round(time * m.change.amount)))
+        found.append((TECH_TIME, tech, 1, SET, max(MIN_RESEARCH_TIME, round(time * (1 + m.change.amount)))))
 
     return found
 

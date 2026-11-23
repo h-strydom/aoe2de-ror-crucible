@@ -67,12 +67,23 @@ def upgraded_from(data: DatFile, unit: int) -> list[int]:
 
 
 def with_ages(data: DatFile, unit: int) -> list[int]:
-    """A building and the versions the ages upgrade it to (RoR's Market is 84, then 116 and 137). A unit and the units
-    that upgrade into it: an upgrade doesn't make new units, it gives the old ones the new unit's stats under their old
-    id (Clubmen researching Axe stay 281 with the Axeman's stats), so a boon aimed at the Axeman alone (531) never
-    reached them; aimed at both, it does whenever it's bought (bought before Axe, Clubmen get it too)."""
+    """A building and the versions the ages upgrade it to (RoR's Market is 84, then 116 and 137). A unit and its whole
+    line, both ways: an upgrade doesn't make new units, it gives the old ones the new unit's stats under their old id
+    (Clubmen researching Axe stay 281 with the Axeman's stats), so a boon aimed at the Axeman alone (531) never
+    reached them; and a boon on a line's first unit has to reach the units it becomes (playtest 2026-11-23)."""
     if data.civs[1].units[unit].type != BUILDING:
-        return [unit, *upgraded_from(data, unit)]
+        chains, later, todo = upgrades(data), [], [unit]
+
+        while todo:
+            for after in sorted(chains.get(todo.pop(), ())):
+                if after not in later and after != unit:
+                    later.append(after)
+                    todo.append(after)
+
+        found = [unit, *upgraded_from(data, unit), *later]
+        found += [u for n in later for u in upgraded_from(data, n) if u not in found]
+
+        return list(dict.fromkeys(found))
 
     chains, found, todo = upgrades(data), [unit], [unit]
 

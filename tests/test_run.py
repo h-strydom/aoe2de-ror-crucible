@@ -44,7 +44,6 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert cleared.effects and all(e.effect_type == 14 for e in cleared.effects)  # killed: rubble, not removed
         assert {f"Base: {name}" for name, _ in bases.BASES} <= names  # an optional objective per Legion base
         assert {"Allies: age 3", "Meta: Granary 1 placed"} <= names
-        assert any(n.startswith("Boon: ") for n in names)
 
         messages = [e.message for t in s.trigger_manager.triggers for e in t.effects if e.message]
         code = "\n".join(m for m in messages if "{" in m)  # the scripts, not the timer's text

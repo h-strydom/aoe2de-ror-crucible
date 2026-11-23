@@ -1,12 +1,15 @@
 """The XS data block the shop runtime (shop.xs) reads: constants, and crucibleShopData() filling the arrays."""
 
 from crucible.bonuses.model import Civ
-from crucible.boons.model import AXES, Boon, Category, Tier
+from crucible.boons.model import AXES, TIER_COSTS, Boon, Category, Tier
 from crucible.datamod.boons import key
 from crucible.datamod.shop import BOON_BUTTONS, MAX_OFFERED, choice_key
 from crucible.datamod.upgrades import RESEARCH_TIME as BOON_TIME
 from crucible.datamod.upgrades import WONDER
 from crucible.shop.config import ShopConfig
+
+CATEGORY_WEIGHT = 10  # every category's weight at the start
+CATEGORY_BOOST = 10  # added to a category's weight each time the player picks it (playtest 2026-11-23)
 
 
 def label(category: Category) -> str:
@@ -28,16 +31,19 @@ def xs_data(
     slots_variable: int = -1,
     speed_variable: int = -1,
     speed_tiers: int = 5,
+    discount_variable: int = -1,
+    discounts: tuple[int, ...] = (),
 ) -> str:
     """`techs` is the data mod's manifest; `choices_variable` is the trigger variable that re-enables the choices.
     `slots_variable` (more boons per decision) and `speed_variable` (out of `speed_tiers`: shorter research, instant
-    at the last) are the trigger variables of meta upgrades, read at each offer; -1 for none."""
+    at the last) are the trigger variables of meta upgrades, read at each offer; -1 for none. `discount_variable`:
+    the boon discount's level, `discounts` the percent off each level adds."""
     tiers = len(Tier)
     sets = [
         *(
             f"    xsArraySetInt(crucibleBoonTier, {b * tiers + tier}, {techs[key(boon, tier)]});"
             for b, boon in enumerate(pool)
-            for tier in boon.tiers
+            for tier in boon.steps
             if key(boon, tier) in techs
         ),
         *(f"    xsArraySetInt(crucibleBoonLowest, {b}, {int(boon.lowest)});" for b, boon in enumerate(pool)),
@@ -49,8 +55,16 @@ def xs_data(
         ),
         *(f'    xsArraySetString(crucibleCategoryName, {c}, "{label(cat)}");' for c, cat in enumerate(categories)),
         *(f"    xsArraySetInt(crucibleCategoryAxis, {c}, {axis(cat)});" for c, cat in enumerate(categories)),
-        *(f"    xsArraySetInt(crucibleTierUpSteps, {n}, {steps});" for n, (steps, _) in enumerate(config.tier_ups)),
-        *(f"    xsArraySetInt(crucibleTierUpChance, {n}, {chance});" for n, (_, chance) in enumerate(config.tier_ups)),
+        *(f"    xsArraySetInt(crucibleBoonNext, {b}, {int(boon.lowest)});" for b, boon in enumerate(pool)),
+        *(
+            f"    xsArraySetInt(crucibleTierCost, {int(tier) * 4 + resource}, {amount});"
+            for tier in Tier
+            for resource, amount in TIER_COSTS[tier].items()
+        ),
+        *(
+            f"    xsArraySetInt(crucibleShopDiscount, {level + 1}, {sum(discounts[: level + 1])});"
+            for level in range(len(discounts))
+        ),
     ]
     lines = "\n".join(sets)
 
@@ -58,7 +72,9 @@ def xs_data(
 const int cCrucibleBoons = {len(pool)};
 const int cCrucibleTiers = {tiers};
 const int cCrucibleCategories = {len(categories)};
-const int cCrucibleTierUps = {len(config.tier_ups)};
+const int cCrucibleCategoryWeight = {CATEGORY_WEIGHT};
+const int cCrucibleCategoryBoost = {CATEGORY_BOOST};
+const int cCrucibleDiscountVariable = {discount_variable};
 const int cCrucibleSlots = {min(config.slots, MAX_OFFERED)};
 const int cCrucibleChoices = {config.choices};
 const int cCrucibleWonder = {WONDER};
@@ -75,21 +91,25 @@ const int cCrucibleBoonTime = {BOON_TIME};
 int crucibleBoonTier = -1;  // boon * cCrucibleTiers + tier -> its tech, -1 if it has none
 int crucibleBoonLowest = -1;
 int crucibleBoonMember = -1;  // category * cCrucibleBoons + boon -> 1 if the boon is in the category
-int crucibleBoonTaken = -1;  // 1 once offered
+int crucibleBoonNext = -1;  // the next tier the shop offers it at (from its lowest, one up a purchase)
+int crucibleBoonPending = -1;  // 1 while on the Wonder, unbought
 int crucibleCategoryName = -1;
 int crucibleCategoryAxis = -1;  // choices come from different axes
-int crucibleTierUpSteps = -1;
-int crucibleTierUpChance = -1;
+int crucibleCategoryWeight = -1;  // its chance to be a choice: up each time the player picks it
+int crucibleTierCost = -1;  // tier * 4 + resource (food, wood, stone, gold) -> its price
+int crucibleShopDiscount = -1;  // the boon discount's level -> percent off
 
 void crucibleShopData() {{
     crucibleBoonTier = xsArrayCreateInt(cCrucibleBoons * cCrucibleTiers, -1, "crucibleBoonTier");
     crucibleBoonLowest = xsArrayCreateInt(cCrucibleBoons, 0, "crucibleBoonLowest");
     crucibleBoonMember = xsArrayCreateInt(cCrucibleCategories * cCrucibleBoons, 0, "crucibleBoonMember");
-    crucibleBoonTaken = xsArrayCreateInt(cCrucibleBoons, 0, "crucibleBoonTaken");
+    crucibleBoonNext = xsArrayCreateInt(cCrucibleBoons, 0, "crucibleBoonNext");
+    crucibleBoonPending = xsArrayCreateInt(cCrucibleBoons, 0, "crucibleBoonPending");
     crucibleCategoryName = xsArrayCreateString(cCrucibleCategories, "", "crucibleCategoryName");
     crucibleCategoryAxis = xsArrayCreateInt(cCrucibleCategories, 0, "crucibleCategoryAxis");
-    crucibleTierUpSteps = xsArrayCreateInt(cCrucibleTierUps, 0, "crucibleTierUpSteps");
-    crucibleTierUpChance = xsArrayCreateInt(cCrucibleTierUps, 0, "crucibleTierUpChance");
+    crucibleCategoryWeight = xsArrayCreateInt(cCrucibleCategories, cCrucibleCategoryWeight, "crucibleCategoryWeight");
+    crucibleTierCost = xsArrayCreateInt(cCrucibleTiers * 4, 0, "crucibleTierCost");
+    crucibleShopDiscount = xsArrayCreateInt({len(discounts) + 1}, 0, "crucibleShopDiscount");
 {lines}
 }}
 """

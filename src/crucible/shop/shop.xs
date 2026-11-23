@@ -1,11 +1,13 @@
 // ---- Crucible shop: runtime (the generated data block comes first) ----
 // crucibleShopOpen() after a wave (or a base) grants cCrucibleChoices choices. Each choice: two categories on the choice
-// buttons, from different tag axes (a combat boon, a Stable boon); a click locks in (the other is disabled); when the
-// pick finishes, each boon slot gets a random boon of that category, at its lowest tier or, by the tier-up roll, a
-// better one (at that tier's price), and the next choice (if any are left) appears on the same buttons. A boon goes on
-// the button of rows 1-2 (cCrucibleButtons) with the fewest unbought boons: they only stack once every button holds
-// one, so a boon the player can't use yet doesn't block the next. crucibleShopOpenPoor() (wave 0) skips the choice: each slot gets a random boon with a Poor tier,
-// of any category, at that tier (free), no tier-up roll.
+// buttons, from different tag axes (a combat boon, a Stable boon), drawn by weight: a category picked before weighs
+// more (cCrucibleCategoryBoost a pick), so the shop leans towards what the player goes for. A click locks in (the other
+// is disabled); when the pick finishes, each boon slot gets a random boon of that category at its next tier, at that
+// tier's price less the Wonder's boon discount. Each tier is its own tech and they stack: a boon comes back at its next
+// tier once the last is bought, and never skips one (playtest 2026-11-23). A boon goes on the button of rows 1-2
+// (cCrucibleButtons) with the fewest unbought boons: they only stack once every button holds one, so a boon the player
+// can't use yet doesn't block the next. crucibleShopOpenPoor() (wave 0) skips the choice: each slot gets a random boon
+// whose next tier is Poor (free).
 
 int crucibleShopState = 0;  // 0 closed, 1 choosing, 2 picked
 int crucibleShopCategory1 = -1;
@@ -14,12 +16,13 @@ int crucibleShopPicked = 0;  // the choice clicked: 1 or 2
 int crucibleShopChoices = 0;  // choices still to make
 bool crucibleShopReady = false;
 bool crucibleShopPoor = false;  // a Poor offer is being made
-int crucibleShopTierBonus = 0;
+
 const int cCrucibleShopPendingSize = 400;
-int crucibleShopPendingTech = -1;  // boons on the Wonder not yet bought, and their buttons
+int crucibleShopPendingTech = -1;  // boons on the Wonder not yet bought: their tech, button and boon
 int crucibleShopPendingButton = -1;
+int crucibleShopPendingBoon = -1;
 int crucibleShopPendingCount = 0;
-int crucibleShopButtonLoad = -1;  // by button (1 to cCrucibleButtons): unbought boons on it  // percent added to each tier-up chance (the waves raise it as they're defeated)
+int crucibleShopButtonLoad = -1;  // by button (1 to cCrucibleButtons): unbought boons on it
 
 void crucibleShopInit() {
     if (crucibleShopReady) {
@@ -29,6 +32,7 @@ void crucibleShopInit() {
     crucibleShopData();
     crucibleShopPendingTech = xsArrayCreateInt(cCrucibleShopPendingSize, -1, "crucibleShopPendingTech");
     crucibleShopPendingButton = xsArrayCreateInt(cCrucibleShopPendingSize, 0, "crucibleShopPendingButton");
+    crucibleShopPendingBoon = xsArrayCreateInt(cCrucibleShopPendingSize, -1, "crucibleShopPendingBoon");
     crucibleShopButtonLoad = xsArrayCreateInt(cCrucibleButtons + 1, 0, "crucibleShopButtonLoad");
     xsEffectAmount(cDisableTech, cCrucibleChoice1, cAttributeDisable, 0, 1);
     xsEffectAmount(cDisableTech, cCrucibleChoice2, cAttributeDisable, 0, 1);
@@ -43,13 +47,28 @@ int crucibleShopChoice(int number = 1) {
     return (cCrucibleChoice2);
 }
 
-// A boon that can be offered now: not offered yet, and with a Poor tier if the offer is a Poor one.
+// The tech of the boon's next tier; -1 once it has none left.
+int crucibleShopNextTech(int boon = 0) {
+    int tier = xsArrayGetInt(crucibleBoonNext, boon);
+
+    if (tier >= cCrucibleTiers) {
+        return (-1);
+    }
+
+    return (xsArrayGetInt(crucibleBoonTier, boon * cCrucibleTiers + tier));
+}
+
+// A boon that can be offered now: not on the Wonder already, a next tier left, and that tier Poor if the offer is.
 bool crucibleShopOfferable(int boon = 0) {
-    if (xsArrayGetInt(crucibleBoonTaken, boon) == 1) {
+    if (xsArrayGetInt(crucibleBoonPending, boon) == 1) {
         return (false);
     }
 
-    return ((crucibleShopPoor == false) || (xsArrayGetInt(crucibleBoonLowest, boon) == 0));
+    if (crucibleShopNextTech(boon) < 0) {
+        return (false);
+    }
+
+    return ((crucibleShopPoor == false) || (xsArrayGetInt(crucibleBoonNext, boon) == 0));
 }
 
 // A boon is of `category`; every boon is of category -1.
@@ -76,29 +95,33 @@ int crucibleShopAvailable(int category = 0) {
     return (count);
 }
 
-// A random category with boons left, not of axis `skipAxis`; -1 if none.
+bool crucibleShopEligible(int category = 0, int skipAxis = -1) {
+    return ((xsArrayGetInt(crucibleCategoryAxis, category) != skipAxis) && (crucibleShopAvailable(category) > 0));
+}
+
+// A category with boons left, not of axis `skipAxis`, drawn by weight; -1 if none.
 int crucibleShopRandomCategory(int skipAxis = -1) {
-    int count = 0;
+    int total = 0;
 
     for (a = 0; < cCrucibleCategories) {
-        if ((xsArrayGetInt(crucibleCategoryAxis, a) != skipAxis) && (crucibleShopAvailable(a) > 0)) {
-            count = count + 1;
+        if (crucibleShopEligible(a, skipAxis)) {
+            total = total + xsArrayGetInt(crucibleCategoryWeight, a);
         }
     }
 
-    if (count == 0) {
+    if (total <= 0) {
         return (-1);
     }
 
-    int roll = xsGetRandomNumberLH(0, count);
+    int roll = xsGetRandomNumberLH(0, total);
 
     for (b = 0; < cCrucibleCategories) {
-        if ((xsArrayGetInt(crucibleCategoryAxis, b) != skipAxis) && (crucibleShopAvailable(b) > 0)) {
-            if (roll == 0) {
+        if (crucibleShopEligible(b, skipAxis)) {
+            roll = roll - xsArrayGetInt(crucibleCategoryWeight, b);
+
+            if (roll < 0) {
                 return (b);
             }
-
-            roll = roll - 1;
         }
     }
 
@@ -148,7 +171,6 @@ void crucibleShopOpen() {
     }
 }
 
-
 // A random boon of the category that can be offered now; -1 if none.
 int crucibleShopBoon(int category = 0) {
     int count = crucibleShopAvailable(category);
@@ -174,53 +196,6 @@ int crucibleShopBoon(int category = 0) {
     return (-1);
 }
 
-// How many tiers up the roll gives: each (tiers, chance) in turn takes its slice of 100.
-int crucibleShopTiersUp() {
-    int roll = xsGetRandomNumberLH(0, 100);
-
-    for (i = 0; < cCrucibleTierUps) {
-        int chance = xsArrayGetInt(crucibleTierUpChance, i) + crucibleShopTierBonus;
-
-        if (roll < chance) {
-            return (xsArrayGetInt(crucibleTierUpSteps, i));
-        }
-
-        roll = roll - chance;
-    }
-
-    return (0);
-}
-
-// The tech of the boon's rolled tier: its lowest, up by the roll, down to the best tier it has a tech for.
-int crucibleShopTierTech(int boon = 0) {
-    int lowest = xsArrayGetInt(crucibleBoonLowest, boon);
-    int tier = lowest;
-
-    if (crucibleShopPoor == false) {
-        tier = lowest + crucibleShopTiersUp();
-    }
-
-    if (tier >= cCrucibleTiers) {
-        tier = cCrucibleTiers - 1;
-    }
-
-    while (tier >= lowest) {
-        int tech = xsArrayGetInt(crucibleBoonTier, boon * cCrucibleTiers + tier);
-
-        if (tech >= 0) {
-            if (tier > lowest) {
-                xsChatData("Shop: a boon rolled %d tiers up", tier - lowest);
-            }
-
-            return (tech);
-        }
-
-        tier = tier - 1;
-    }
-
-    return (-1);
-}
-
 // A meta upgrade's level, read when needed (the bank loads it at the start); 0 without one.
 int crucibleShopMeta(int variable = -1) {
     if (variable < 0) {
@@ -228,6 +203,21 @@ int crucibleShopMeta(int variable = -1) {
     }
 
     return (xsTriggerVariable(variable));
+}
+
+// The tier's price less the Wonder's boon discount (percent off by its level).
+void crucibleShopPrice(int tech = -1, int tier = 0) {
+    int level = crucibleShopMeta(cCrucibleDiscountVariable);
+
+    if (level >= xsArrayGetSize(crucibleShopDiscount)) {
+        level = xsArrayGetSize(crucibleShopDiscount) - 1;
+    }
+
+    int keep = 100 - xsArrayGetInt(crucibleShopDiscount, level);
+    xsEffectAmount(cModifyTech, tech, cAttrSetFoodCost, xsArrayGetInt(crucibleTierCost, tier * 4) * keep / 100, 1);
+    xsEffectAmount(cModifyTech, tech, cAttrSetWoodCost, xsArrayGetInt(crucibleTierCost, tier * 4 + 1) * keep / 100, 1);
+    xsEffectAmount(cModifyTech, tech, cAttrSetStoneCost, xsArrayGetInt(crucibleTierCost, tier * 4 + 2) * keep / 100, 1);
+    xsEffectAmount(cModifyTech, tech, cAttrSetGoldCost, xsArrayGetInt(crucibleTierCost, tier * 4 + 3) * keep / 100, 1);
 }
 
 // The button for the next boon: the one with the fewest unbought boons (a free one first), the lowest of those.
@@ -243,19 +233,24 @@ int crucibleShopFreeButton() {
     return (best);
 }
 
-// Bought boons free their buttons.
+// Bought boons free their buttons, and their boon moves on to its next tier.
 void crucibleShopFreeBought() {
     int i = 0;
     int button = 0;
+    int boon = 0;
     int last = 0;
 
     while (i < crucibleShopPendingCount) {
         if (xsGetTechState(xsArrayGetInt(crucibleShopPendingTech, i), 1) == cTechStateDone) {
             button = xsArrayGetInt(crucibleShopPendingButton, i);
+            boon = xsArrayGetInt(crucibleShopPendingBoon, i);
             last = crucibleShopPendingCount - 1;
             xsArraySetInt(crucibleShopButtonLoad, button, xsArrayGetInt(crucibleShopButtonLoad, button) - 1);
+            xsArraySetInt(crucibleBoonNext, boon, xsArrayGetInt(crucibleBoonNext, boon) + 1);
+            xsArraySetInt(crucibleBoonPending, boon, 0);
             xsArraySetInt(crucibleShopPendingTech, i, xsArrayGetInt(crucibleShopPendingTech, last));
             xsArraySetInt(crucibleShopPendingButton, i, xsArrayGetInt(crucibleShopPendingButton, last));
+            xsArraySetInt(crucibleShopPendingBoon, i, xsArrayGetInt(crucibleShopPendingBoon, last));
             crucibleShopPendingCount = last;
         } else {
             i++;
@@ -263,30 +258,34 @@ void crucibleShopFreeBought() {
     }
 }
 
-// One boon of the category per slot, each on the freest button. Stacked boons: the one on top researches, then the
-// next shows.
+// One boon of the category per slot, each at its next tier on the freest button. Stacked boons: the one on top
+// researches, then the next shows.
 void crucibleShopOffer(int category = 0) {
     int offered = 0;
     int slots = cCrucibleSlots + crucibleShopMeta(cCrucibleSlotsVariable);
     int speed = crucibleShopMeta(cCrucibleSpeedVariable);
     int time = cCrucibleBoonTime * (cCrucibleSpeedTiers - speed) / cCrucibleSpeedTiers;
+    int boon = -1;  // declared outside the loop: XS runs a declaration in a loop only once
+    int tech = -1;
+    int button = 0;
 
     if (slots > cCrucibleMaxSlots) {
         slots = cCrucibleMaxSlots;
     }
 
     if (time < 1) {
-        time = 1;  // at 0 the game researches a tech by itself
+        time = 1;  // the fastest is 1 s: at 0 the game researches a tech by itself
     }
 
     for (slot = 0; < slots) {
-        int boon = crucibleShopBoon(category);
+        boon = crucibleShopBoon(category);
 
         if (boon >= 0) {
-            int tech = crucibleShopTierTech(boon);
+            tech = crucibleShopNextTech(boon);
             crucibleShopFreeBought();
-            int button = crucibleShopFreeButton();
+            button = crucibleShopFreeButton();
 
+            crucibleShopPrice(tech, xsArrayGetInt(crucibleBoonNext, boon));
             xsEffectAmount(cModifyTech, tech, cAttrSetTime, time, 1);
             xsEffectAmount(cModifyTech, tech, cAttrSetLocation, cCrucibleWonder, 1);
             xsEffectAmount(cModifyTech, tech, cAttrSetButton, button, 1);
@@ -295,10 +294,11 @@ void crucibleShopOffer(int category = 0) {
             if (crucibleShopPendingCount < cCrucibleShopPendingSize) {
                 xsArraySetInt(crucibleShopPendingTech, crucibleShopPendingCount, tech);
                 xsArraySetInt(crucibleShopPendingButton, crucibleShopPendingCount, button);
+                xsArraySetInt(crucibleShopPendingBoon, crucibleShopPendingCount, boon);
                 crucibleShopPendingCount++;
             }
 
-            xsArraySetInt(crucibleBoonTaken, boon, 1);
+            xsArraySetInt(crucibleBoonPending, boon, 1);
             offered = offered + 1;
         }
     }
@@ -312,6 +312,13 @@ void crucibleShopOpenPoor() {
     crucibleShopPoor = true;
     crucibleShopOffer(-1);
     crucibleShopPoor = false;
+}
+
+// The player picked `category`: the shop offers it more often from now on.
+void crucibleShopFavour(int category = -1) {
+    if (category >= 0) {
+        xsArraySetInt(crucibleCategoryWeight, category, xsArrayGetInt(crucibleCategoryWeight, category) + cCrucibleCategoryBoost);
+    }
 }
 
 rule crucibleShop
@@ -337,8 +344,10 @@ rule crucibleShop
 
     if ((crucibleShopState == 2) && (xsGetTechState(crucibleShopChoice(crucibleShopPicked), 1) == cTechStateDone)) {
         if (crucibleShopPicked == 1) {
+            crucibleShopFavour(crucibleShopCategory1);
             crucibleShopOffer(crucibleShopCategory1);
         } else {
+            crucibleShopFavour(crucibleShopCategory2);
             crucibleShopOffer(crucibleShopCategory2);
         }
 

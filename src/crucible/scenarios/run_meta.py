@@ -20,8 +20,8 @@ The towers and walls are handed over remade for the player (a unit that changes 
 the player's boons missed them): towers as the latest tower upgrade bought (Watch, Sentry, Guard), the Small Walls as
 Small or Medium Walls, undamaged; the camp's Fortified Walls with the Fortified Wall upgrade.
 
-The Wonder's upgrades: starting resources (triggers), and resources lasting longer, the resource densities and the
-villagers' training time and cost (XS, at the start).
+The Wonder's upgrades: starting resources (triggers), and resources lasting longer and the resource densities (RoR's
+gather bonuses, multiplied: GATHER), and the villagers' training time and cost (XS, at the start).
 """
 
 from math import dist
@@ -103,6 +103,9 @@ ROWS = {
     meta.DOCK_TECHS_2.key: (meta.DOCK, 3),
 }
 OWN_UPGRADE = (28,)  # Wheel: its own upgrade, not in the Market's row
+NEVER = (19,)  # Writing: shared vision with allies, and the Traders (everyone's ally) see the whole map
+# The gather bonuses (player resources) each Wonder resource upgrade multiplies: food (and fishing), wood, mining
+GATHER = {"food": (190, 219), "wood": (189,), "mining": (47, 79)}
 # Upgrade -> (unit, the age the player needs) it unlocks.
 UNIT_UNLOCKS = {
     meta.TOWER.key: ((79, 1),),  # building Watch Towers (the tech alone didn't, playtest 2026-11-23)
@@ -167,7 +170,7 @@ def unlocks(data) -> dict[str, dict[int, list[int]]]:
     for key, (building, age) in ROWS.items():
         at = sorted({t for place in _chain(chains, building) for t in techs_at(data, place)})
         first = min(a for b, a in ROWS.values() if b == building)  # a tech with no age (Jihad) joins the first row
-        techs[key] = tuple(t for t in at if (_age(data, t) or first) == age and t not in OWN_UPGRADE)
+        techs[key] = tuple(t for t in at if (_age(data, t) or first) == age and t not in (*OWN_UPGRADE, *NEVER))
 
     return {
         key: {tech: [r for r in data.techs[tech].required_techs if r >= 0] for tech in found}
@@ -212,29 +215,6 @@ def age_chains(data) -> dict[int, dict[int, int]]:
                 chains.setdefault(command.a, {})[age] = command.b
 
     return chains
-
-
-def gaia_resources(s, data) -> dict[str, list[int]]:
-    """The map's gaia resource types by what the Wonder's upgrades call them: natural food (forage, hunt, fish), wood,
-    mining (gold, stone and whales)."""
-    gaia = data.civs[0].units
-    found: dict[str, set[int]] = {"food": set(), "wood": set(), "mining": set()}
-
-    for unit in s.unit_manager.units[0]:
-        kind = gaia[unit.unit_const] if unit.unit_const < len(gaia) else None
-        storage = [r for r in (kind.resource_storages if kind else []) if r.type in (0, 1, 2, 3) and r.amount > 0]
-
-        if not storage:
-            continue
-
-        if kind.class_ == WHALE_CLASS or storage[0].type in (2, 3):
-            found["mining"].add(unit.unit_const)
-        elif storage[0].type == 1:
-            found["wood"].add(unit.unit_const)
-        else:
-            found["food"].add(unit.unit_const)
-
-    return {k: sorted(v) for k, v in found.items()}
 
 
 def _keep(ctx, name: str, conditions: list[dict], unit, allies: int, player: int) -> None:
@@ -317,10 +297,9 @@ def add(
     villagers,
     chains: dict[int, dict[int, int]],
     unlocked: dict[str, dict[int, list[int]]],
-    resources: dict[str, list[int]] | None = None,
 ) -> None:
     """`villagers`: where each extra villager starts (tile centres), in order. `chains`: age_chains(). `unlocked`:
-    unlocks(). `resources`: gaia_resources()."""
+    unlocks()."""
     blocks.bank.load(ctx, dict.fromkeys(meta.KEYS, 0), name="Meta: load upgrades")
 
     for level, (x, y) in enumerate(villagers[: meta.VILLAGERS.levels], start=1):
@@ -384,7 +363,7 @@ def add(
             )
 
     _defences(ctx, s, allies, player)
-    _wonder(ctx, player, resources or {})
+    _wonder(ctx, player)
 
 
 def _defences(ctx, s, allies: int, player: int) -> None:
@@ -449,7 +428,7 @@ def _variable_id(ctx, name: str) -> int:
     return next(v.variable_id for v in ctx.scenario.trigger_manager.variables if v.name == name)
 
 
-def _wonder(ctx, player: int, resources: dict[str, list[int]]) -> None:
+def _wonder(ctx, player: int) -> None:
     """Starting resources (a trigger a level); lasting resources, densities and the villagers' time and cost (XS)."""
     for level in range(1, meta.STARTING_RESOURCES.levels + 1):
         ctx.trigger(
@@ -471,35 +450,28 @@ def _wonder(ctx, player: int, resources: dict[str, list[int]]) -> None:
         return f"xsTriggerVariable({_variable_id(ctx, upgrade.key)})"
 
     density = {"food": meta.FOOD_DENSITY, "wood": meta.WOOD_DENSITY, "mining": meta.MINING_DENSITY}
-    calls = [
-        f"    crucibleMetaResources({unit}, percent, {level(density[kind])});"
-        for kind, units in resources.items()
-        for unit in units
-    ]
+    calls = "\n".join(
+        f"    crucibleMetaGather({resource}, percent, {level(density[kind])});"
+        for kind, resources in GATHER.items()
+        for resource in resources
+    )
     villagers = "\n".join(
         f"    xsEffectAmount(cMulAttribute, {unit}, {TRAIN_TIME}, 1.0 - 0.01 * {VILLAGER_SPEED} * speed, {player});\n"
         f"    xsEffectAmount(cAddAttribute, {unit}, {FOOD_COST}, 0.0 - {VILLAGER_COST} * cost, {player});"
         for unit in (VILLAGER_MALE, VILLAGER_FEMALE)
     )
-    nl = "\n"
     ctx.xs(f"""// ---- crucible run: the Wonder's upgrades ----
-int crucibleMetaPiles = 0;  // how many piles the rule changed (reported: the doubling didn't show, 2026-11-23)
-
-// Each of `type`'s resources holds `percent` percent, times DENSITY with its density upgrade.
-void crucibleMetaResources(int type = -1, int percent = 100, int dense = 0) {{
-    int ids = xsGetPlayerUnitIds(0, type, -1);
-    int id = -1;
-    int factor = percent;
+// A gather bonus (a player resource: how much a gatherer gets per unit a pile loses) times `percent` percent, and
+// times DENSITY with its density upgrade, as RoR's "Resources last" bonuses multiply them. (Setting each pile's amount
+// from XS didn't show in play, 2026-11-23.)
+void crucibleMetaGather(int resource = -1, int percent = 100, int dense = 0) {{
+    float factor = 0.01 * percent;
 
     if (dense > 0) {{
         factor = factor * {DENSITY};
     }}
 
-    for (i = 0; < xsArrayGetSize(ids)) {{
-        id = xsArrayGetInt(ids, i);
-        xsSetUnitProperty(id, cUnitAttributeHeld, xsGetUnitProperty(id, cUnitAttributeHeld) * factor / 100);
-        crucibleMetaPiles++;
-    }}
+    xsSetPlayerAttribute({player}, resource, xsPlayerAttribute({player}, resource) * factor);
 }}
 
 rule crucibleMetaWonder
@@ -511,12 +483,7 @@ rule crucibleMetaWonder
     }}
 
     int percent = 100 + {LASTING} * {level(meta.RESOURCES_LAST)};
-{nl.join(calls)}
-    if ((percent > 100) || ({" + ".join(level(u) for u in density.values())} > 0)) {{
-        xsChatData("The Wonder: " + crucibleMetaPiles + " resource piles at " + percent + "% (density levels: "
-            + {level(meta.FOOD_DENSITY)} + " " + {level(meta.WOOD_DENSITY)} + " " + {level(meta.MINING_DENSITY)} + ")");
-    }}
-
+{calls}
     int speed = {level(meta.VILLAGER_SPEED)};
     int cost = {level(meta.VILLAGER_COST)};
 {villagers}

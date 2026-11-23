@@ -41,7 +41,7 @@ def test_buildings_cover_every_age(data):
 
 
 def test_tech_cost_and_time(data):
-    assert compiled("hittites_5", data) == [(103, 28, 1, 1, -45)]  # Wheel research time -50%
+    assert compiled("hittites_5", data) == [(103, 28, 1, 0, 45)]  # Wheel research time -50%: set, 90 to 45 s
     assert compiled("carthaginians_7", data) == [(101, 34, 0, 0, 0), (101, 34, 3, 0, 0)]  # Nobility free
 
 

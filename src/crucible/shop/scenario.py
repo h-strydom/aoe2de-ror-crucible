@@ -43,11 +43,23 @@ def xs(config: ShopConfig, techs: dict[str, int], choices_variable: int, **meta)
     return data + "\n" + RUNTIME.read_text(encoding="utf-8")
 
 
-def add(ctx, config: ShopConfig, techs: dict[str, int], *, slots: str | None = None, speed: str | None = None) -> None:
-    """`slots` and `speed`: the names of the meta upgrades' trigger variables (more boons, faster boons), if any."""
+def add(
+    ctx,
+    config: ShopConfig,
+    techs: dict[str, int],
+    *,
+    slots: str | None = None,
+    speed: str | None = None,
+    discount: str | None = None,
+    discounts: tuple[int, ...] = (),
+) -> None:
+    """`slots`, `speed` and `discount`: the names of the meta upgrades' trigger variables (more boons, faster boons,
+    cheaper boons), if any; `discounts`: the percent off each discount level adds."""
     _triggers(ctx, techs)
     meta = {
         "slots_variable": variable_id(ctx, ctx.var(slots)) if slots else -1,
         "speed_variable": variable_id(ctx, ctx.var(speed)) if speed else -1,
+        "discount_variable": variable_id(ctx, ctx.var(discount)) if discount else -1,
+        "discounts": discounts,
     }
     ctx.xs(xs(config, techs, variable_id(ctx, CHOICES_VARIABLE), **meta))

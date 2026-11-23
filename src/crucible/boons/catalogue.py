@@ -8,7 +8,7 @@ import random
 from collections.abc import Iterable
 
 from crucible.boons.civs import CIVS
-from crucible.boons.model import AXES, Boon, Category, Flag
+from crucible.boons.model import OFFER_AXES, Boon, Category, Flag
 
 ALL: tuple[Boon, ...] = tuple(b for civ in CIVS for b in civ.BOONS)
 
@@ -27,7 +27,7 @@ def offer(n: int, rng: random.Random, pool: Iterable[Boon] = ALL) -> list[tuple[
     """Up to `n` (category, boon) choices: each category from a different axis, each boon different, drawbacks never
     offered."""
     pool = [b for b in pool if not b.in_category(Flag.DRAWBACK)]
-    axes = [a for a in AXES if a is not Flag]
+    axes = [a for a in OFFER_AXES if a is not Flag]
     rng.shuffle(axes)
     chosen: list[tuple[Category, Boon]] = []
 

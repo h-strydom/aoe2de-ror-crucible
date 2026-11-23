@@ -111,7 +111,6 @@ MAIN_ONLY = Age.POST_IRON  # lines of this age (Legionaries, Centurions, Cataphr
 MOVE_ON = False  # an age up moves each lane's main slot on as far as the new age opens (off: Bronze came too fast)
 START_COUNT = 2  # units in each slot before a lane's first step
 
-TIER_UP_PER_WAVE = 1  # percent added to each tier-up chance in the shop per wave defeated
 DOUBLE_EVERY = 5  # every this many waves defeated: two boon choices
 
 

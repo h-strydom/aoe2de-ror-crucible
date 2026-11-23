@@ -9,7 +9,7 @@
 - Town Centers can be built from the Bronze Age: RoR's own (RTWC1X, the villager's slot 11, which builds into the
   Town Center), which RoR switches on with the Government Center and the lockdown had switched off;
 - the Allies age up when the player does: their age tech upgrades their buildings' looks (run_xs keeps them at 1 HP);
-- fish (not whales) hold twice their food: fishing ships don't move on to the next fish they can see.
+- fish give twice their food (Fishing Productivity): fishing ships don't move on to the next fish they can see.
 """
 
 WATCH_TOWER, SENTRY_TOWER, GUARD_TOWER, BALLISTA_TOWER = 79, 234, 235, 236
@@ -23,7 +23,7 @@ TOWN_CENTER_AGE = 2  # the Bronze Age: Town Centers can be built (playtest 2026-
 TOWN_CENTER_BUILT = 621  # RTWC1X: what villagers place (slot 11), finished as the Town Center (its stack unit)
 AGES = ((1, 101), (2, 102), (3, 103))  # (current age the player reaches, the age tech): Tool, Bronze, Iron
 CURRENT_AGE = 6  # resource
-FISH_CLASSES = (5, 33)  # fish and shore fish; whales are class 63
+FISHING = 219  # player resource: Fishing Productivity
 TOOL_AGE = 101
 VILLAGER_CLASS = 4  # the villager's job units (builder, farmer...) are trained "at" the Town Center: never off
 ALLOWED = (  # what the player can build or train out of the box
@@ -150,25 +150,15 @@ def add(ctx, *, player: int, allies: int, gates: list[int], locked: tuple[list[i
         )
 
 
-def fish_xs(fish: list[int]) -> str:
-    calls = "\n".join(f"    crucibleRunDoubleFish({unit});" for unit in fish)
-
-    return f"""// ---- crucible run: fish hold twice their food ----
-void crucibleRunDoubleFish(int type = -1) {{
-    int ids = xsGetPlayerUnitIds(0, type, -1);
-    int id = -1;
-
-    for (i = 0; < xsArrayGetSize(ids)) {{
-        id = xsArrayGetInt(ids, i);
-        xsSetUnitProperty(id, cUnitAttributeHeld, 2 * xsGetUnitProperty(id, cUnitAttributeHeld));
-    }}
-}}
-
+def fish_xs(player: int) -> str:
+    """Fishing Productivity (219: what a fishing ship gets per unit a fish loses) doubled: setting each fish's amount
+    from XS didn't show in play (2026-11-23)."""
+    return f"""// ---- crucible run: fish give twice their food ----
 rule crucibleRunFish
     active
     highFrequency
 {{
-{calls}
+    xsSetPlayerAttribute({player}, {FISHING}, xsPlayerAttribute({player}, {FISHING}) * 2.0);
     xsDisableSelf();
 }}
 """

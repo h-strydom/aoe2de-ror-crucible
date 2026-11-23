@@ -141,7 +141,7 @@ STARTING_RESOURCES = Upgrade(
 RESOURCES_LAST = Upgrade(
     "meta_resources_last",
     "Lasting resources",
-    "Resources hold 2% more.",
+    "Resources last 2% longer.",
     "wonder",
     2,
     10,
@@ -163,7 +163,7 @@ BOON_SLOTS = Upgrade(
 BOON_SPEED = Upgrade(
     "meta_boon_speed",
     "Faster boons",
-    "Boons research faster: instant at the fifth level.",
+    "Boons research faster: 1 second at the fifth level.",
     "wonder",
     4,
     5,
@@ -171,16 +171,27 @@ BOON_SPEED = Upgrade(
     label="boon speed",
 )
 FOOD_DENSITY = Upgrade(
-    "meta_food_density", "Rich hunting", "Hunt, forage and fish hold twice the food.", "wonder", 5, tier=3
+    "meta_food_density", "Rich hunting", "Food and fish last twice as long.", "wonder", 5, tier=3
 )
-WOOD_DENSITY = Upgrade("meta_wood_density", "Rich forests", "Trees hold twice the wood.", "wonder", 6, tier=3)
+WOOD_DENSITY = Upgrade("meta_wood_density", "Rich forests", "Trees last twice as long.", "wonder", 6, tier=3)
 MINING_DENSITY = Upgrade(
-    "meta_mining_density", "Rich mines", "Gold, stone and whales hold twice as much.", "wonder", 7, tier=3
+    "meta_mining_density", "Rich mines", "Gold and stone mines last twice as long.", "wonder", 7, tier=3
 )
 VILLAGER_SPEED = Upgrade(
     "meta_villager_speed", "Quick villagers", "Villagers train 10% faster.", "wonder", 8, 5, tier=4
 )
 VILLAGER_COST = Upgrade("meta_villager_cost", "Cheap villagers", "Villagers cost 5 food less.", "wonder", 9, 5, tier=4)
+BOON_DISCOUNTS = (20, 15, 12, 10, 8, 7, 6, 5, 4, 3)  # percent off boons each level adds: 90% at the tenth
+BOON_DISCOUNT = Upgrade(
+    "meta_boon_discount",
+    "Cheaper boons",
+    "Boons cost less: 20% off at the first level, 90% at the tenth.",
+    "wonder",
+    10,
+    len(BOON_DISCOUNTS),
+    tier=1,
+    label="boon discount",
+)
 
 # ---- tier 1, player 2: a bigger start ----
 VILLAGERS_UPGRADE = Upgrade(
@@ -621,6 +632,7 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     MINING_DENSITY,
     VILLAGER_SPEED,
     VILLAGER_COST,
+    BOON_DISCOUNT,
     VILLAGERS_UPGRADE,
     HOUSES,
     GRANARY_UPGRADE,

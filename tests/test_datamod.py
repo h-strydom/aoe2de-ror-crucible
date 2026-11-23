@@ -89,8 +89,8 @@ def test_shop_pool_and_xs(techs):
     assert f"const int cCrucibleBoons = {len(boons)};" in code
     assert "const int cCrucibleSlots = 3;" in code
     assert "const int cCrucibleChoices = 4;" in code
-    assert "xsArraySetInt(crucibleTierUpChance, 0, 10);" in code  # +2 tiers: 10%
-    assert "xsArraySetInt(crucibleTierUpChance, 1, 20);" in code  # +1 tier: 20%
+    assert "crucibleTierUpChance" not in code  # no skipping tiers
+    assert "xsArraySetInt(crucibleTierCost, 4, 250);" in code  # Common: 250 food
 
 
 def test_styles_lose_their_bonuses_and_get_every_tech(tmp_path):
