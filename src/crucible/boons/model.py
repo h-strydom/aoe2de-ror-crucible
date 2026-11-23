@@ -161,12 +161,24 @@ CIV_TYPES: dict[Civ, tuple[CivType, ...]] = {
 
 Axis = type[Domain] | type[Kind] | type[Subject] | type[Building] | type[Civ] | type[CivType] | type[Flag]
 AXES: tuple[Axis, ...] = (Domain, Kind, Subject, Building, Civ, CivType, Flag)
-# Cuts stop here (a percent, as a negative amount); other cuts at -100%. A discount past 80% made things all but free.
-CAPS = {Stat.COST: -0.8, Stat.FOOD_COST: -0.8, Stat.WOOD_COST: -0.8, Stat.TRIBUTE_TAX: -0.8, Stat.RESEARCH_TIME: -1.0}
+# Where a percentage stops: cuts (negative) at -100% unless listed, speeds (positive) only where listed. Discounts
+# stop at 75%; research time at 1 s ("instant"); other production speeds at +90% (playtest 2026-11-23).
+DISCOUNT_CAP, SPEED_CAP = -0.75, 0.9
+CAPS = {
+    Stat.COST: DISCOUNT_CAP,
+    Stat.FOOD_COST: DISCOUNT_CAP,
+    Stat.WOOD_COST: DISCOUNT_CAP,
+    Stat.TRIBUTE_TAX: DISCOUNT_CAP,
+    Stat.RESEARCH_TIME: -1.0,
+    Stat.TRAINING_SPEED: SPEED_CAP,
+    Stat.BUILD_SPEED: SPEED_CAP,
+    Stat.RESEARCH_SPEED: SPEED_CAP,
+}
 # What each tier past a capped cut adds instead (costs: Boon._overshoot picks research time or training/build speed)
 OVERSHOOT = {
     Stat.RESEARCH_TIME: (Stat.COST, pct(-0.05)),  # research time at 1 s: research costs 5% less a tier
     Stat.TRIBUTE_TAX: (Stat.ALL_RESOURCES, flat(25)),
+    Stat.RESEARCH_SPEED: (Stat.ALL_RESOURCES, flat(25)),  # no stat for every tech's cost
 }
 OFFER_AXES: tuple[Axis, ...] = (Domain, Kind, Subject, Building, Flag)  # what a choice can be
 Category = Domain | Kind | Subject | Building | Civ | CivType | Flag
@@ -269,6 +281,8 @@ class Boon(BaseModel):
 
         if stat == Stat.COST and (effect.techs or (effect.techs is None and self.techs)):
             stat, change = Stat.RESEARCH_TIME, pct(-0.1)  # a research cost capped: faster research
+        elif stat in (Stat.TRAINING_SPEED, Stat.BUILD_SPEED):
+            stat, change = Stat.COST, pct(-0.05)  # as fast as it gets: cheaper
         elif stat in (Stat.COST, Stat.FOOD_COST, Stat.WOOD_COST):
             buildings = Subject.BUILDING in self.subjects
             stat, change = (Stat.BUILD_SPEED if buildings else Stat.TRAINING_SPEED), pct(0.05)
@@ -280,9 +294,9 @@ class Boon(BaseModel):
     @property
     def steps(self) -> dict[Tier, tuple[Effect, ...]]:
         """Each tier from the first to Heirloom: what it adds over the tier before (an effect new at a tier, or in
-        another mode, whole). Past the written tiers the last step repeats. A cut stops at its cap (CAPS: discounts at
-        80%, anything else at 100%); every tier after it adds the cut's overshoot extra instead (OVERSHOOT, stacking a
-        tier at a time), so a boon always runs to Heirloom (playtest 2026-11-23)."""
+        another mode, whole). Past the written tiers the last step repeats. A percentage stops at its cap (CAPS:
+        discounts at 75%, production speeds at +90%, other cuts at 100%); every tier after it adds the overshoot extra
+        instead (OVERSHOOT, stacking a tier at a time), so a boon always runs to Heirloom (playtest 2026-11-23)."""
         found: dict[Tier, tuple[Effect, ...]] = {}
         before: dict[tuple, Effect] = {}
         last: tuple[Effect, ...] = ()
@@ -313,11 +327,14 @@ class Boon(BaseModel):
             for effect in last:
                 key, amount = self._key(effect), effect.change.amount
 
-                if effect.change.mode is Mode.PERCENT and amount < 0:
-                    stat = effect.stat or self.stat
-                    amount = max(amount, round(CAPS.get(stat, -1.0) - running.get(key, 0.0), 6))
+                stat = effect.stat or self.stat
+                cap = CAPS.get(stat, -1.0 if amount < 0 else None)
 
-                    if amount >= 0:  # capped already: the overshoot's extra instead
+                if effect.change.mode is Mode.PERCENT and cap is not None and amount * cap > 0:  # towards its cap
+                    left = round(cap - running.get(key, 0.0), 6)
+                    amount = max(amount, left) if amount < 0 else min(amount, left)
+
+                    if amount * cap <= 0:  # capped already: the overshoot's extra instead
                         step.append(self._overshoot(effect))
                         continue
 

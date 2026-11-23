@@ -487,6 +487,22 @@ def _cap(upgrade: meta.Upgrade, opened: dict[int, str]) -> str:
     return expression
 
 
+def _texts(upgrades) -> list[str]:
+    """XS: an upgrade's tooltip by levels bought (`Upgrade.texts`), as crucibleHubText<n>(level)."""
+    lines = []
+
+    for n, u in enumerate(upgrades):
+        if not u.texts:
+            continue
+
+        lines.append(f"string crucibleHubText{n}(int level = 0) {{")
+        for level, text in enumerate(u.texts[:-1]):
+            lines += [f"    if (level == {level}) {{", f'        return ("{text}");', "    }"]
+        lines += [f'    return ("{u.texts[-1]}");', "}", ""]
+
+    return lines
+
+
 def xs(ctx, techs: dict[str, int]) -> str:
     """The rule that works out what's on offer (module docstring)."""
     upgrades, places = meta.UPGRADES, meta.PLACES
@@ -502,6 +518,7 @@ def xs(ctx, techs: dict[str, int]) -> str:
         "    return (otherwise);",
         "}",
         "",
+        *_texts(upgrades),
         "rule crucibleHubInit",
         "    active",
         "    highFrequency",
@@ -570,6 +587,8 @@ def xs(ctx, techs: dict[str, int]) -> str:
         name = f'"{u.title} (" + {level[u.key]} + "/" + c{n} + ")"'
         lines.append(f"    if (crucibleHubSend({n}, {variable}, s{n})) {{")
         lines.append(f"        xsSetTechName({techs[u.tech]}, 1, {name});")
+        if u.texts:
+            lines.append(f"        xsSetTechDescription({techs[u.tech]}, 1, crucibleHubText{n}({level[u.key]}));")
         lines.append("    }")
 
     for k, p in enumerate(places):

@@ -20,7 +20,7 @@ The towers and walls are handed over remade for the player (a unit that changes 
 the player's boons missed them): towers as the latest tower upgrade bought (Watch, Sentry, Guard), the Small Walls as
 Small or Medium Walls, undamaged; the camp's Fortified Walls with the Fortified Wall upgrade.
 
-The Wonder's upgrades: starting resources (triggers), and resources lasting longer and the resource densities (RoR's
+The Wonder's upgrades: starting resources (triggers), and the Town Centers' work rate, the resource densities (RoR's
 gather bonuses, multiplied: GATHER), and the villagers' training time and cost (XS, at the start).
 """
 
@@ -104,7 +104,7 @@ ROWS = {
 }
 OWN_UPGRADE = (28,)  # Wheel: its own upgrade, not in the Market's row
 NEVER = (19,)  # Writing: shared vision with allies, and the Traders (everyone's ally) see the whole map
-# The gather bonuses (player resources) each Wonder resource upgrade multiplies: food (and fishing), wood, mining
+# The gather bonuses (player resources) each Wonder density upgrade multiplies: food (and fishing), wood, mining
 GATHER = {"food": (190, 219), "wood": (189,), "mining": (47, 79)}
 # Upgrade -> (unit, the age the player needs) it unlocks.
 UNIT_UNLOCKS = {
@@ -140,7 +140,8 @@ CAVALRY_LINE = (("", meta.CAVALRY), (meta.HEAVY_CAVALRY_UPGRADE.key, meta.HEAVY_
 TOWER_LINE = ((meta.TOWER.key, 79), (meta.SENTRY_TOWER.key, 234), (meta.GUARD_TOWER.key, 235))
 WALL_LINE = ((meta.WALLS.key, SMALL_WALL), (meta.MEDIUM_WALL.key, MEDIUM_WALL))
 STARTING_RESOURCES = {"FOOD_STORAGE": 50, "WOOD_STORAGE": 50, "GOLD_STORAGE": 20, "STONE_STORAGE": 20}  # a level
-LASTING = 2  # percent more a resource holds, a level
+TOWN_CENTERS = (109, 71, 141, 142)  # the Town Center's look in each age: a building's work rate goes on every one
+WORK_RATE = 13  # unit attribute: a building's training and research speed
 DENSITY = 2  # how many times as much a density upgrade gives
 VILLAGER_SPEED = 10  # percent faster a level
 VILLAGER_COST = 5  # food less a level
@@ -429,7 +430,8 @@ def _variable_id(ctx, name: str) -> int:
 
 
 def _wonder(ctx, player: int) -> None:
-    """Starting resources (a trigger a level); lasting resources, densities and the villagers' time and cost (XS)."""
+    """Starting resources (a trigger a level); the Town Centers' work rate, densities and the villagers' time and
+    cost (XS)."""
     for level in range(1, meta.STARTING_RESOURCES.levels + 1):
         ctx.trigger(
             f"Meta: starting resources {level}",
@@ -451,7 +453,7 @@ def _wonder(ctx, player: int) -> None:
 
     density = {"food": meta.FOOD_DENSITY, "wood": meta.WOOD_DENSITY, "mining": meta.MINING_DENSITY}
     calls = "\n".join(
-        f"    crucibleMetaGather({resource}, percent, {level(density[kind])});"
+        f"    crucibleMetaGather({resource}, {level(density[kind])});"
         for kind, resources in GATHER.items()
         for resource in resources
     )
@@ -460,18 +462,18 @@ def _wonder(ctx, player: int) -> None:
         f"    xsEffectAmount(cAddAttribute, {unit}, {FOOD_COST}, 0.0 - {VILLAGER_COST} * cost, {player});"
         for unit in (VILLAGER_MALE, VILLAGER_FEMALE)
     )
+    rate = f"1.0 + 0.01 * {meta.TOWN_CENTER_SPEEDS} * busy"
+    town_centers = "\n".join(
+        f"    xsEffectAmount(cMulAttribute, {unit}, {WORK_RATE}, {rate}, {player});" for unit in TOWN_CENTERS
+    )
     ctx.xs(f"""// ---- crucible run: the Wonder's upgrades ----
-// A gather bonus (a player resource: how much a gatherer gets per unit a pile loses) times `percent` percent, and
-// times DENSITY with its density upgrade, as RoR's "Resources last" bonuses multiply them. (Setting each pile's amount
-// from XS didn't show in play, 2026-11-23.)
-void crucibleMetaGather(int resource = -1, int percent = 100, int dense = 0) {{
-    float factor = 0.01 * percent;
-
+// A gather bonus (a player resource: how much a gatherer gets per unit a pile loses) times DENSITY with its density
+// upgrade, as RoR's "Resources last" bonuses multiply them. (Setting each pile's amount from XS didn't show in play,
+// 2026-11-23.)
+void crucibleMetaGather(int resource = -1, int dense = 0) {{
     if (dense > 0) {{
-        factor = factor * {DENSITY};
+        xsSetPlayerAttribute({player}, resource, xsPlayerAttribute({player}, resource) * {DENSITY});
     }}
-
-    xsSetPlayerAttribute({player}, resource, xsPlayerAttribute({player}, resource) * factor);
 }}
 
 rule crucibleMetaWonder
@@ -482,8 +484,9 @@ rule crucibleMetaWonder
         return;  // after the bank's load
     }}
 
-    int percent = 100 + {LASTING} * {level(meta.RESOURCES_LAST)};
 {calls}
+    int busy = {level(meta.TOWN_CENTER_SPEED)};
+{town_centers}
     int speed = {level(meta.VILLAGER_SPEED)};
     int cost = {level(meta.VILLAGER_COST)};
 {villagers}

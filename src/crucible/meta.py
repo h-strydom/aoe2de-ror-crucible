@@ -83,6 +83,7 @@ class Upgrade:
     per: tuple[int, ...] = ()  # how many of `shows` each level hands over (default: one each, or all at once)
     caps: tuple[tuple[int, int], ...] = ()  # (tier, levels on offer once it's open): the Wonder's, which grow
     cost: tuple[int, int, int, int] = (0, 0, 0, 0)  # food, wood, gold, stone a level (placeholders: free)
+    texts: tuple[str, ...] = ()  # the tooltip by levels bought (0 to `levels`), set live: what the next adds
 
     @property
     def tech(self) -> str:
@@ -138,16 +139,22 @@ STARTING_RESOURCES = Upgrade(
     tier=1,
     label="starting resources",
 )
-RESOURCES_LAST = Upgrade(
-    "meta_resources_last",
-    "Lasting resources",
-    "Resources last 2% longer.",
+TOWN_CENTER_SPEEDS = 2  # percent faster a level
+TOWN_CENTER_SPEED = Upgrade(
+    "meta_town_center_speed",
+    "Busy Town Centers",
+    f"Town Centers work {TOWN_CENTER_SPEEDS}% faster a level: training and research.",
     "wonder",
     2,
     10,
     tier=1,
-    label="lasting resources",
+    label="town center speed",
     caps=((1, 5), (4, 10)),
+    texts=tuple(
+        f"Town Centers work {TOWN_CENTER_SPEEDS * (n + 1)}% faster with the next level (now {TOWN_CENTER_SPEEDS * n}%)."
+        for n in range(10)
+    )
+    + (f"Town Centers work {TOWN_CENTER_SPEEDS * 10}% faster: every level bought.",),
 )
 BOON_SLOTS = Upgrade(
     "meta_boon_slots",
@@ -181,16 +188,22 @@ VILLAGER_SPEED = Upgrade(
     "meta_villager_speed", "Quick villagers", "Villagers train 10% faster.", "wonder", 8, 5, tier=4
 )
 VILLAGER_COST = Upgrade("meta_villager_cost", "Cheap villagers", "Villagers cost 5 food less.", "wonder", 9, 5, tier=4)
-BOON_DISCOUNTS = (20, 15, 12, 10, 8, 7, 6, 5, 4, 3)  # percent off boons each level adds: 90% at the tenth
+BOON_DISCOUNTS = (15, 12, 10, 9, 8, 6, 5, 4, 3, 3)  # percent off boons each level adds: 75% at the tenth
 BOON_DISCOUNT = Upgrade(
     "meta_boon_discount",
     "Cheaper boons",
-    "Boons cost less: 20% off at the first level, 90% at the tenth.",
+    "Boons cost less: 15% off at the first level, 75% at the tenth.",
     "wonder",
     10,
     len(BOON_DISCOUNTS),
     tier=1,
     label="boon discount",
+    texts=tuple(
+        f"The next level takes {BOON_DISCOUNTS[n]}% more off boons: {sum(BOON_DISCOUNTS[: n + 1])}% off in all "
+        f"(now {sum(BOON_DISCOUNTS[:n])}%)."
+        for n in range(len(BOON_DISCOUNTS))
+    )
+    + (f"Boons cost {sum(BOON_DISCOUNTS)}% less: every level bought.",),
 )
 
 # ---- tier 1, player 2: a bigger start ----
@@ -624,7 +637,7 @@ HELEPOLISES = Upgrade(
 
 UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for Axemen
     STARTING_RESOURCES,
-    RESOURCES_LAST,
+    TOWN_CENTER_SPEED,
     BOON_SLOTS,
     BOON_SPEED,
     FOOD_DENSITY,

@@ -110,8 +110,9 @@ playtest 2026-11-23), drawn by weight: a category's weight starts at 10 and goes
 so the shop leans towards what they go for. Then a random boon of the one picked on each boon slot. The boons are the
 tiered ones (`crucible.boons`), and each tier is its own upgrade, stacking: a boon runs from its first tier to
 Heirloom, each tier adding a step (Assyrians' archer attack speed +11% a tier), and comes at its next tier only, back
-in the pool once that's bought. A cut stops at its cap (discounts 80%, research time 1 s); each tier past it adds
-an extra instead (research cost -5%, research time -10%, training or build speed +5%, or 25 of each resource). Each tier has its own price
+in the pool once that's bought. A percentage stops at its cap (discounts 75%, research time 1 s, other production
+speeds +90%); each tier past it adds an extra instead (research cost -5%, research time -10%, training or build
+speed +5%, cost -5%, or 25 of each resource). Each tier has its own price
 (`TIER_COSTS`: Poor free, Common 250 food, Improved 250 food 100 wood, Mastercrafted 250 food 100 gold, Legendary
 300 gold, Heirloom 300 food 300 gold), less the Wonder's boon discount. Every boon but drawbacks can come up. A boon
 goes on a free button of the Wonder's first two rows (1-10); boons only stack once all ten hold an unbought one. The

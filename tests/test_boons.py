@@ -77,19 +77,24 @@ def test_every_boon_steps_up_to_heirloom_and_stacks():
 
 
 def test_capped_cuts_overshoot_into_an_extra():
-    wheel = catalogue.by_id("hittites_4")  # Wheel research cost, written -25/-50/-100%: capped at -80%
+    wheel = catalogue.by_id("hittites_4")  # Wheel research cost, written -25/-50/-100%: capped at -75%
     totals = {(e.stat or wheel.stat): e.change.amount for e in wheel.total(Tier.HEIRLOOM)}
-    assert totals[Stat.COST] == -0.8
+    assert totals[Stat.COST] == -0.75
     assert totals[Stat.RESEARCH_TIME] == -0.3  # three tiers past the cap: -10% research time each
     time = catalogue.by_id("hittites_5")  # Wheel research time: capped at -100% (1 s), then cheaper research
     assert {e.stat for e in time.steps[Tier.HEIRLOOM]} == {Stat.COST}
     assert all(
-        e.change.amount >= -0.8
+        e.change.amount >= -0.75
         for b in catalogue.ALL
         for t in b.steps
         for e in b.total(t)
         if (e.stat or b.stat) in (Stat.COST, Stat.FOOD_COST, Stat.WOOD_COST) and e.change.mode.value == "%"
     )
+
+    houses = catalogue.by_id("lac_viet_4")  # build speed, written +25/+50/+100%: capped at +90%
+    totals = {(e.stat or houses.stat): e.change.amount for e in houses.total(Tier.HEIRLOOM)}
+    assert totals[Stat.BUILD_SPEED] == 0.9
+    assert totals[Stat.COST] == -0.15  # three tiers past the cap: 5% cheaper each
 
 
 def test_civs_are_never_a_choice():
