@@ -142,7 +142,7 @@ STARTING_RESOURCES = Upgrade(
     tier=1,
     label="starting resources",
 )
-TOWN_CENTER_SPEEDS = 2  # percent faster a level
+TOWN_CENTER_SPEEDS = 5  # percent faster a level (took in Quick villagers' +10% x 5, playtest 2026-11-23)
 TOWN_CENTER_SPEED = Upgrade(
     "meta_town_center_speed",
     "Busy Town Centers",
@@ -186,9 +186,6 @@ FOOD_DENSITY = Upgrade(
 WOOD_DENSITY = Upgrade("meta_wood_density", "Rich forests", "Trees last twice as long.", "wonder", 6, tier=3)
 MINING_DENSITY = Upgrade(
     "meta_mining_density", "Rich mines", "Gold and stone mines last twice as long.", "wonder", 7, tier=3
-)
-VILLAGER_SPEED = Upgrade(
-    "meta_villager_speed", "Quick villagers", "Villagers train 10% faster.", "wonder", 8, 5, tier=4
 )
 VILLAGER_COST = Upgrade("meta_villager_cost", "Cheap villagers", "Villagers cost 5 food less.", "wonder", 9, 5, tier=4)
 BOON_DISCOUNTS = (15, 12, 10, 9, 8, 6, 5, 4, 3, 3)  # percent off boons each level adds: 75% at the tenth
@@ -724,7 +721,6 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     FOOD_DENSITY,
     WOOD_DENSITY,
     MINING_DENSITY,
-    VILLAGER_SPEED,
     VILLAGER_COST,
     BOON_DISCOUNT,
     RUINS,

@@ -142,6 +142,16 @@ def xs(ctx, data, player: int, ruins: list[int], artifacts: list[int], artifact:
         ]
         trickles.append("    }")
 
+    scans = []
+
+    for g, name in enumerate(names):
+        for i in found[name]:
+            scans += [
+                f"    crucibleRelicBuildings = xsGetPlayerUnitIds({player}, {i}, crucibleRelicBuildings);",
+                f"    crucibleRelicScanBuildings({g}, {artifact});",
+            ]
+
+    name_sets = [f'    xsArraySetString(crucibleRelicNames, {g}, "{name}");' for g, name in enumerate(names)]
     speed = 1 + meta.ARTIFACT_SPEED_PERCENT / 100
     cost = 1 - meta.ARTIFACT_DISCOUNT_PERCENT / 100
     nl = "\n"
@@ -151,6 +161,10 @@ int crucibleRelicIds = -1;  // reused: the player's artifacts
 int crucibleRelicGroup = -1;  // unit type -> its building type (STRUCTURES), -1
 int crucibleRelicHeld = -1;  // building type -> 1 with an artifact garrisoned
 int crucibleRelicApplied = -1;  // building type -> 1 while its stages are on
+int crucibleRelicBuildings = -1;  // reused: the player's buildings of one type
+int crucibleRelicNames = -1;  // building type -> its name, for the chat
+int crucibleRelicTick = 0;
+int crucibleRelicSeen = -1;  // artifacts held and garrisoned, last said in the chat (as held * 100 + garrisoned)
 int crucibleRelicRoom = 0;  // population room given so far
 int crucibleRelicLimit = 0;  // population limit given so far
 const float cCrucibleRelicSpeed = {speed};
@@ -197,6 +211,25 @@ void crucibleRelicPick(int vars = -1, int count = 0, int keep = 0) {{
     }}
 }}
 
+// Fallback when the artifacts can't be found from themselves: each building of the list, what's garrisoned in it.
+void crucibleRelicScanBuildings(int kind = -1, int artifact = -1) {{
+    int inside = -1;
+
+    for (b = 0; < xsArrayGetSize(crucibleRelicBuildings)) {{
+        inside = xsGetGarrisonedUnitIds(xsArrayGetInt(crucibleRelicBuildings, b));
+
+        for (u = 0; < xsArrayGetSize(inside)) {{
+            if (xsGetUnitType(xsArrayGetInt(inside, u)) == artifact) {{
+                xsArraySetInt(crucibleRelicHeld, kind, 1);
+            }}
+        }}
+    }}
+}}
+
+void crucibleRelicScan() {{
+{nl.join(scans)}
+}}
+
 void crucibleRelicApply(int kind = -1, bool on = false) {{
     float speed = cCrucibleRelicSpeed;
     float cost = cCrucibleRelicCost;
@@ -220,6 +253,8 @@ rule crucibleRelicStart
     crucibleRelicGroup = xsArrayCreateInt({lookup}, -1, "crucibleRelicGroup");
     crucibleRelicHeld = xsArrayCreateInt({len(names)}, 0, "crucibleRelicHeld");
     crucibleRelicApplied = xsArrayCreateInt({len(names)}, 0, "crucibleRelicApplied");
+    crucibleRelicNames = xsArrayCreateString({len(names)}, "", "crucibleRelicNames");
+{nl.join(name_sets)}
 {nl.join(group_sets)}
     xsEnableRule("crucibleRelics");
     xsDisableSelf();
@@ -235,6 +270,8 @@ rule crucibleRelics
     int container = -1;
     int unitType = -1;
     int count = 0;
+    int held = 0;
+    int garrisoned = 0;
 
     if ({level(meta.RUIN_TRICKLE)} > 0) {{
         for (r = 0; < 4) {{
@@ -259,11 +296,13 @@ rule crucibleRelics
     }}
 
     crucibleRelicIds = xsGetPlayerUnitIds({player}, {artifact}, crucibleRelicIds);
+    held = xsArrayGetSize(crucibleRelicIds);
 
-    for (a = 0; < xsArrayGetSize(crucibleRelicIds)) {{
+    for (a = 0; < held) {{
         container = xsGetGarrisonedInUnitId(xsArrayGetInt(crucibleRelicIds, a));
 
         if (container >= 0) {{
+            garrisoned++;
             unitType = xsGetUnitType(container);
 
             if ((unitType >= 0) && (unitType < {lookup})) {{
@@ -274,8 +313,30 @@ rule crucibleRelics
         }}
     }}
 
+    if (held * 100 + garrisoned != crucibleRelicSeen) {{
+        crucibleRelicSeen = held * 100 + garrisoned;
+        xsChatData("Artifacts held: %d", held);
+        xsChatData("Artifacts found garrisoned: %d", garrisoned);
+    }}
+
+    crucibleRelicTick++;
+
+    if ((garrisoned == 0) && (crucibleRelicTick % 3 == 0)) {{
+        crucibleRelicScan();  // a garrisoned unit may not be listed as the player's: look inside the buildings
+    }}
+
     for (h = 0; < {len(names)}) {{
+        if ((garrisoned == 0) && (crucibleRelicTick % 3 != 0)) {{
+            break;  // between scans: keep what the last scan found
+        }}
+
         if (xsArrayGetInt(crucibleRelicHeld, h) != xsArrayGetInt(crucibleRelicApplied, h)) {{
+            if (xsArrayGetInt(crucibleRelicHeld, h) == 1) {{
+                xsChatData("Artifact: " + xsArrayGetString(crucibleRelicNames, h) + " boosted");
+            }} else {{
+                xsChatData("Artifact: " + xsArrayGetString(crucibleRelicNames, h) + " no longer boosted");
+            }}
+
             crucibleRelicApply(h, xsArrayGetInt(crucibleRelicHeld, h) == 1);
             xsArraySetInt(crucibleRelicApplied, h, xsArrayGetInt(crucibleRelicHeld, h));
         }}

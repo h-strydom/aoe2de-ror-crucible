@@ -360,12 +360,15 @@ def _tier_objectives(ctx, s) -> None:
     ctx.triggers(*specs)  # together: each activates the next
 
 
+ASKS = 5  # times the reset-or-win question comes back after a "No" (each its own decisions); the last asks no more
+
+
 def _reset(ctx) -> None:
     """A decision at every start, left open while the player shops: reset every upgrade to nothing bought (refunding
     what they cost: XS adds it to the stockpile, then the triggers clear the bank) and win, or save and win (the hub
-    ends and the run starts; every purchase is stored as it's made)."""
+    ends and the run starts; every purchase is stored as it's made). Either asks "Are you sure?" first; "No" asks the
+    question again (playtest 2026-11-23): a decision can't be shown twice, so each round has its own."""
     ctx.var(RESET_VARIABLE)
-    decision = ctx.next_decision_id()
     zero = [
         effect
         for key in meta.KEYS
@@ -375,38 +378,69 @@ def _reset(ctx) -> None:
         )
     ]
     win = [{"type": "declare_victory", "source_player": PLAYER, "enabled": True}]
-    ctx.triggers(
-        {
-            "name": "Hub: reset or win?",
-            "conditions": [],
-            "effects": [
+    reset = [{"type": "change_variable", "variable": RESET_VARIABLE, "operation": "SET", "quantity": 1}]
+    questions = [ctx.next_decision_id() for _ in range(ASKS + 1)]
+
+    def ask(n: int) -> dict:
+        return {
+            "type": "create_decision",
+            "decision_id": questions[n],
+            "message": "Reset all your upgrades (what they cost comes back), or save and start the run?",
+            "message_option1": "Reset everything",
+            "message_option2": "Save and win",
+        }
+
+    def chosen(decision: int, option: int) -> list[dict]:
+        return [{"type": "decision_triggered", "decision_id": decision, "decision_option": option}]
+
+    triggers = [{"name": "Hub: reset or win?", "conditions": [], "effects": [ask(0)]}]
+
+    for n, question in enumerate(questions):
+        if n == ASKS:  # the last round: no more questions
+            triggers += [
+                {"name": f"Hub: reset progress {n}", "conditions": chosen(question, 1), "effects": reset},
+                {"name": f"Hub: save and win {n}", "conditions": chosen(question, 2), "effects": win},
+            ]
+            break
+
+        for option, action, effects, label in (
+            (1, "reset progress", reset, "Yes, reset everything"),
+            (2, "save and win", win, "Yes, start the run"),
+        ):
+            sure = ctx.next_decision_id()
+            text = (
+                "Are you sure? Every upgrade goes back to nothing bought."
+                if option == 1
+                else "Are you sure? The hub ends and the run starts."
+            )
+            triggers += [
                 {
-                    "type": "create_decision",
-                    "decision_id": decision,
-                    "message": "Reset all your upgrades (what they cost comes back), or save and start the run?",
-                    "message_option1": "Reset everything",
-                    "message_option2": "Save and win",
-                }
-            ],
-        },
-        {
-            "name": "Hub: reset progress",
-            "conditions": [{"type": "decision_triggered", "decision_id": decision, "decision_option": 1}],
-            "effects": [{"type": "change_variable", "variable": RESET_VARIABLE, "operation": "SET", "quantity": 1}],
-        },
+                    "name": f"Hub: {action}? {n}",
+                    "conditions": chosen(question, option),
+                    "effects": [
+                        {
+                            "type": "create_decision",
+                            "decision_id": sure,
+                            "message": text,
+                            "message_option1": label,
+                            "message_option2": "No, go back",
+                        }
+                    ],
+                },
+                {"name": f"Hub: {action} {n}", "conditions": chosen(sure, 1), "effects": effects},
+                {"name": f"Hub: {action} not yet {n}", "conditions": chosen(sure, 2), "effects": [ask(n + 1)]},
+            ]
+
+    triggers.append(
         {
             "name": "Hub: reset refunded",
             "conditions": [
                 {"type": "variable_value", "variable": RESET_VARIABLE, "comparison": "EQUAL", "quantity": 2}
             ],
             "effects": [*zero, *_bank_currency(), *win],  # cleared, and on to the run
-        },
-        {
-            "name": "Hub: save and win",
-            "conditions": [{"type": "decision_triggered", "decision_id": decision, "decision_option": 2}],
-            "effects": win,
-        },
+        }
     )
+    ctx.triggers(*triggers)
 
 
 XS_HELPERS = """// ---- crucible hub: what's on offer ----

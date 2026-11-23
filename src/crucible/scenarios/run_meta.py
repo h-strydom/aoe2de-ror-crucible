@@ -21,7 +21,7 @@ the player's boons missed them): towers as the latest tower upgrade bought (Watc
 Small or Medium Walls, undamaged; the camp's Fortified Walls with the Fortified Wall upgrade.
 
 The Wonder's upgrades: starting resources (triggers), and the Town Centers' work rate, the resource densities (RoR's
-gather bonuses, multiplied: GATHER), and the villagers' training time and cost (XS, at the start).
+gather bonuses, multiplied: GATHER), and the villagers' cost (XS, at the start).
 """
 
 from math import dist
@@ -143,7 +143,6 @@ STARTING_RESOURCES = {"FOOD_STORAGE": 50, "WOOD_STORAGE": 50, "GOLD_STORAGE": 20
 TOWN_CENTERS = (109, 71, 141, 142)  # the Town Center's look in each age: a building's work rate goes on every one
 WORK_RATE = 13  # unit attribute: a building's training and research speed
 DENSITY = 2  # how many times as much a density upgrade gives
-VILLAGER_SPEED = 10  # percent faster a level
 VILLAGER_COST = 5  # food less a level
 
 
@@ -430,7 +429,7 @@ def _variable_id(ctx, name: str) -> int:
 
 
 def _wonder(ctx, player: int) -> None:
-    """Starting resources (a trigger a level); the Town Centers' work rate, densities and the villagers' time and
+    """Starting resources (a trigger a level); the Town Centers' work rate, densities and the villagers'
     cost (XS)."""
     for level in range(1, meta.STARTING_RESOURCES.levels + 1):
         ctx.trigger(
@@ -458,7 +457,6 @@ def _wonder(ctx, player: int) -> None:
         for resource in resources
     )
     villagers = "\n".join(
-        f"    xsEffectAmount(cMulAttribute, {unit}, {TRAIN_TIME}, 1.0 - 0.01 * {VILLAGER_SPEED} * speed, {player});\n"
         f"    xsEffectAmount(cAddAttribute, {unit}, {FOOD_COST}, 0.0 - {VILLAGER_COST} * cost, {player});"
         for unit in (VILLAGER_MALE, VILLAGER_FEMALE)
     )
@@ -487,7 +485,6 @@ rule crucibleMetaWonder
 {calls}
     int busy = {level(meta.TOWN_CENTER_SPEED)};
 {town_centers}
-    int speed = {level(meta.VILLAGER_SPEED)};
     int cost = {level(meta.VILLAGER_COST)};
 {villagers}
     xsDisableSelf();

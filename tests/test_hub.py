@@ -34,7 +34,7 @@ def test_hub_has_a_trigger_per_level(tmp_path, techs):
             "Hub: Axemen upgrade 1",
             "Hub: Bowmen 2",
             "Hub: Cavalry 3",
-            "Hub: save and win",
+            "Hub: save and win 0",
             "Hub: reset refunded",
             "Hub: the stockpile is the currency",
         } <= names

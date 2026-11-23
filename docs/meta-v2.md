@@ -61,14 +61,14 @@ research the Bronze Age.
 Archer, Elephant Archer, War and Armored Elephant, Heavy Catapult, Helepolis, and their upgrades.
 
 **The Wonder (player 1)**
-- From the start: starting resources (+50 food, 50 wood, 20 gold, 20 stone; 5 levels), Town Centers work faster (+2%: training and research; 5).
+- From the start: starting resources (+50 food, 50 wood, 20 gold, 20 stone; 5 levels), Town Centers work faster (+5%: training and research; 5).
 - From the start: cheaper boons (10 levels, front-loaded: 15, 12, 10, 9, 8, 6, 5, 4, 3, 3% off, 75% at the tenth).
   Its tooltip says what the next level adds (as Town Center speed's does).
 - The densities multiply RoR's gather bonuses (Food 190 and Fishing 219, Wood 189, Gold
   47 and Stone 79), as its own "Resources last" bonuses do: setting each pile's amount from XS didn't show in play.
 - With the Bronze Age: an extra boon slot (2), faster boon research (5 levels, 1 second at the last), resource density:
   natural food x2, wood x2, mining x2 (1 each).
-- With the Iron Age: an extra boon slot (1), Town Centers work faster (+2%; 5 more), villager training speed (+10%; 5),
+- With the Iron Age: an extra boon slot (1), Town Centers work faster (+5%; 5 more),
   villager cost (-5 food; 5).
 - With the Post-Iron tier: the final boon slot.
 - With tier 2: Ruins (7 levels) and Artifacts (5): one more on the map a level. Their effects are bought at the
