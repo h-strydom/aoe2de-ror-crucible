@@ -78,7 +78,12 @@ so sinking it at sea still kills them.
 
 1. **Checks** (crucible_check): XS reads a unit's HP (`xsGetUnitProperty(id, cUnitHitpoints)`), for the damage
    test; a transport created loaded ("Create Garrisoned Object") sails to a beach and unloads when tasked there.
-2. **Self-defence**: archetype, level, growth, the tick, turtling on damage, destroyed outposts stop.
+2. **Self-defence**: archetype, level, growth, the tick, turtling on damage, destroyed outposts stop. Built
+   2026-11-23 (`scenarios/outposts.py`, numbers at its top): 3 defenders each at the start; a turn every 2-4 minutes
+   (the first at 1-2); +1 level a turn left alone, +0.3 harassed; defenders 3 + level / 2 + 2 an age (+2 a
+   difficulty step), 25 at most, 3 more a turn; harassed = any HP lost by its buildings or defenders, or a defender
+   killed, and the defenders attack-move to the spot; turtled for 3 minutes after. Units: the archetype's first
+   paths, the line at (level / 4 + the Legion's age) along them. Debug chat on for the playtest (`DEBUG`).
 3. **Spots**: the guard squads, the bully and its pressure, help between outposts, harassing gatherers.
 4. **Attack waves**: land outposts from the land markers; sea outposts' ships and transports.
 

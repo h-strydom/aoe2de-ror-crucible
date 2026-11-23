@@ -187,6 +187,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             )
             waves.add(ctx, techs, data)
             bases.add(ctx, s)  # optional objectives: a boon choice per Legion base destroyed
+            outposts.add(ctx, s)  # the bases defend themselves and grow (docs/outposts.md)
             town_center = next(u for u in s.unit_manager.units[Faction.PLAYER] if u.unit_const == TOWN_CENTER)
             run_meta.add(
                 ctx,
