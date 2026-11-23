@@ -7,7 +7,7 @@ effect or a Task Object to a beach tile, put nobody ashore.
 Four Legion Light Transports, created by XS at sea, each tried another way (the XS rule below). Chat says what each
 carries whenever it changes, and how many Clubmen are ashore.
 - T1: loaded by XS (`cUnitGarrisonedInId` set on Clubmen made on the beach), sailed next to the beach (Move), then
-  told to Unload (`cctionTypeUnload`: the game's own spelling) onto the beach.
+  told to Unload (task 9: `cctionTypeUnload`, in the docs, isn't in the game) onto the beach.
 - T2: loaded by XS, told to Ungarrison onto the beach from out at sea.
 - T3: loaded by XS, given a Default order onto a beach tile from out at sea.
 - T4: filled by the trigger effect "Create Garrisoned Object" (did that work?), then told to Unload from out at sea.
@@ -56,6 +56,7 @@ def setup(session, ctx, techs: dict[str, int], top: int) -> str:
 
     ctx.xs(
         f"""// ---- outposts check: landing from a transport ----
+const int cCrucibleCheckUnload = 9;  // the Unload task: the docs' cctionTypeUnload isn't in the game
 int crucibleCheckT = -1;  // the 4 transports
 int crucibleCheckRow = -1;  // their rows (y)
 int crucibleCheckCarried = -1;  // what each carried, last said
@@ -112,12 +113,12 @@ rule crucibleCheckTransports
         crucibleCheckTask(0, cActionTypeMove, {NEAR_X}.0);
         crucibleCheckTask(1, cActionTypeUngarrison, {BEACH_X}.0);
         crucibleCheckTask(2, cActionTypeDefault, {BEACH_X}.0);
-        crucibleCheckTask(3, cctionTypeUnload, {BEACH_X}.0);
+        crucibleCheckTask(3, cCrucibleCheckUnload, {BEACH_X}.0);
         xsChatData("Sent: T1 to the beach's edge, T2 ungarrison, T3 default, T4 unload: %d", 4);
     }}
 
     if (t == {UNLOAD_AT}) {{
-        crucibleCheckTask(0, cctionTypeUnload, {BEACH_X}.0);
+        crucibleCheckTask(0, cCrucibleCheckUnload, {BEACH_X}.0);
         xsChatData("T1 told to unload: %d", 1);
     }}
 
