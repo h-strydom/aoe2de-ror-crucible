@@ -21,9 +21,9 @@ tier's count in its own player's relics (TIER_COUNTERS), capped at what the tier
 An XS rule works out what's on offer every second and signals each change through a trigger variable; looping triggers
 act on it (Enable/Disable Technology, Change Ownership, Change Object Caption: XS can do none of them).
 
-Each tier player keeps a house in the map's north corner (KEEPERS): once everything is bought their buildings
+Each tier player keeps a Barracks in the map's north corner (KEEPERS): once everything is bought their buildings
 and units are all the player's, and a player with nothing left is defeated; with every other player gone the hub
-was won at once (playtest 2026-11-23).
+was won at once (playtest 2026-11-23). A house isn't enough: it has to be a building that produces.
 
 Upgrades and the currency are kept in the campaign bank (only inside the Crucible campaign; a standalone hub forgets
 them). A decision at the start, left open while the player shops, either resets every upgrade (refunding what they
@@ -60,7 +60,8 @@ STOCKPILE = ("FOOD_STORAGE", "WOOD_STORAGE", "GOLD_STORAGE", "STONE_STORAGE")  #
 XS_RESOURCES = ("cAttributeFood", "cAttributeWood", "cAttributeGold", "cAttributeStone")
 AGES = {1: "DARK", 2: "FEUDAL", 3: "CASTLE", 4: "IMPERIAL", 5: "IMPERIAL"}  # tier -> its player's age (its looks)
 SHOP_TECHS = (SEND_WAVE, choice_key(1), choice_key(2))  # the run's buttons on the Wonder: off in the hub
-KEEPERS = tuple((2.0 + 3 * n, 2.0) for n in range(len(meta.TIER_PLAYERS)))  # each tier player's house, in turn
+KEEPER = meta.BARRACKS  # not a type anything hands over by type once the plan is made
+KEEPERS = tuple((2.5 + 4 * n, 2.5) for n in range(len(meta.TIER_PLAYERS)))  # each tier player's, in turn
 
 
 def _units(s, player: int, types) -> list:
@@ -595,7 +596,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             plan = _plan(s, buildings)
 
             for player, (x, y) in zip(meta.TIER_PLAYERS.values(), KEEPERS, strict=True):  # after the plan
-                s.unit_manager.add_unit(player=player, unit_const=HOUSE, x=x, y=y)
+                s.unit_manager.add_unit(player=player, unit_const=KEEPER, x=x, y=y)
 
             ctx = blocks.Ctx(s)
             _start(ctx, techs)

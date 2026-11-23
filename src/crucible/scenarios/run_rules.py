@@ -6,7 +6,8 @@
   unlock the rest (run_meta);
 - the player never builds walls or gates (RoR's gates come with walls);
 - the player gets City Watch for free at the start;
-- Town Centers can be built from the Bronze Age (the data mod gives them a button: datamod.buildings);
+- Town Centers can be built from the Bronze Age: RoR's own (RTWC1X, the villager's slot 11, which builds into the
+  Town Center), which RoR switches on with the Government Center and the lockdown had switched off;
 - the Allies age up when the player does: their age tech upgrades their buildings' looks (run_xs keeps them at 1 HP);
 - fish (not whales) hold twice their food: fishing ships don't move on to the next fish they can see.
 """
@@ -19,6 +20,7 @@ GATE_CLASS = 39
 CITY_WATCH = 128
 TOWN_CENTER = 109
 TOWN_CENTER_AGE = 2  # the Bronze Age: Town Centers can be built (playtest 2026-11-23)
+TOWN_CENTER_BUILT = 621  # RTWC1X: what villagers place (slot 11), finished as the Town Center (its stack unit)
 AGES = ((1, 101), (2, 102), (3, 103))  # (current age the player reaches, the age tech): Tool, Bronze, Iron
 CURRENT_AGE = 6  # resource
 FISH_CLASSES = (5, 33)  # fish and shore fish; whales are class 63
@@ -129,7 +131,14 @@ def add(ctx, *, player: int, allies: int, gates: list[int], locked: tuple[list[i
                 "quantity": TOWN_CENTER_AGE,
             }
         ],
-        [{"type": "enable_disable_object", "source_player": player, "object_list_unit_id": TOWN_CENTER, "enabled": 1}],
+        [
+            {
+                "type": "enable_disable_object",
+                "source_player": player,
+                "object_list_unit_id": TOWN_CENTER_BUILT,
+                "enabled": 1,
+            }
+        ],
     )
 
     for age, tech in AGES:

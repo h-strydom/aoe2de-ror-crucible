@@ -46,7 +46,7 @@ research the Bronze Age.
 - Storage Pit, Market: their next rows. Market: Wheel (and Chariots, without their buildings' own unlocks).
 - Barracks: Short, then Broad Swordsmen (starting melee upgraded, and training them).
 - TC: the Dock's Bronze Age row (Fishing Ship, Medium War Ship, Merchant Ship): the hub map has no Dock, and the
-  Tool Age has no Dock techs (its ships come free). From the Bronze Age the run lets the player build Town Centers.
+  Tool Age has no Dock techs (its ships come free). From the Bronze Age the run lets the player build Town Centers (RoR's own, slot 11).
 - Archery Range: Improved, then Composite Bowmen (the same).
 - Stable: Camel Riders; Cavalry (a starting Cavalry, +1 a level up to 5).
 
@@ -68,7 +68,7 @@ Archer, Elephant Archer, War and Armored Elephant, Heavy Catapult, Helepolis, an
   villager cost (-5 food; 5).
 - With the Post-Iron tier: the final boon slot.
 
-Each tier player keeps a house in the hub map's north corner: buying everything left them with nothing, and the hub
+Each tier player keeps a Barracks (a house isn't enough) in the hub map's north corner: buying everything left them with nothing, and the hub
 was won at once (playtest 2026-11-23).
 
 ## Build order
