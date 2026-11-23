@@ -68,6 +68,12 @@ fishing boats they can reach (map hack). With no player dock to bully, and nothi
 its wave spawns loaded in Light Transports at its sea markers, sails to a beach outside the outpost and lands, then
 attack-moves the Wonder. Two transports until two can't carry the wave, then the larger transport.
 
+How it lands (crucible check, 2026-11-23): loading works (XS `cUnitGarrisonedInId`, or the trigger Create Garrisoned
+Object), but no transport has yet put anyone ashore when told to. The proven fallback is RoR-Reimagined's Egypt 5
+landing (2026-11-08): the ship sails to the beach (Task Object), and once it's there (objects in area) its party is
+created on the beach and the ship sails off. With a loaded ship, its passengers are removed as their copies appear,
+so sinking it at sea still kills them.
+
 ## Building it, a phase a playtest
 
 1. **Checks** (crucible_check): XS reads a unit's HP (`xsGetUnitProperty(id, cUnitHitpoints)`), for the damage
