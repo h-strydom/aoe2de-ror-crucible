@@ -7,7 +7,7 @@ from pathlib import Path
 from aoe2ed.screens import mod_dir
 
 from crucible.bonuses.model import Modifier
-from crucible.datamod import boons, buildings, civs, count_icons, hub, shop, upgrades
+from crucible.datamod import artifacts, boons, buildings, civs, count_icons, hub, shop, upgrades
 from crucible.datamod.mod import MANIFEST, MOD, DataMod
 
 
@@ -28,6 +28,7 @@ def build(
     shop.add(mod)
     hub.add(mod)
     count_icons.add(mod)
+    artifacts.add(mod)  # the run's garrisonable artifacts
 
     for part in extra:
         part(mod)

@@ -71,6 +71,8 @@ Archer, Elephant Archer, War and Armored Elephant, Heavy Catapult, Helepolis, an
 - With the Iron Age: an extra boon slot (1), Town Centers work faster (+2%; 5 more), villager training speed (+10%; 5),
   villager cost (-5 food; 5).
 - With the Post-Iron tier: the final boon slot.
+- With tier 2: Ruins (7 levels) and Artifacts (5): one more on the map a level. Their effects are bought at the
+  hub's towers, a stage each (docs/arena.md, Ruins and artifacts).
 
 Each tier player keeps a Barracks (a house isn't enough) in the hub map's north corner: buying everything left them with nothing, and the hub
 was won at once (playtest 2026-11-23).

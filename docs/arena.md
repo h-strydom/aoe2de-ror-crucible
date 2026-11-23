@@ -117,6 +117,23 @@ gold), less the Wonder's boon discount. Wave 0 gives the first level of a common
 goes on a free button of the Wonder's first two rows (1-10); boons only stack once all ten hold an unbought one. The
 Send next wave button is on 15, the two choices on 11 and 12. The boons bought aren't listed in game.
 
+**Ruins and artifacts** (`scenarios/relics.py`, 2026-11-23). The arena has 7 Artifact Ruins and 5 artifacts
+(two in the middle of Legion bases: the Stable base, the Archery Range base further east). The Wonder's Ruins and
+Artifacts upgrades keep one more of each a level, picked at random each run; the rest are removed at the start.
+Both are captured on contact. Artifacts are the data mod's copy of the walking artifact in the priest class, so they
+garrison: one in a building boosts every building of its type. The hub's towers sell the effects, a stage a tower:
+- Watch Tower (tier 2): each ruin held trickles 0.5 of each resource a second; artifacts make their building type work
+  15% faster.
+- Sentry Tower (tier 3): +50 population room a ruin; the building type's units and techs cost 20% less.
+- Guard Tower (tier 4): +20 population limit a ruin; an artifact in a Granary: 2 food a second per Granary (20 at
+  most), Storage Pit: 2 wood per pit (20), Town Center: 1 gold and 1 stone per Town Center (10 each), a tower: towers
+  regenerate 60 HP a minute.
+Unverified in game: the garrison itself, the room (resource 4) and limit (resource 32) set from XS, buttons on a tower.
+
+**Outpost spawns.** Markers on the arena (2026-11-23): the Legion's 3 female villagers on the south edge (land) and 4
+Light Transports on the north and west edges (sea). The run removes them (`scenarios/outposts.py`) and keeps their
+tiles for the outpost waves to come.
+
 **Raids.** Each Legion outpost or district still standing sends raiding parties at the player, at random times: the
 longer a run takes, the more raids. The bases also post units to hold places, send parties to harass the player's
 villagers and patrol around them. Destroying a base stops all of that and gives one decision reward (one more shop

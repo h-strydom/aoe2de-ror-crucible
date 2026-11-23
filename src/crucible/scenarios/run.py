@@ -19,7 +19,7 @@ from crucible import meta
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import SEND_WAVE
-from crucible.scenarios import bases, datamod_check, run_meta, run_rules, run_xs, waves
+from crucible.scenarios import bases, datamod_check, outposts, relics, run_meta, run_rules, run_xs, waves
 from crucible.scenarios.maps import asset
 from crucible.shop import scenario as shop
 from crucible.shop.config import ShopConfig
@@ -129,6 +129,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             options_set(o.handle, {"victory_condition": "CUSTOM", "victory_conquest": False})  # only triggers end it
             player_set(o.handle, Faction.PLAYER, {"initial_player_view_x": 110, "initial_player_view_y": 110})
 
+            outposts.take(s)  # the outpost markers: tiles for later, not Legion units
             _hand_over(s)
             run_rules.tier_one_towers(s, Faction.ALLIES)
             allied = sorted({u.unit_const for u in s.unit_manager.units[Faction.ALLIES]})
@@ -197,6 +198,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 chains=run_meta.age_chains(data),
                 unlocked=run_meta.unlocks(data),
             )
+            relics.add(ctx, s, data, techs, Faction.PLAYER)
             ctx.trigger(
                 "No hub buttons",  # the hub's upgrades are data mod techs on every Town Center and Barracks
                 [],
