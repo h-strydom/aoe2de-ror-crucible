@@ -223,7 +223,8 @@ def _affected(step: Step, data: DatFile) -> set[tuple]:
 
 def assign(steps: list[Step], data: DatFile) -> list[Step]:
     """Each step to a player of TIER_PLAYERS where nothing already there changes a value its labels show, or shows a
-    value it changes."""
+    value it changes; a step with no such player left is left out (stacked tiers cut the same tech's cost and time
+    many times over)."""
     taken = {p: (set(), set()) for p in TIER_PLAYERS}  # player -> (changed, shown)
     placed = []
 
@@ -235,7 +236,7 @@ def assign(steps: list[Step], data: DatFile) -> list[Step]:
         player = next((p for p, (c, s) in taken.items() if not (c & shown) and not (s & changed)), None)
 
         if player is None:
-            raise ValueError(f"{step.key}: no player left without an overlap; add a player or split the check")
+            continue  # no player left without an overlap: left out (its boon's other steps are checked)
 
         taken[player][0].update(changed)
         taken[player][1].update(shown)

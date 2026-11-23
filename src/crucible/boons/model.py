@@ -20,7 +20,7 @@ from enum import IntEnum, StrEnum
 from aoe2ed import tables
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from crucible.bonuses.model import Change, Civ, Cost, Group, Icon, Mode, Stat
+from crucible.bonuses.model import Change, Civ, Cost, Group, Icon, Mode, Stat, flat, pct
 
 
 class Tier(IntEnum):
@@ -161,6 +161,13 @@ CIV_TYPES: dict[Civ, tuple[CivType, ...]] = {
 
 Axis = type[Domain] | type[Kind] | type[Subject] | type[Building] | type[Civ] | type[CivType] | type[Flag]
 AXES: tuple[Axis, ...] = (Domain, Kind, Subject, Building, Civ, CivType, Flag)
+# Cuts stop here (a percent, as a negative amount); other cuts at -100%. A discount past 80% made things all but free.
+CAPS = {Stat.COST: -0.8, Stat.FOOD_COST: -0.8, Stat.WOOD_COST: -0.8, Stat.TRIBUTE_TAX: -0.8, Stat.RESEARCH_TIME: -1.0}
+# What each tier past a capped cut adds instead (costs: Boon._overshoot picks research time or training/build speed)
+OVERSHOOT = {
+    Stat.RESEARCH_TIME: (Stat.COST, pct(-0.05)),  # research time at 1 s: research costs 5% less a tier
+    Stat.TRIBUTE_TAX: (Stat.ALL_RESOURCES, flat(25)),
+}
 OFFER_AXES: tuple[Axis, ...] = (Domain, Kind, Subject, Building, Flag)  # what a choice can be
 Category = Domain | Kind | Subject | Building | Civ | CivType | Flag
 
@@ -256,11 +263,26 @@ class Boon(BaseModel):
     def _key(effect: Effect) -> tuple:
         return effect.stat, effect.targets, effect.groups, effect.techs
 
+    def _overshoot(self, effect: Effect) -> Effect:
+        """What a tier past a capped cut adds: OVERSHOOT's extra for its stat, on the same subject."""
+        stat = effect.stat or self.stat
+
+        if stat == Stat.COST and (effect.techs or (effect.techs is None and self.techs)):
+            stat, change = Stat.RESEARCH_TIME, pct(-0.1)  # a research cost capped: faster research
+        elif stat in (Stat.COST, Stat.FOOD_COST, Stat.WOOD_COST):
+            buildings = Subject.BUILDING in self.subjects
+            stat, change = (Stat.BUILD_SPEED if buildings else Stat.TRAINING_SPEED), pct(0.05)
+        else:
+            stat, change = OVERSHOOT[stat]
+
+        return effect.model_copy(update={"stat": stat, "change": change})
+
     @property
     def steps(self) -> dict[Tier, tuple[Effect, ...]]:
         """Each tier from the first to Heirloom: what it adds over the tier before (an effect new at a tier, or in
-        another mode, whole). Past the written tiers the last step repeats, until a percentage reaches -100% (a cost or
-        time can't fall further): the step that crosses it stops there, and the boon ends with it."""
+        another mode, whole). Past the written tiers the last step repeats. A cut stops at its cap (CAPS: discounts at
+        80%, anything else at 100%); every tier after it adds the cut's overshoot extra instead (OVERSHOOT, stacking a
+        tier at a time), so a boon always runs to Heirloom (playtest 2026-11-23)."""
         found: dict[Tier, tuple[Effect, ...]] = {}
         before: dict[tuple, Effect] = {}
         last: tuple[Effect, ...] = ()
@@ -292,18 +314,17 @@ class Boon(BaseModel):
                 key, amount = self._key(effect), effect.change.amount
 
                 if effect.change.mode is Mode.PERCENT and amount < 0:
-                    amount = max(amount, round(-1 - running.get(key, 0.0), 6))
+                    stat = effect.stat or self.stat
+                    amount = max(amount, round(CAPS.get(stat, -1.0) - running.get(key, 0.0), 6))
 
-                    if amount >= 0:
-                        continue  # at -100% already
+                    if amount >= 0:  # capped already: the overshoot's extra instead
+                        step.append(self._overshoot(effect))
+                        continue
 
                     running[key] = running.get(key, 0.0) + amount
                     effect = effect.model_copy(update={"change": Change(amount=amount, mode=Mode.PERCENT)})
 
                 step.append(effect)
-
-            if not step:
-                break
 
             found[tier] = tuple(step)
 

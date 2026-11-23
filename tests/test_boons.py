@@ -73,11 +73,23 @@ def test_every_boon_steps_up_to_heirloom_and_stacks():
     assert list(archers.steps) == [Tier.COMMON, Tier.IMPROVED, Tier.MASTERCRAFTED, Tier.LEGENDARY, Tier.HEIRLOOM]
     assert all(step[0].change.amount == 0.11 for step in archers.steps.values())  # +11% a step, stacking
     assert archers.total(Tier.HEIRLOOM)[0].change.amount == 0.55
-    assert all(all(b.steps.values()) for b in catalogue.ALL)
-    wheel = catalogue.by_id("hittites_4")  # research cost -25/-50/-100%: ends at -100%
-    assert max(wheel.steps) is Tier.IMPROVED and wheel.total(Tier.IMPROVED)[0].change.amount == -1
-    ended = [b.id for b in catalogue.ALL if max(b.steps) is not Tier.HEIRLOOM]
-    assert len(ended) == 9  # the boons whose percentages reach -100%
+    assert all(max(b.steps) is Tier.HEIRLOOM and all(b.steps.values()) for b in catalogue.ALL)
+
+
+def test_capped_cuts_overshoot_into_an_extra():
+    wheel = catalogue.by_id("hittites_4")  # Wheel research cost, written -25/-50/-100%: capped at -80%
+    totals = {(e.stat or wheel.stat): e.change.amount for e in wheel.total(Tier.HEIRLOOM)}
+    assert totals[Stat.COST] == -0.8
+    assert totals[Stat.RESEARCH_TIME] == -0.3  # three tiers past the cap: -10% research time each
+    time = catalogue.by_id("hittites_5")  # Wheel research time: capped at -100% (1 s), then cheaper research
+    assert {e.stat for e in time.steps[Tier.HEIRLOOM]} == {Stat.COST}
+    assert all(
+        e.change.amount >= -0.8
+        for b in catalogue.ALL
+        for t in b.steps
+        for e in b.total(t)
+        if (e.stat or b.stat) in (Stat.COST, Stat.FOOD_COST, Stat.WOOD_COST) and e.change.mode.value == "%"
+    )
 
 
 def test_civs_are_never_a_choice():
