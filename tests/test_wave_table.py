@@ -103,3 +103,9 @@ def test_legion_boons_help_a_spawned_army(techs):
     boons = waves.legion_boons(source_dat(), techs)
     assert len(boons) >= 20
     assert all(boon.stat not in waves.USELESS_TO_THE_LEGION for boon, _, _ in boons)
+
+
+def test_siege_upgrades_are_rarer_and_ages_wait():
+    by_name = {u.name: u for u in table.UPGRADES}
+    assert by_name["Engineering"].weight == by_name["Siege Craft"].weight == table.SIEGE_WEIGHT < table.UPGRADE_WEIGHT
+    assert table.AGE_GATE and table.SUPPORT_SPEED >= 1.0

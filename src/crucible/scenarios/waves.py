@@ -449,6 +449,12 @@ def data(game, techs: dict[str, int]) -> list[str]:
 
     upgrade_index = {u.tech: n for n, u in enumerate(table.UPGRADES)}
     boons = legion_boons(game, techs)
+    siege_steps = [
+        (f, n)
+        for f, family in enumerate(families)
+        if family.slot == table.Slot.SIEGE
+        for n in range(1, len(family.lines))
+    ]
     arrays = [
         _ints("crucibleWaveUnitId", [table.unit_id(u) for u in everyone]),
         _strings("crucibleWaveUnitName", [u.replace("_", " ").title() for u in everyone]),
@@ -467,6 +473,17 @@ def data(game, techs: dict[str, int]) -> list[str]:
         _ints("crucibleWaveUpgradeTech", [u.tech for u in table.UPGRADES]),
         _ints("crucibleWaveUpgradeAge", [int(u.age) for u in table.UPGRADES]),
         _ints("crucibleWaveUpgradeRequires", [upgrade_index.get(u.requires, -1) for u in table.UPGRADES]),
+        _ints("crucibleWaveUpgradeWeight", [u.weight for u in table.UPGRADES]),
+        _ints("crucibleWaveSiegeStepFamily", [f for f, _ in siege_steps]),
+        _ints("crucibleWaveSiegeStepLevel", [n for _, n in siege_steps]),
+        _strings(
+            "crucibleWaveSiegeStepName",
+            [f"{families[f].lines[n - 1].title} become {families[f].lines[n].title}" for f, n in siege_steps],
+        ),
+        _ints(
+            "crucibleWaveSupportUnits",
+            [unit_index[(f.name, line.unit)] for f in families if f.slot == table.Slot.SIEGE for line in f.lines],
+        ),
         _strings("crucibleWaveUpgradeName", [u.name for u in table.UPGRADES]),
         _ints(
             "crucibleWaveImproves",
@@ -523,6 +540,7 @@ def data(game, techs: dict[str, int]) -> list[str]:
 
 def xs(ctx, tech: int, game, techs: dict[str, int]) -> str:
     wonder = next(u for u in ctx.scenario.unit_manager.units[PLAYER] if u.unit_const == WONDER)
+    siege_families = [f for f in table.FAMILIES if f.slot == table.Slot.SIEGE]
     lane_variables = ", ".join(str(_variable_id(ctx, lane_variable(n))) for n in range(len(LANES)))
     lines = [
         "// ---- crucible run: waves (data) ----",
@@ -552,6 +570,11 @@ def xs(ctx, tech: int, game, techs: dict[str, int]) -> str:
         f"const int cCrucibleWaveWavesPerSupport = {table.WAVES_PER_SUPPORT};",
         f"const int cCrucibleWaveBoons = {len(legion_boons(game, techs))};",
         f"const int cCrucibleWaveTiers = {len(Tier)};",
+        f"const bool cCrucibleWaveAgeGate = {'true' if table.AGE_GATE else 'false'};",
+        f"const int cCrucibleWaveSiegeWeight = {table.SIEGE_WEIGHT};",
+        f"const int cCrucibleWaveSiegeSteps = {sum(len(f.lines) - 1 for f in siege_families)};",
+        f"const int cCrucibleWaveSupportUnitCount = {sum(len(f.lines) for f in siege_families)};",
+        f"const float cCrucibleWaveSupportSpeed = {table.SUPPORT_SPEED};",
         f"const int cCrucibleWaveNewsTime = {NEWS_TIME};",
         f"const int cCrucibleWaveBankVariable = {_variable_id(ctx, BANK_VARIABLE)};",
         f"const int cCrucibleWaveAgeUpStart = {table.AGE_UP_START};",

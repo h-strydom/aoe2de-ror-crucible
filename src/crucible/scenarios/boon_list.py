@@ -27,7 +27,8 @@ def add(ctx, pool: list[Boon], techs: dict[str, int], *, player: int = 1) -> Non
                     "conditions": [never],
                     "effects": [],
                     "display_as_objective": True,
-                    "display_on_screen": True,  # every objective on screen, with its tick box (playtest 2026-11-22)
+                    # the Objectives panel only: on screen they covered it (playtest 2026-11-23); Hints can't change
+                    # in a game
                     "description": text,
                     "short_description": text,
                     "description_order": order,

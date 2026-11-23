@@ -94,6 +94,10 @@ SCALE_EVERY = 10  # waves: the scale goes up by 1
 GROW_SCALE = 1  # units per grow, times the scale
 UPGRADE_SCALE = 1  # upgrades per upgrade step, times the scale
 SWAP_SCALE = 1  # families moved on per swap step, times the scale
+AGE_GATE = True  # the Legion ages up only once no lane can swap in its age; a due age-up catches a line up instead
+SIEGE_WEIGHT = 3  # a siege upgrade (a siege line's next step, Engineering, Siege Craft) against a stat upgrade's 10
+UPGRADE_WEIGHT = 10
+SUPPORT_SPEED = 1.0  # the Legion's siege and Priests move at foot speed (0.66 left them behind their wave)
 MAIN_ONLY = Age.POST_IRON  # lines of this age (Legionaries, Centurions, Cataphracts...) only in a main slot
 MOVE_ON = False  # an age up moves each lane's main slot on as far as the new age opens (off: Bronze came too fast)
 START_COUNT = 2  # units in each slot before a lane's first step
@@ -253,15 +257,12 @@ ARCHETYPES = (
         "Mounted Archers",
         Slot.RANGED,
         {
-            Slot.RANGED: (
-                (("Slingers",), ("Bowmen",), ("Chariot Archers",), ("Horse Archers", "Elephant Archers")),
-            ),
+            Slot.RANGED: ((("Slingers",), ("Bowmen",), ("Chariot Archers",), ("Horse Archers", "Elephant Archers")),),
             Slot.MELEE: MELEE_SUPPORTS,
         },
         (Support.CATAPULT, Support.BALLISTA, Support.PRIEST),
     ),
 )
-
 
 
 @dataclass(frozen=True)
@@ -270,6 +271,7 @@ class Upgrade:
     tech: int
     age: Age
     requires: int = -1  # an upgrade's tech that must come first
+    weight: int = UPGRADE_WEIGHT
 
 
 AGE_TECHS = {Age.TOOL: 101, Age.BRONZE: 102, Age.IRON: 103}  # the Post-Iron Age has none: its lines only
@@ -294,8 +296,8 @@ UPGRADES = (  # stat techs; line upgrades come from FAMILIES
     Upgrade("Alchemy", 37, Age.IRON),
     Upgrade("Craftsmanship", 110, Age.IRON),
     Upgrade("Aristocracy", 113, Age.IRON),
-    Upgrade("Engineering", 35, Age.IRON),
-    Upgrade("Siege Craft", 111, Age.IRON),
+    Upgrade("Engineering", 35, Age.IRON, weight=SIEGE_WEIGHT),
+    Upgrade("Siege Craft", 111, Age.IRON, weight=SIEGE_WEIGHT),
     Upgrade("Afterlife", 18, Age.IRON),
     # the Legion's bases
     Upgrade("Sentry Tower", 12, Age.BRONZE),

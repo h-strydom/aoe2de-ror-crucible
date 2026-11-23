@@ -101,6 +101,7 @@ ROWS = {
 OWN_UPGRADE = (28,)  # Wheel: its own upgrade, not in the Market's row
 # Upgrade -> (unit, the age the player needs) it unlocks.
 UNIT_UNLOCKS = {
+    meta.TOWER.key: ((79, 1),),  # building Watch Towers (the tech alone didn't, playtest 2026-11-23)
     meta.ACADEMY_UPGRADE.key: ((meta.ACADEMY, 2), (93, 2)),  # and Hoplites
     meta.SIEGE_WORKSHOP_UPGRADE.key: ((meta.SIEGE_WORKSHOP, 2), (280, 2)),  # and Stone Throwers
     meta.TEMPLE_UPGRADE.key: ((meta.TEMPLE, 2), (125, 2)),  # and Priests
@@ -469,6 +470,8 @@ def _wonder(ctx, player: int, resources: dict[str, list[int]]) -> None:
     )
     nl = "\n"
     ctx.xs(f"""// ---- crucible run: the Wonder's upgrades ----
+int crucibleMetaPiles = 0;  // how many piles the rule changed (reported: the doubling didn't show, 2026-11-23)
+
 // Each of `type`'s resources holds `percent` percent, times DENSITY with its density upgrade.
 void crucibleMetaResources(int type = -1, int percent = 100, int dense = 0) {{
     int ids = xsGetPlayerUnitIds(0, type, -1);
@@ -482,6 +485,7 @@ void crucibleMetaResources(int type = -1, int percent = 100, int dense = 0) {{
     for (i = 0; < xsArrayGetSize(ids)) {{
         id = xsArrayGetInt(ids, i);
         xsSetUnitProperty(id, cUnitAttributeHeld, xsGetUnitProperty(id, cUnitAttributeHeld) * factor / 100);
+        crucibleMetaPiles++;
     }}
 }}
 
@@ -495,6 +499,11 @@ rule crucibleMetaWonder
 
     int percent = 100 + {LASTING} * {level(meta.RESOURCES_LAST)};
 {nl.join(calls)}
+    if ((percent > 100) || ({" + ".join(level(u) for u in density.values())} > 0)) {{
+        xsChatData("The Wonder: " + crucibleMetaPiles + " resource piles at " + percent + "% (density levels: "
+            + {level(meta.FOOD_DENSITY)} + " " + {level(meta.WOOD_DENSITY)} + " " + {level(meta.MINING_DENSITY)} + ")");
+    }}
+
     int speed = {level(meta.VILLAGER_SPEED)};
     int cost = {level(meta.VILLAGER_COST)};
 {villagers}

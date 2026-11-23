@@ -141,3 +141,12 @@ spawn the better unit: no line-upgrade tech is researched (stat upgrades and age
   Melee archetypes prefer Priests; Phalanx the ballista line; Archers and Mounted Archers the catapult line. Siege
   fields the best line its age has opened. Simulated per wave: 0.3 of 1 slot at wave 10, 1.6 of 2 at 20, 2.7 of 3 at
   30, 3.5 of 4 at 40.
+
+## Age gate, siege, support speed (playtest 2026-11-23)
+
+- The Legion ages up only once no lane can swap in its age: an age-up that comes while one can catches a line up
+  instead (that lane's first), and the chance stays (AGE_GATE). Simulated: Bronze around wave 19, Iron 37, Post-Iron
+  49 (was 12, 18, 24); lines two ages behind 8-19% mid-game (was 56-59%). Wave 17 on Hard is now mostly Bronze.
+- Siege lines step up only by a rare Legion upgrade (SIEGE_WEIGHT 3 against a stat upgrade's 10), as do Engineering
+  and Siege Craft: the Iron Age no longer brings catapults by itself.
+- The Legion's siege and Priests move at foot speed (1.0, from 0.66): they march with their wave.

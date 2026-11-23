@@ -19,6 +19,7 @@ int crucibleWaveAge = 0;
 int crucibleWaveAgeChance = 0;  // percent
 int crucibleWaveUpgradeTaken = -1;  // by upgrade: 1 once researched
 int crucibleWaveBoonTaken = -1;  // by boon: 1 once the Legion has it
+int crucibleWaveSiegeLevel = -1;  // by family: the line a siege family is on (a rare upgrade moves it on)
 int crucibleWaveHas = -1;  // by unit (wave_table.units index): the Legion has one of these structures
 string crucibleWaveNews = "";  // this wave's announcements
 int crucibleWaveLaneSpawned = -1;  // by lane: units spawned this wave (where a support unit goes)
@@ -111,17 +112,9 @@ int crucibleWaveSlotUnit(int lane = 0, int slot = 0) {
         crucibleWaveSlotFamily(k) * cCrucibleWaveLines + xsArrayGetInt(crucibleWaveSlotLevel, k)));
 }
 
-// A siege family's unit: the furthest line the Legion's age has opened.
+// A siege family's unit: the line its upgrades have brought it to (not its age: catapults came all at once).
 int crucibleWaveSiegeUnit(int family = 0) {
-    int line = 0;
-
-    for (i = 1; < xsArrayGetInt(crucibleWaveFamilyLines, family)) {
-        if (xsArrayGetInt(crucibleWaveLineAge, family * cCrucibleWaveLines + i) <= crucibleWaveAge) {
-            line = i;
-        }
-    }
-
-    return (xsArrayGetInt(crucibleWaveLineUnit, family * cCrucibleWaveLines + line));
+    return (xsArrayGetInt(crucibleWaveLineUnit, family * cCrucibleWaveLines + xsArrayGetInt(crucibleWaveSiegeLevel, family)));
 }
 
 string crucibleWaveSlotName(int lane = 0, int slot = 0) {
@@ -276,6 +269,24 @@ bool crucibleWaveFielded(int k = 0) {
 
 // A stat upgrade the Legion could take now: not taken, its age reached, what it needs taken, and it improves a unit
 // some lane fields.
+// Siege step `i` (a siege family's next line) could be taken: a support slot could bring the family, it's the next
+// step, and (but with `anyAge`) the Legion's age has reached it.
+bool crucibleWaveSiegeStepOpen(int i = 0, bool anyAge = false) {
+    int family = xsArrayGetInt(crucibleWaveSiegeStepFamily, i);
+    int level = xsArrayGetInt(crucibleWaveSiegeStepLevel, i);
+
+    if (xsArrayGetInt(crucibleWaveSiegeLevel, family) != level - 1) {
+        return (false);
+    }
+
+    if (anyAge) {
+        return (true);
+    }
+
+    return (crucibleWaveSiegeOpen(family) && (crucibleWaveSupportSlots() > 0)
+        && (xsArrayGetInt(crucibleWaveLineAge, family * cCrucibleWaveLines + level) <= crucibleWaveAge));
+}
+
 // `anyAge`: whatever its age (have the upgrades run out for good?).
 bool crucibleWaveUpgradeOpen(int u = 0, bool anyAge = false) {
     if (xsArrayGetInt(crucibleWaveUpgradeTaken, u) == 1) {
@@ -335,14 +346,21 @@ void crucibleWaveTakeBoon(int b = 0, int scale = 1) {
         + xsArrayGetString(crucibleWaveTierName, tier) + ")");
 }
 
-// A random open stat upgrade; once none is open, a random open boon. False if neither is.
+// A random open upgrade by weight (a stat upgrade, or a siege line's next step: rarer); once none is left in any age,
+// a random open boon. False if none is open.
 bool crucibleWaveUpgrade(int scale = 1) {
     int total = 0;
     crucibleWaveRefreshStructures();
 
     for (u = 0; < cCrucibleWaveUpgrades) {
         if (crucibleWaveUpgradeOpen(u)) {
-            total++;
+            total = total + xsArrayGetInt(crucibleWaveUpgradeWeight, u);
+        }
+    }
+
+    for (i = 0; < cCrucibleWaveSiegeSteps) {
+        if (crucibleWaveSiegeStepOpen(i)) {
+            total = total + cCrucibleWaveSiegeWeight;
         }
     }
 
@@ -351,14 +369,27 @@ bool crucibleWaveUpgrade(int scale = 1) {
 
         for (v = 0; < cCrucibleWaveUpgrades) {
             if (crucibleWaveUpgradeOpen(v)) {
-                if (roll == 0) {
+                roll = roll - xsArrayGetInt(crucibleWaveUpgradeWeight, v);
+
+                if (roll < 0) {
                     xsArraySetInt(crucibleWaveUpgradeTaken, v, 1);
                     crucibleWaveResearch(xsArrayGetInt(crucibleWaveUpgradeTech, v));
                     crucibleWaveAnnounce("Legion: " + xsArrayGetString(crucibleWaveUpgradeName, v));
                     return (true);
                 }
+            }
+        }
 
-                roll--;
+        for (j = 0; < cCrucibleWaveSiegeSteps) {
+            if (crucibleWaveSiegeStepOpen(j)) {
+                roll = roll - cCrucibleWaveSiegeWeight;
+
+                if (roll < 0) {
+                    int family = xsArrayGetInt(crucibleWaveSiegeStepFamily, j);
+                    xsArraySetInt(crucibleWaveSiegeLevel, family, xsArrayGetInt(crucibleWaveSiegeStepLevel, j));
+                    crucibleWaveAnnounce("Legion: " + xsArrayGetString(crucibleWaveSiegeStepName, j));
+                    return (true);
+                }
             }
         }
     }
@@ -366,6 +397,12 @@ bool crucibleWaveUpgrade(int scale = 1) {
     for (w = 0; < cCrucibleWaveUpgrades) {
         if (crucibleWaveUpgradeOpen(w, true)) {
             return (false);  // upgrades are left for a later age: not run out yet
+        }
+    }
+
+    for (x = 0; < cCrucibleWaveSiegeSteps) {
+        if (crucibleWaveSiegeStepOpen(x, true)) {
+            return (false);
         }
     }
 
@@ -421,6 +458,33 @@ void crucibleWaveAgeUp() {
     }
 }
 
+// With the age gate, an age-up that comes while a lane can still swap in this age catches one line up instead (this
+// lane's first, else any lane's); the chance stays, so the age follows once the lines are done. False if none can.
+bool crucibleWaveCatchUp(int lane = 0) {
+    if (cCrucibleWaveAgeGate == false) {
+        return (false);
+    }
+
+    for (pass = 0; < 2) {
+        for (other = 0; < cCrucibleWaveLanes) {
+            int l = other;
+
+            if (pass == 0) {
+                l = lane;
+            }
+
+            for (slot = 0; < 2) {
+                if (crucibleWaveCanAdvance(l, slot)) {
+                    crucibleWaveAdvance(l, slot, "catches up");
+                    return (true);
+                }
+            }
+        }
+    }
+
+    return (false);
+}
+
 int crucibleWaveRollStep() {
     int total = 0;
 
@@ -455,7 +519,10 @@ void crucibleWaveEvolve(int lane = 0) {
         done++;
 
         if ((crucibleWaveAge < cCrucibleWaveLastAge) && (xsGetRandomNumberLH(0, 100) < crucibleWaveAgeChance)) {
-            crucibleWaveAgeUp();
+            if (crucibleWaveCatchUp(lane) == false) {
+                crucibleWaveAgeUp();
+            }
+
             continue;
         }
 
@@ -844,6 +911,16 @@ rule crucibleWaveStart
     crucibleWaveOne = xsArrayCreateInt(1, -1, "crucible wave one");
     crucibleWaveUpgradeTaken = xsArrayCreateInt(cCrucibleWaveUpgrades, 0, "crucible wave upgrade taken");
     crucibleWaveBoonTaken = xsArrayCreateInt(cCrucibleWaveBoons + 1, 0, "crucible wave boon taken");
+    crucibleWaveSiegeLevel = xsArrayCreateInt(cCrucibleWaveFamilies, 0, "crucible wave siege level");
+
+    // siege and Priests at foot speed: at 0.66 they fell behind their wave
+    for (s = 0; < cCrucibleWaveSupportUnitCount) {
+        xsEffectAmount(cSetAttribute, xsArrayGetInt(crucibleWaveUnitId, xsArrayGetInt(crucibleWaveSupportUnits, s)),
+            cMovementSpeed, cCrucibleWaveSupportSpeed, cCrucibleWaveLegion);
+    }
+
+    xsEffectAmount(cSetAttribute, xsArrayGetInt(crucibleWaveUnitId, cCrucibleWavePriest), cMovementSpeed,
+        cCrucibleWaveSupportSpeed, cCrucibleWaveLegion);
     crucibleWaveHas = xsArrayCreateInt(cCrucibleWaveUnits, 0, "crucible wave has");
     crucibleWaveLaneSpawned = xsArrayCreateInt(cCrucibleWaveLanes, 0, "crucible wave lane spawned");
     crucibleWaveAgeOf = xsArrayCreateInt(cCrucibleWaveCapacity, 0, "crucible wave age of");

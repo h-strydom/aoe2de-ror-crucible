@@ -34,6 +34,7 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         # starting soldiers follow their lines; towers and walls by tier; units unlocked by age
         assert {"Meta: melee 281", "Meta: melee 77", "Meta: Bowmen 2 as 39", "Meta: Cavalry 3 as 283"} <= names
         assert {"Meta: towers as 234", "Meta: walls as 117", "Meta: Academy unlocks unit 93"} <= names
+        assert "Meta: Watch Tower unlocks unit 79" in names  # building Watch Towers
         assert {"Meta: Iron Age unlocks 103", "Meta: starting resources 5"} <= names
         assert {"Player: no walls or gates", "Win: claim victory offered", "Win: claim victory"} <= names
         cleared = next(t for t in s.trigger_manager.triggers if t.name == "Allies: camp buildings cleared")
