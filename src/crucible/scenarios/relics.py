@@ -124,10 +124,6 @@ def xs(ctx, data, player: int, ruins: list[int], artifacts: list[int], artifact:
     }
     found = groups(data)
     names = list(found)
-    lookup = max(i for ids in found.values() for i in ids) + 1
-    group_sets = [
-        f"    xsArraySetInt(crucibleRelicGroup, {i}, {g});" for g, name in enumerate(names) for i in found[name]
-    ]
     apply = [line for g, name in enumerate(names) for line in _apply(name, g, found[name], data, stages, player)]
     trickles = []
 
@@ -148,7 +144,7 @@ def xs(ctx, data, player: int, ruins: list[int], artifacts: list[int], artifact:
         for i in found[name]:
             scans += [
                 f"    crucibleRelicBuildings = xsGetPlayerUnitIds({player}, {i}, crucibleRelicBuildings);",
-                f"    crucibleRelicScanBuildings({g}, {artifact});",
+                f"    crucibleRelicMatch({g}, garrisoned);",
             ]
 
     name_sets = [f'    xsArraySetString(crucibleRelicNames, {g}, "{name}");' for g, name in enumerate(names)]
@@ -158,12 +154,11 @@ def xs(ctx, data, player: int, ruins: list[int], artifacts: list[int], artifact:
 
     return f"""// ---- crucible run: ruins and artifacts ----
 int crucibleRelicIds = -1;  // reused: the player's artifacts
-int crucibleRelicGroup = -1;  // unit type -> its building type (STRUCTURES), -1
 int crucibleRelicHeld = -1;  // building type -> 1 with an artifact garrisoned
 int crucibleRelicApplied = -1;  // building type -> 1 while its stages are on
 int crucibleRelicBuildings = -1;  // reused: the player's buildings of one type
 int crucibleRelicNames = -1;  // building type -> its name, for the chat
-int crucibleRelicTick = 0;
+int crucibleRelicContainers = -1;  // the buildings the player's artifacts are garrisoned in
 int crucibleRelicSeen = -1;  // artifacts held and garrisoned, last said in the chat (as held * 100 + garrisoned)
 int crucibleRelicRoom = 0;  // population room given so far
 int crucibleRelicLimit = 0;  // population limit given so far
@@ -211,22 +206,19 @@ void crucibleRelicPick(int vars = -1, int count = 0, int keep = 0) {{
     }}
 }}
 
-// Fallback when the artifacts can't be found from themselves: each building of the list, what's garrisoned in it.
-void crucibleRelicScanBuildings(int kind = -1, int artifact = -1) {{
-    int inside = -1;
-
+// Building type `kind` holds an artifact when one of its buildings (the list) is one of the `count` containers.
+// Matched by unit id: xsGetUnitType on the container didn't give a building type (playtest 2026-11-23).
+void crucibleRelicMatch(int kind = -1, int count = 0) {{
     for (b = 0; < xsArrayGetSize(crucibleRelicBuildings)) {{
-        inside = xsGetGarrisonedUnitIds(xsArrayGetInt(crucibleRelicBuildings, b));
-
-        for (u = 0; < xsArrayGetSize(inside)) {{
-            if (xsGetUnitType(xsArrayGetInt(inside, u)) == artifact) {{
+        for (c = 0; < count) {{
+            if (xsArrayGetInt(crucibleRelicBuildings, b) == xsArrayGetInt(crucibleRelicContainers, c)) {{
                 xsArraySetInt(crucibleRelicHeld, kind, 1);
             }}
         }}
     }}
 }}
 
-void crucibleRelicScan() {{
+void crucibleRelicScan(int garrisoned = 0) {{
 {nl.join(scans)}
 }}
 
@@ -250,12 +242,11 @@ rule crucibleRelicStart
 {nl.join(_int_array("artifacts", artifacts))}
     crucibleRelicPick(ruins, {len(ruins)}, {level(meta.RUINS)});
     crucibleRelicPick(artifacts, {len(artifacts)}, {level(meta.ARTIFACTS)});
-    crucibleRelicGroup = xsArrayCreateInt({lookup}, -1, "crucibleRelicGroup");
     crucibleRelicHeld = xsArrayCreateInt({len(names)}, 0, "crucibleRelicHeld");
     crucibleRelicApplied = xsArrayCreateInt({len(names)}, 0, "crucibleRelicApplied");
+    crucibleRelicContainers = xsArrayCreateInt({meta.ARTIFACT_SPOTS}, -1, "crucibleRelicContainers");
     crucibleRelicNames = xsArrayCreateString({len(names)}, "", "crucibleRelicNames");
 {nl.join(name_sets)}
-{nl.join(group_sets)}
     xsEnableRule("crucibleRelics");
     xsDisableSelf();
 }}
@@ -268,7 +259,6 @@ rule crucibleRelics
     int room = 0;
     int limit = 0;
     int container = -1;
-    int unitType = -1;
     int count = 0;
     int held = 0;
     int garrisoned = 0;
@@ -301,16 +291,14 @@ rule crucibleRelics
     for (a = 0; < held) {{
         container = xsGetGarrisonedInUnitId(xsArrayGetInt(crucibleRelicIds, a));
 
-        if (container >= 0) {{
+        if ((container >= 0) && (garrisoned < {meta.ARTIFACT_SPOTS})) {{
+            xsArraySetInt(crucibleRelicContainers, garrisoned, container);
             garrisoned++;
-            unitType = xsGetUnitType(container);
-
-            if ((unitType >= 0) && (unitType < {lookup})) {{
-                if (xsArrayGetInt(crucibleRelicGroup, unitType) >= 0) {{
-                    xsArraySetInt(crucibleRelicHeld, xsArrayGetInt(crucibleRelicGroup, unitType), 1);
-                }}
-            }}
         }}
+    }}
+
+    if (garrisoned > 0) {{
+        crucibleRelicScan(garrisoned);
     }}
 
     if (held * 100 + garrisoned != crucibleRelicSeen) {{
@@ -319,17 +307,7 @@ rule crucibleRelics
         xsChatData("Artifacts found garrisoned: %d", garrisoned);
     }}
 
-    crucibleRelicTick++;
-
-    if ((garrisoned == 0) && (crucibleRelicTick % 3 == 0)) {{
-        crucibleRelicScan();  // a garrisoned unit may not be listed as the player's: look inside the buildings
-    }}
-
     for (h = 0; < {len(names)}) {{
-        if ((garrisoned == 0) && (crucibleRelicTick % 3 != 0)) {{
-            break;  // between scans: keep what the last scan found
-        }}
-
         if (xsArrayGetInt(crucibleRelicHeld, h) != xsArrayGetInt(crucibleRelicApplied, h)) {{
             if (xsArrayGetInt(crucibleRelicHeld, h) == 1) {{
                 xsChatData("Artifact: " + xsArrayGetString(crucibleRelicNames, h) + " boosted");
