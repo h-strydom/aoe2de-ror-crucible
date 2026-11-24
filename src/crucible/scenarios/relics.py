@@ -14,8 +14,10 @@ An artifact another player captures goes back to Gaia (a looping trigger): the p
 Legion (playtest 2026-11-24).
 
 Each artifact garrisoned counts: two in Barracks boost Barracks twice (a second did nothing, playtest 2026-11-24). The
-bounty stage also heals the units garrisoned in the building type (garrison heal rate, 108: ARTIFACT_GARRISON_HEAL a
-minute an artifact), and the artifact regenerates (ARTIFACT_CART_REGENERATION) wherever it is.
+bounty stage also heals the units garrisoned in the building type, by XS (ARTIFACT_GARRISON_HEAL a minute an
+artifact, up to the unit's full HP read live): the garrison heal rate (108) healed no Cataphracts in a Stable
+(playtest 2026-11-24). The artifact regenerates (ARTIFACT_CART_REGENERATION) wherever it is.
+The Trade Workshop's Tribute: the Wonder trickles each resource while it stands (WONDER_TRICKLE_RATE a level).
 
 Verified in game (2026-11-23): ruins pay; an artifact garrisons, and boosts and discounts a Town Center and a
 Barracks. The cap (resource 32) and the room (resource 4) from
@@ -47,7 +49,8 @@ STRUCTURES = {  # a building type -> its first building (the rest of its age cha
 WORK_RATE = 13
 COSTS = (103, 104, 105, 106)  # food, wood, gold, stone cost (unit attributes)
 REGENERATION = 109
-GARRISON_HEAL = 108  # a building's garrison heal rate: HP a second (a Town Center's is 0.1); unverified in game
+HIT_POINTS = 0  # unit attribute: full HP (xsGetObjectAttribute reads it live, upgrades included)
+WONDER = 276
 POPULATION_ROOM, POPULATION_LIMIT = 4, 32  # player resources
 RESOURCES = {"food": 0, "wood": 1, "stone": 2, "gold": 3}
 PLAYER_CIV = 1
@@ -107,23 +110,27 @@ def _apply(name: str, g: int, ids: tuple[int, ...], data, stages: dict[str, str]
     ]
     lines.append("        }")
 
-    lines.append(f"        if ({stages['special']} > 0) {{")
-    heal = meta.ARTIFACT_GARRISON_HEAL / 60
-    lines += [
-        f"            xsEffectAmount(cAddAttribute, {i}, {GARRISON_HEAL}, crucibleRelicSign(on) * {heal}, {player});"
-        for i in ids
-    ]
-
     if name == TOWER:
+        lines.append(f"        if ({stages['special']} > 0) {{")
         lines += [
             f"            xsEffectAmount(cAddAttribute, {i}, {REGENERATION}, crucibleRelicSign(on) * "
             f"{meta.ARTIFACT_REGENERATION}, {player});"
             for i in ids
         ]
-
-    lines.append("        }")
+        lines.append("        }")
 
     return lines + ["    }"]
+
+
+def healed(data) -> list[int]:
+    """The unit types the garrison heal looks for: everything the player trains that isn't a building."""
+    units = data.civs[PLAYER_CIV].units
+
+    return [
+        i
+        for i, u in enumerate(units)
+        if u and u.type == 70 and u.creatable and any(c.unit_id >= 0 for c in u.creatable.train_locations)
+    ]
 
 
 def xs(ctx, data, player: int, ruins: list[int], artifacts: list[int], artifact: int) -> str:
@@ -165,6 +172,18 @@ def xs(ctx, data, player: int, ruins: list[int], artifacts: list[int], artifact:
             ]
 
     name_sets = [f'    xsArraySetString(crucibleRelicNames, {g}, "{name}");' for g, name in enumerate(names)]
+    heal_types = healed(data)
+    heal_sets = [f"    xsArraySetInt(crucibleRelicHealTypes, {n}, {t});" for n, t in enumerate(heal_types)]
+    group_ids = [(g, i) for g, name in enumerate(names) for i in found[name]]
+    group_sets = [
+        line
+        for n, (g, i) in enumerate(group_ids)
+        for line in (
+            f"    xsArraySetInt(crucibleRelicGroupType, {n}, {i});",
+            f"    xsArraySetInt(crucibleRelicGroupOf, {n}, {g});",
+        )
+    ]
+    step = meta.ARTIFACT_GARRISON_HEAL * meta.ARTIFACT_HEAL_EVERY / 60
     speed = 1 + meta.ARTIFACT_SPEED_PERCENT / 100
     cost = 1 - meta.ARTIFACT_DISCOUNT_PERCENT / 100
     nl = "\n"
@@ -179,6 +198,13 @@ int crucibleRelicContainers = -1;  // the buildings the player's artifacts are g
 int crucibleRelicSeen = -1;  // artifacts held and garrisoned, last said in the chat (as held * 100 + garrisoned)
 int crucibleRelicRoom = 0;  // population room given so far
 int crucibleRelicLimit = 0;  // population limit given so far
+int crucibleRelicHealTypes = -1;  // the unit types the garrison heal looks for
+int crucibleRelicGroupType = -1;  // building types (each age's look) and their group, for the garrison heal
+int crucibleRelicGroupOf = -1;
+int crucibleRelicHealBuildings = -1;  // the buildings whose garrison heals now, and how much a step
+int crucibleRelicHealAmount = -1;
+int crucibleRelicHealCount = 0;
+int crucibleRelicNextHeal = 0;
 const float cCrucibleRelicSpeed = {speed};
 const float cCrucibleRelicCost = {cost};
 
@@ -239,6 +265,78 @@ void crucibleRelicScan(int garrisoned = 0) {{
 {nl.join(scans)}
 }}
 
+// The bounty: units garrisoned in a building of a type with artifacts heal, up to their full HP.
+void crucibleRelicHeal() {{
+    int ids = -1;
+    int id = -1;
+    int container = -1;
+    int g = -1;
+    int type = -1;
+    float full = 0.0;
+    float hp = 0.0;
+    float amount = 0.0;
+
+    crucibleRelicHealCount = 0;
+
+    for (n = 0; < xsArrayGetSize(crucibleRelicGroupType)) {{
+        g = xsArrayGetInt(crucibleRelicGroupOf, n);
+
+        if (xsArrayGetInt(crucibleRelicApplied, g) <= 0) {{
+            continue;
+        }}
+
+        type = xsArrayGetInt(crucibleRelicGroupType, n);
+        crucibleRelicBuildings = xsGetPlayerUnitIds({player}, type, crucibleRelicBuildings);
+        amount = {step} * xsArrayGetInt(crucibleRelicApplied, g);
+
+        for (b = 0; < xsArrayGetSize(crucibleRelicBuildings)) {{
+            id = xsArrayGetInt(crucibleRelicBuildings, b);
+
+            if (crucibleRelicHealCount < xsArrayGetSize(crucibleRelicHealBuildings)) {{
+                xsArraySetInt(crucibleRelicHealBuildings, crucibleRelicHealCount, id);
+                xsArraySetFloat(crucibleRelicHealAmount, crucibleRelicHealCount, amount);
+                crucibleRelicHealCount++;
+            }}
+        }}
+    }}
+
+    if (crucibleRelicHealCount == 0) {{
+        return;
+    }}
+
+    for (t = 0; < xsArrayGetSize(crucibleRelicHealTypes)) {{
+        type = xsArrayGetInt(crucibleRelicHealTypes, t);
+        crucibleRelicIds = xsGetPlayerUnitIds({player}, type, crucibleRelicIds);
+        full = xsGetObjectAttribute({player}, type, {HIT_POINTS}, 0);
+
+        for (u = 0; < xsArrayGetSize(crucibleRelicIds)) {{
+            id = xsArrayGetInt(crucibleRelicIds, u);
+            container = xsGetGarrisonedInUnitId(id);
+
+            if (container < 0) {{
+                continue;
+            }}
+
+            for (h = 0; < crucibleRelicHealCount) {{
+                if (xsArrayGetInt(crucibleRelicHealBuildings, h) == container) {{
+                    hp = xsGetUnitProperty(id, cUnitHitpoints);
+                    amount = xsArrayGetFloat(crucibleRelicHealAmount, h);
+
+                    if ((hp > 0.0) && (hp < full)) {{
+                        if (hp + amount > full) {{
+                            amount = full - hp;
+                        }}
+
+                        xsSetUnitProperty(id, cUnitHitpoints, hp + amount);
+                    }}
+
+                    break;
+                }}
+            }}
+        }}
+    }}
+}}
+
 void crucibleRelicApply(int kind = -1, bool on = false) {{
     float speed = cCrucibleRelicSpeed;
     float cost = cCrucibleRelicCost;
@@ -264,6 +362,13 @@ rule crucibleRelicStart
     crucibleRelicContainers = xsArrayCreateInt({meta.ARTIFACT_SPOTS}, -1, "crucibleRelicContainers");
     crucibleRelicNames = xsArrayCreateString({len(names)}, "", "crucibleRelicNames");
 {nl.join(name_sets)}
+    crucibleRelicHealTypes = xsArrayCreateInt({max(len(heal_types), 1)}, -1, "crucibleRelicHealTypes");
+{nl.join(heal_sets)}
+    crucibleRelicGroupType = xsArrayCreateInt({max(len(group_ids), 1)}, -1, "crucibleRelicGroupType");
+    crucibleRelicGroupOf = xsArrayCreateInt({max(len(group_ids), 1)}, 0, "crucibleRelicGroupOf");
+{nl.join(group_sets)}
+    crucibleRelicHealBuildings = xsArrayCreateInt(200, -1, "crucibleRelicHealBuildings");
+    crucibleRelicHealAmount = xsArrayCreateFloat(200, 0.0, "crucibleRelicHealAmount");
     xsEffectAmount(cAddAttribute, {artifact}, {REGENERATION}, {meta.ARTIFACT_CART_REGENERATION}, {player});
     xsEffectAmount(cAddAttribute, {artifact}, {REGENERATION}, {meta.ARTIFACT_CART_REGENERATION}, {GAIA});
     xsEnableRule("crucibleRelics");
@@ -286,6 +391,12 @@ rule crucibleRelics
     if ({level(meta.RUIN_TRICKLE)} > 0) {{
         for (r = 0; < 4) {{
             crucibleRelicAdd(r, {meta.RUIN_TRICKLE_RATE} * ruins);
+        }}
+    }}
+
+    if (({level(meta.WONDER_TRICKLE)} > 0) && (xsGetObjectCount({player}, {WONDER}) > 0)) {{
+        for (w = 0; < 4) {{
+            crucibleRelicAdd(w, {meta.WONDER_TRICKLE_RATE} * {level(meta.WONDER_TRICKLE)});
         }}
     }}
 
@@ -346,6 +457,11 @@ rule crucibleRelics
 
     if ({stages["special"]} > 0) {{
 {nl.join("    " + line for line in trickles)}
+
+        if (xsGetTime() >= crucibleRelicNextHeal) {{
+            crucibleRelicNextHeal = xsGetTime() + {meta.ARTIFACT_HEAL_EVERY};
+            crucibleRelicHeal();
+        }}
     }}
 }}
 """

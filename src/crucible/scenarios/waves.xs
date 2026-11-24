@@ -79,9 +79,9 @@ void crucibleWaveAnnounce(string text = "") {
     }
 }
 
-// The support slots a wave has: one per cCrucibleWaveWavesPerSupport waves.
+// The support slots a wave has: one per the difficulty's support waves.
 int crucibleWaveSupportSlots() {
-    return (crucibleWave / cCrucibleWaveWavesPerSupport);
+    return (crucibleWave / xsArrayGetInt(crucibleWaveSupportWaves, crucibleWaveDifficulty));
 }
 
 // ---- families and slots ----
@@ -486,7 +486,7 @@ void crucibleWaveEvolve(int lane = 0) {
             continue;
         }
 
-        crucibleWaveAgeChance = crucibleWaveAgeChance + cCrucibleWaveAgeUpStep;
+        crucibleWaveAgeChance = crucibleWaveAgeChance + xsArrayGetInt(crucibleWaveAgeUpSteps, crucibleWaveDifficulty);
         step = crucibleWaveRollStep();
         n = 0;
 
@@ -582,13 +582,19 @@ int crucibleWaveRollSupport(int lane = 0) {
     int archetype = xsArrayGetInt(crucibleWaveLaneArchetype, lane);
     int support = 0;
     int family = 0;
+    int chance = 0;
 
     for (i = 0; < cCrucibleWaveSupports) {
         support = xsArrayGetInt(crucibleWaveSupportPrefer, archetype * cCrucibleWaveSupports + i);
+        family = xsArrayGetInt(crucibleWaveSupportFamily, support);
+        chance = xsArrayGetInt(crucibleWaveSupportChance, support);
+
+        if (family >= 0) {
+            chance = chance + xsArrayGetInt(crucibleWaveSiegeBonus, crucibleWaveDifficulty);
+        }
 
         if ((xsArrayGetInt(crucibleWaveSupportAge, support) <= crucibleWaveAge)
-            && (xsGetRandomNumberLH(0, 100) < xsArrayGetInt(crucibleWaveSupportChance, support))) {
-            family = xsArrayGetInt(crucibleWaveSupportFamily, support);
+            && (xsGetRandomNumberLH(0, 100) < chance)) {
 
             if (family < 0) {
                 return (cCrucibleWavePriest);

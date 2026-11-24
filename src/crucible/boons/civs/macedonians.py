@@ -4,6 +4,26 @@ from crucible.bonuses.model import Civ, Group, Stat, flat, pct
 from crucible.boons.model import Boon, Building, Domain, Kind, Rarity, Subject
 
 BOONS = (
+    Boon(  # back by request (playtest 2026-11-24): one level, every unit
+        civ=Civ.MACEDONIANS,
+        number=1,
+        title="All units: Line of sight",
+        stat=Stat.LINE_OF_SIGHT,
+        groups=(
+            Group.MILITARY,
+            Group.VILLAGERS,
+        ),
+        domain=Domain.MILITARY,
+        kind=Kind.VISION,
+        subjects=(
+            Subject.INFANTRY,
+            Subject.CAVALRY,
+            Subject.ARCHER,
+        ),
+        rarity=Rarity.LEGENDARY,  # a one-level boon is a big one
+        effects=(flat(5),),
+        levels=1,
+    ),
     Boon(
         civ=Civ.MACEDONIANS,
         number=2,

@@ -32,9 +32,10 @@ for later).
 
 Upgrades also count the Legion's own towers, walls and buildings (its bases): tower and wall lines, Architecture.
 
-Support units (siege, Priests) come in support slots: one per WAVES_PER_SUPPORT waves. For each slot the wave's lanes
-(in a random order) each roll their archetype's supports in its order of preference (SUPPORT_CHANCE each, once the
-Legion's age has opened it); the first that comes up takes the slot, and a slot no lane fills stays empty.
+Support units (siege, Priests) come in support slots: one per SUPPORT_WAVES waves (by difficulty). For each slot the
+wave's lanes (in a random order) each roll their archetype's supports in its order of preference (SUPPORT_CHANCE each,
+once the Legion's age has opened it; siege SIEGE_BONUS more by difficulty); the first that comes up takes the slot,
+and a slot no lane fills stays empty. The age-up chance grows AGE_UP_STEPS a step by difficulty.
 """
 
 from dataclasses import dataclass
@@ -92,11 +93,16 @@ class Support(IntEnum):
     BALLISTA = 2  # Ballista, Helepolis
 
 
-WAVES_PER_SUPPORT = 10  # a support slot per this many waves
+WAVES_PER_SUPPORT = 10  # a support slot per this many waves (Standard; SUPPORT_WAVES by difficulty)
+# Hard was still on Slingers at 36 minutes, with little siege (playtest 2026-11-24): by difficulty, a support
+# slot comes more often, siege comes up likelier, and the age-up chance grows faster
+SUPPORT_WAVES = {Difficulty.STANDARD: 10, Difficulty.MODERATE: 8, Difficulty.HARD: 5}
+SIEGE_BONUS = {Difficulty.STANDARD: 0, Difficulty.MODERATE: 10, Difficulty.HARD: 25}  # percent on its chance
 SUPPORT_CHANCE = {Support.PRIEST: 30, Support.CATAPULT: 30, Support.BALLISTA: 30}  # percent, each roll
 SUPPORT_FAMILY = {Support.CATAPULT: "Stone Throwers", Support.BALLISTA: "Ballistas"}  # the Priest is a unit
 AGE_UP_START = 1  # percent
-AGE_UP_STEP = 1  # percent more for every step without an age up
+AGE_UP_STEP = 1  # percent more for every step without an age up (Standard; AGE_UP_STEPS by difficulty)
+AGE_UP_STEPS = {Difficulty.STANDARD: 1, Difficulty.MODERATE: 2, Difficulty.HARD: 4}
 MAX_STEPS = 8  # a lane's steps in one go at most (AGAIN can chain)
 MAIN_SHARE = 65  # percent: a grown unit goes to the archetype's main slot
 SCALE_EVERY = 10  # waves: the scale goes up by 1

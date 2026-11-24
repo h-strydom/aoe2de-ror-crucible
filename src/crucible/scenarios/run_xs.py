@@ -1,5 +1,5 @@
-"""The XS crucible_run starts with: the Allies' walls randomly damaged, none destroyed (walls handed to the player and
-all towers start whole, playtests 2026-11-21 and 22), the City States made invulnerable.
+"""The XS crucible_run starts with: the Allies' walls heavily damaged, broken in places (no wall upgrades: walls wrecked
+the waves' pathing, playtest 2026-11-24; towers start whole), the City States made invulnerable.
 It runs once, at START: after the meta upgrades have taken the player's buildings back. (The Allies' other buildings in
 the camp are destroyed then too: run.py.)
 
@@ -9,12 +9,12 @@ returned 0 to high - low, not low to high (towers rolled 40-75% came out 4-34%, 
 
 START = 3  # seconds: after the kept buildings, towers and walls are made anew (about 1-2 s)
 
-# how a wall starts: (chance in percent, lowest and highest HP in percent of its full HP); none destroyed (playtest
-# 2026-11-21: the old 15% destroyed shared out among the rest)
+# how a wall starts: (chance in percent, lowest and highest HP in percent of its full HP; 0: destroyed). The walls
+# are the Allies' for good, so gaps let the waves through (playtest 2026-11-24)
 WALL_STATES = (
-    (53, 10, 35),  # heavily damaged
-    (29, 40, 75),  # damaged
-    (18, 80, 100),  # fine
+    (30, 0, 0),  # destroyed
+    (50, 5, 30),  # heavily damaged
+    (20, 35, 60),  # damaged
 )
 
 

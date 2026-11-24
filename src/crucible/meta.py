@@ -238,8 +238,11 @@ ARTIFACT_SPEED_PERCENT = 15
 ARTIFACT_DISCOUNT_PERCENT = 20
 ARTIFACT_TRICKLES = {"Granary": (("food", 2, 20),), "Storage Pit": (("wood", 2, 20),)}  # a second: each, at most
 ARTIFACT_TRICKLES["Town Center"] = (("gold", 1, 10), ("stone", 1, 10))
-ARTIFACT_REGENERATION = 60  # tower HP a minute
-ARTIFACT_GARRISON_HEAL = 15  # HP a minute an artifact gives the units garrisoned in its building type
+# tower HP a minute an artifact (regeneration, 109): 60 showed as 2 HP a second, so a quarter of that now (playtest
+# 2026-11-24: the attribute looks to count double; to confirm)
+ARTIFACT_REGENERATION = 15
+ARTIFACT_GARRISON_HEAL = 15  # HP a minute an artifact gives the units garrisoned in its building type (by XS)
+ARTIFACT_HEAL_EVERY = 4  # seconds between the garrison heal's steps
 ARTIFACT_CART_REGENERATION = 120  # the artifact's own HP a minute (of 5000)
 RUIN_TRICKLE = Upgrade(
     "meta_ruin_trickle",
@@ -285,7 +288,8 @@ ARTIFACT_SPECIAL = Upgrade(
     "meta_artifact_special",
     "Artifact: bounty",
     "An artifact in a Granary: each Granary gives 2 food a second (20 at most); in a Storage Pit: 2 wood (20); in a "
-    f"Town Center: 1 gold and 1 stone (10 each); in a tower: towers regenerate {ARTIFACT_REGENERATION} HP a minute. "
+    f"Town Center: 1 gold and 1 stone (10 each); in a tower: towers regenerate {ARTIFACT_REGENERATION * 2} HP a "
+    "minute. "
     f"Units garrisoned in a building of its type heal {ARTIFACT_GARRISON_HEAL} HP a minute. Each artifact adds more.",
     "tower_4",
     2,
@@ -452,15 +456,8 @@ TOWER = Upgrade(
     1,
     label="Watch Tower",
 )
-WALLS = Upgrade(
-    "meta_walls",
-    "Small Walls",
-    "Start each run with your base's Small Walls: yours, undamaged.",
-    "granary_2",
-    2,
-    label="walls",
-    shows=(SMALL_WALL,),
-)
+# No wall upgrades (playtest 2026-11-24: walls wrecked the waves' pathing and made them trivial): the base's walls
+# are the Allies', heavily damaged or broken in places (run_xs.WALL_STATES).
 
 # ---- tier 3, player 4: the Bronze Age ----
 ACADEMY_UPGRADE = Upgrade(
@@ -495,15 +492,6 @@ SENTRY_TOWER = Upgrade(
     "granary_3",
     1,
     requires=(("meta_tower", 1),),
-)
-MEDIUM_WALL = Upgrade(
-    "meta_medium_wall",
-    "Medium Walls",
-    "Your starting walls are Medium Walls.",
-    "granary_3",
-    2,
-    requires=(("meta_walls", 1),),
-    shows=(MEDIUM_WALL,),
 )
 STORAGE_PIT_TECHS_2 = Upgrade(
     "meta_storage_pit_techs_2", "Storage Pit upgrades II", "The Storage Pit's Bronze Age upgrades.", "storage_pit_3", 1
@@ -577,14 +565,6 @@ GUARD_TOWER = Upgrade(
     "granary_4",
     1,
     requires=(("meta_sentry_tower", 1),),
-)
-FORTIFIED_WALL = Upgrade(
-    "meta_fortified_wall",
-    "Fortified Walls",
-    "Start each run with the camp's Fortified Walls (your other walls stay as they are).",
-    "granary_4",
-    2,
-    shows=(FORTIFIED_WALL,),
 )
 STORAGE_PIT_TECHS_3 = Upgrade(
     "meta_storage_pit_techs_3", "Storage Pit upgrades III", "The Storage Pit's Iron Age upgrades.", "storage_pit_4", 1
@@ -740,6 +720,24 @@ SPIES = Upgrade(
     label="spies",
 )
 
+WONDER_TRICKLE_RATE = 0.5  # of each resource a second, a level (a ruin's worth)
+WONDER_TRICKLE = Upgrade(
+    "meta_wonder_trickle",
+    "Tribute",
+    f"While your Wonder stands, it gives {WONDER_TRICKLE_RATE} food, wood, gold and stone a second in the run, "
+    "more each level.",
+    "trade_workshop",
+    3,
+    3,
+    label="Wonder trickle",
+    texts=tuple(
+        f"Your Wonder gives {WONDER_TRICKLE_RATE * (n + 1)} of each resource a second with the next level (now "
+        f"{WONDER_TRICKLE_RATE * n})."
+        for n in range(3)
+    )
+    + (f"Your Wonder gives {WONDER_TRICKLE_RATE * 3} of each resource a second: every level bought.",),
+)
+
 UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for Axemen
     STARTING_RESOURCES,
     TOWN_CENTER_SPEED,
@@ -769,13 +767,11 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     SCOUT,
     STORAGE_PIT_TECHS,
     TOWER,
-    WALLS,
     ACADEMY_UPGRADE,
     GOVERNMENT_CENTER_UPGRADE,
     SIEGE_WORKSHOP_UPGRADE,
     TEMPLE_UPGRADE,
     SENTRY_TOWER,
-    MEDIUM_WALL,
     STORAGE_PIT_TECHS_2,
     MARKET_TECHS_2,
     WHEEL,
@@ -789,7 +785,6 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     TEMPLE_TECHS,
     DOCK_TECHS,
     GUARD_TOWER,
-    FORTIFIED_WALL,
     STORAGE_PIT_TECHS_3,
     MARKET_TECHS_3,
     LONG_SWORD,
@@ -819,6 +814,7 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     ARTIFACT_SPECIAL,
     REROLLS,
     SPIES,
+    WONDER_TRICKLE,
 )
 VILLAGERS = VILLAGERS_UPGRADE  # the name the run knows it by (the unit types are VILLAGER_TYPES)
 

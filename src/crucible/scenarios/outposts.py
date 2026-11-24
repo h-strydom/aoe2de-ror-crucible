@@ -19,6 +19,11 @@ go back to; a trigger removes them there (`exits`).
 
 Playtest 2026-11-24 (standard): the aggression felt right for Hard, so Moderate and Standard scale it down
 (AGGRESSION); the garrison is 2, 4 and 6 times the first test's (GARRISON_SCALE), twice that while turtled.
+Second playtest (Hard): turtling for 5 minutes was too long (2 now), turns too slow (TURN_SPEED), no raids, spots
+with 1 or 2 guards at 45 minutes, the first land attack at 15 minutes. Now everything grows with time
+(TimeGrowth: parties, waves, turns, turtled top-ups) and with each outpost destroyed (FallenBonus, and the
+survivors gain levels); raids hunt the player's villagers outside their base; a spot the player is on gets a
+party at once; attack waves are twice as big and come from FIRST_WAVE on; units swap to a better line at once.
 """
 
 import math
@@ -43,9 +48,13 @@ DEBUG = True  # chat says what each outpost does: for the playtests only (outpos
 NUMBERS = {  # the XS constants (cCrucibleOutpost + the name)
     "Start": 10,  # seconds: the first look (after waves.xs has set up)
     "FirstTick": 60,  # seconds: the first turn (+ up to half TickSpread)
-    "Tick": 120,  # seconds between turns on Hard, + 0 to TickSpread (longer on easier difficulties: AGGRESSION)
-    "TickSpread": 120,
-    "Turtle": 300,  # seconds after the last harassment an outpost stays turtled
+    "Tick": 90,  # seconds between turns, + 0 to TickSpread, divided by TURN_SPEED and the power
+    "TickSpread": 60,
+    "Turtle": 120,  # seconds after the last harassment an outpost stays turtled (300 was too long)
+    "TimeGrowth": 3,  # percent more power a minute: parties, waves, turns and turtled top-ups
+    "TimeMax": 400,
+    "FallenBonus": 25,  # percent more power for each outpost destroyed
+    "FallenGrowth": 20,  # growth points (2 levels) each surviving outpost gains when one is destroyed
     "Grow": 10,  # growth points a turn left alone (10 a level)
     "GrowHarassed": 3,  # turtled
     "StartDefenders": 3,  # the garrison's base: + a level's and an age's worth, times GARRISON_SCALE
@@ -54,19 +63,27 @@ NUMBERS = {  # the XS constants (cCrucibleOutpost + the name)
     "Max": 120,  # land units in a garrison at most
     "ShipMax": 40,
     "Members": 220,  # units an outpost keeps track of: garrison, spot guards, ships
-    "SpawnPerTick": 3,  # more of the garrison a turn (12 replenished too fast, playtest 2026-11-24)
-    "TurtleSpawnEvery": 30,  # seconds: turtled and left alone, it tops up this often
-    "TurtleSpawn": 2,
+    "SpawnPerTick": 3,  # more of the garrison a turn, times the power (12 replenished too fast, 2026-11-24)
+    "TurtleSpawnEvery": 30,  # seconds: turtled and left alone, it tops up this often (less with the power)
+    "TurtleSpawn": 3,
     "LevelsPerLine": 4,  # a level step of this many moves its units a line on
     "MainShare": table.MAIN_SHARE,
     "BullyBase": 2,  # a party sent to a contested spot: + BullyPer a pressure, + the Legion's age
     "BullyPer": 2,
-    "BullyMax": 16,
-    "SpotMax": 24,  # guards at one spot at most
+    "BullyMax": 20,
+    "BullyEvery": 45,  # seconds between parties to a spot the player stays on (less with the power)
+    "SpotMax": 30,  # guards at one spot at most
+    "SpotLow": 75,  # percent: a spot with fewer guards than this of what it wants is refilled
+    "Refills": 2,  # spots refilled a turn at most
+    "RaidBase": 3,  # a raid: + RaidPerAge an age (times the aggression and the power)
+    "RaidPerAge": 2,
+    "RaidMax": 16,
     "PressureEvery": 30,  # seconds: a spot's pressure goes up while contested, down while clear
     "PressureMax": 10,
-    "WaveBase": 3,  # an attack wave: + a level / 2, + 2 an age (times AGGRESSION)
-    "WaveMax": 30,
+    "WaveBase": 3,  # an attack wave: + a level / 2, + 2 an age, times WaveScale (and the aggression, the power)
+    "WaveScale": 2,  # twice the first tests' (playtest 2026-11-24)
+    "WaveMax": 60,
+    "WaveOverdue": 300,  # seconds: a wave comes even while spots are being refilled (less with the power)
     "TransportMax": 8,
     "LightTransport": 545,
     "HeavyTransport": 37,
@@ -90,13 +107,19 @@ RANGES = {  # tiles (floats in XS)
     "SpotWander": 4.0,  # a spot guard from its spot
     "ShipWander": 4.0,  # a ship from its spot
     "Landed": 4.0,  # a transport this near its landing lands its party
+    "RaidSafe": 22.0,  # the player's villagers this near the Wonder are in their base: never raided
+    "RaidReach": 110.0,  # an outpost raids villagers this near it
+    "RaidChase": 15.0,  # raiders go for villagers this near where they were sent, else home
 }
 GARRISON_SCALE = (2, 4, 6)  # by difficulty (Standard, Moderate, Hard): the garrison, its base times this
 TURTLE_SCALE = (4, 8, 12)  # while turtled
-AGGRESSION = (50, 75, 100)  # percent: parties and waves this size, turns this much more often
+AGGRESSION = (50, 75, 100)  # percent: parties, raids and waves this size
+TURN_SPEED = (75, 100, 160)  # percent: turns this much more often (Hard's were too slow, playtest 2026-11-24)
+FIRST_WAVE = (900, 750, 600)  # seconds: no attack wave before (Hard's first came at 15 minutes)
+RAID_SHARE = (25, 35, 50)  # percent of turns that send a raid
 KINGS_PER_SIDE = 3
-SPOT_EACH = 1000  # a spot's resources: a guard each this many (2 to 6), + the Legion's age
-SPOT_GUARDS = (2, 6)
+SPOT_EACH = 1000  # a spot's resources: a guard each this many (SPOT_GUARDS), + the Legion's age
+SPOT_GUARDS = (3, 8)  # 1 or 2 guards at 45 minutes was too few (playtest 2026-11-24)
 SPOT_REACH = 7  # tiles round a scout whose resources count
 SEA_SPAWN = 3  # tiles in from a sea marker (on the map's edge) its transports start at; they leave at the marker
 EXIT = 1  # tiles round a sea marker a trigger removes the Legion's transports and escorts in
@@ -494,6 +517,9 @@ def xs(s, markers: dict[str, list[tuple[float, float]]]) -> str:
         *_ints("crucibleOutpostGarrisonScale", list(GARRISON_SCALE)),
         *_ints("crucibleOutpostTurtleScale", list(TURTLE_SCALE)),
         *_ints("crucibleOutpostAggression", list(AGGRESSION)),
+        *_ints("crucibleOutpostTurnSpeed", list(TURN_SPEED)),
+        *_ints("crucibleOutpostFirstWave", list(FIRST_WAVE)),
+        *_ints("crucibleOutpostRaidShare", list(RAID_SHARE)),
     ]
     arrays = sorted({line.split(" = ")[0].strip() for line in setup if " = xsArrayCreate" in line})
     constants = [

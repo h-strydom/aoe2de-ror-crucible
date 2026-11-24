@@ -32,7 +32,6 @@ from crucible import meta
 
 VILLAGER_MALE, VILLAGER_FEMALE = 83, 293
 HOUSE, SCOUT = 70, 448
-SMALL_WALL, MEDIUM_WALL, FORTIFIED_WALL = 72, 117, 155
 TOWERS = (79, 234, 235, 236)  # Watch, Sentry, Guard, Ballista Tower
 LOOKS_ONLY = (HOUSE,)  # kept by a change of hands (no buttons to lose); the rest are created anew
 AGE_TECHS = ((1, 101), (2, 102), (3, 103))  # (the age reached, its tech): Tool, Bronze, Iron
@@ -138,7 +137,6 @@ RANGED_LINE = (
 )
 CAVALRY_LINE = (("", meta.CAVALRY), (meta.HEAVY_CAVALRY_UPGRADE.key, meta.HEAVY_CAVALRY))
 TOWER_LINE = ((meta.TOWER.key, 79), (meta.SENTRY_TOWER.key, 234), (meta.GUARD_TOWER.key, 235))
-WALL_LINE = ((meta.WALLS.key, SMALL_WALL), (meta.MEDIUM_WALL.key, MEDIUM_WALL))
 STARTING_RESOURCES = {"FOOD_STORAGE": 50, "WOOD_STORAGE": 50, "GOLD_STORAGE": 20, "STONE_STORAGE": 20}  # a level
 TOWN_CENTERS = (109, 71, 141, 142)  # the Town Center's look in each age: a building's work rate goes on every one
 WORK_RATE = 13  # unit attribute: a building's training and research speed
@@ -370,21 +368,12 @@ def _defences(ctx, s, allies: int, player: int) -> None:
     """The base's towers as the latest tower upgrade bought, its Small Walls as Small or Medium Walls (undamaged:
     run_xs damages only the Allies'), and the camp's Fortified Walls with their own upgrade."""
     towers = [u for u in s.unit_manager.units[allies] if u.unit_const in TOWERS]
-    walls = [u for u in s.unit_manager.units[allies] if u.unit_const == SMALL_WALL]
-    fortified = [u for u in s.unit_manager.units[allies] if u.unit_const == FORTIFIED_WALL]
 
     for n, (key, kind) in enumerate(TOWER_LINE):
         later = _below(TOWER_LINE[n + 1][0], 1) if n + 1 < len(TOWER_LINE) else []
         conditions = _at_least(meta.TOWER.key, 1) + _at_least(key, 1) + later
         _remake(ctx, f"Meta: towers as {kind}", conditions, towers, allies, player, kind)
 
-    for n, (key, kind) in enumerate(WALL_LINE):
-        later = _below(WALL_LINE[n + 1][0], 1) if n + 1 < len(WALL_LINE) else []
-        conditions = _at_least(meta.WALLS.key, 1) + _at_least(key, 1) + later
-        _remake(ctx, f"Meta: walls as {kind}", conditions, walls, allies, player, kind)
-
-    if fortified:
-        _remake(ctx, "Meta: Fortified Walls", _at_least(meta.FORTIFIED_WALL.key, 1), fortified, allies, player)
 
 
 def _create(unit: int, player: int, tiles) -> list[dict]:

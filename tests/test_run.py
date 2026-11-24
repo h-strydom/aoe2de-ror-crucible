@@ -34,9 +34,10 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         iron = next(t for t in s.trigger_manager.triggers if t.name == "Meta: Storage Pit upgrades III unlocks 117")
         assert not any(c.condition_type == 9 and c.technology == 103 for c in iron.conditions)  # the age, not the tech
         assert {"No hub buttons", "No data mod", "No data mod: defeat"} <= names
-        # starting soldiers follow their lines; towers and walls by tier; units unlocked by age
+        # starting soldiers follow their lines; towers by tier (no walls); units unlocked by age
         assert {"Meta: melee 281", "Meta: melee 77", "Meta: Bowmen 2 as 39", "Meta: Cavalry 3 as 283"} <= names
-        assert {"Meta: towers as 234", "Meta: walls as 117", "Meta: Academy unlocks unit 93"} <= names
+        assert {"Meta: towers as 234", "Meta: Academy unlocks unit 93"} <= names
+        assert not any(n.startswith("Meta: walls") for n in names)
         assert "Meta: Watch Tower unlocks unit 79" in names  # building Watch Towers
         assert {"Meta: Iron Age unlocks 103", "Meta: starting resources 5"} <= names
         assert {"Player: no walls or gates", "Win: claim victory offered", "Win: claim victory"} <= names
@@ -74,9 +75,12 @@ def test_spawn_rows_short_of_staging():
         assert sx2 < tx1 or tx2 < sx1 or sy2 < ty1 or ty2 < sy1, lane.name  # a unit in its spawn rows isn't staged
 
 
-def test_walls_start_damaged_never_destroyed():
+def test_walls_start_heavily_damaged_and_broken_in_places():
+    from crucible import meta
     from crucible.scenarios import run_xs
 
     assert sum(chance for chance, _, _ in run_xs.WALL_STATES) == 100
-    assert all(low > 0 for _, low, _ in run_xs.WALL_STATES)
+    assert any(high == 0 for _, _, high in run_xs.WALL_STATES)  # some destroyed
+    assert all(high <= 60 for _, _, high in run_xs.WALL_STATES)
+    assert not any("wall" in u.key for u in meta.UPGRADES)  # walls are never the player's
     assert "crucibleRunTowers" not in run_xs.start({72: 200}, [], allies=5, player=1, invulnerable=2)

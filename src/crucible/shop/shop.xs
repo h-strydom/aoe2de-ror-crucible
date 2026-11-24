@@ -14,6 +14,9 @@
 // shows it for the upgrade). A reroll weighs the categories it turns down less from then on, and each Legion base
 // destroyed gives a free reroll more (with the upgrade). A category with fewer boons left than the offer's slots
 // weighs that much less, so the shop spreads out again once a favourite runs dry (playtest 2026-11-24).
+// With one boon left nothing was offered (playtest 2026-11-24): rolls are kept below their count whatever
+// xsGetRandomNumberLH's top end does, a pick that offers nothing gives its choice back, and choices with no boons
+// left wait (crucibleShopRetry) for a bought boon's next level instead of being dropped.
 
 int crucibleShopState = 0;  // 0 closed, 1 choosing, 2 picked
 int crucibleShopCategory1 = -1;
@@ -22,6 +25,8 @@ int crucibleShopPicked = 0;  // the choice clicked: 1 or 2
 int crucibleShopChoices = 0;  // choices still to make
 bool crucibleShopReady = false;
 bool crucibleShopPoor = false;  // the free offer (wave 0) is being made
+int crucibleShopRetry = 0;  // seconds: choices waiting for boons look again then
+bool crucibleShopEmptySaid = false;  // "no boons left" said, until a choice shows again
 
 const int cCrucibleShopPendingSize = 400;
 int crucibleShopPendingTech = -1;  // boons on the Wonder not yet bought: their tech, button and boon
@@ -59,6 +64,17 @@ void crucibleShopInit() {
     }
 
     crucibleShopReady = true;
+}
+
+// 0 to n - 1.
+int crucibleShopRandom(int n = 1) {
+    int r = xsGetRandomNumberLH(0, n);
+
+    if (r >= n) {
+        return (n - 1);
+    }
+
+    return (r);
 }
 
 int crucibleShopChoice(int number = 1) {
@@ -179,7 +195,7 @@ int crucibleShopRandomCategory(int skipAxis = -1) {
         return (-1);
     }
 
-    int roll = xsGetRandomNumberLH(0, total);
+    int roll = crucibleShopRandom(total);
 
     for (b = 0; < cCrucibleCategories) {
         if (crucibleShopEligible(b, skipAxis)) {
@@ -208,10 +224,15 @@ void crucibleShopShow() {
     crucibleShopCategory1 = crucibleShopRandomCategory(-1);
 
     if (crucibleShopCategory1 < 0) {
-        xsChatData("Shop: no boons left");
-        crucibleShopChoices = 0;
+        if (crucibleShopEmptySaid == false) {
+            xsChatData("Shop: no boons left to offer: your choices wait for the next");
+            crucibleShopEmptySaid = true;
+        }
+
         return;
     }
+
+    crucibleShopEmptySaid = false;
 
     crucibleShopCategory2 = crucibleShopRandomCategory(xsArrayGetInt(crucibleCategoryAxis, crucibleShopCategory1));
     crucibleShopName(1, crucibleShopCategory1);
@@ -245,7 +266,7 @@ int crucibleShopBoon(int category = 0) {
         return (-1);
     }
 
-    int roll = xsGetRandomNumberLH(0, count);
+    int roll = crucibleShopRandom(count);
 
     for (boon = 0; < cCrucibleBoons) {
         if (crucibleShopMember(category, boon)) {
@@ -321,8 +342,8 @@ void crucibleShopFreeBought() {
 }
 
 // One boon of the category per slot, each at its next level on the freest button. Stacked boons: the one on top
-// researches, then the next shows.
-void crucibleShopOffer(int category = 0) {
+// researches, then the next shows. How many were offered.
+int crucibleShopOffer(int category = 0) {
     int offered = 0;
     int slots = crucibleShopSlots();
     int speed = crucibleShopMeta(cCrucibleSpeedVariable);
@@ -362,6 +383,8 @@ void crucibleShopOffer(int category = 0) {
     }
 
     xsChatData("Shop: %d boons offered", offered);
+
+    return (offered);
 }
 
 // The reroll the Wonder should show: none without the upgrade or a choice up; the free one while some are left.
@@ -520,20 +543,32 @@ rule crucibleShop
     }
 
     if ((crucibleShopState == 2) && (xsGetTechState(crucibleShopChoice(crucibleShopPicked), 1) == cTechStateDone)) {
+        int offered = 0;
+
         if (crucibleShopPicked == 1) {
             crucibleShopFavour(crucibleShopCategory1);
-            crucibleShopOffer(crucibleShopCategory1);
+            offered = crucibleShopOffer(crucibleShopCategory1);
         } else {
             crucibleShopFavour(crucibleShopCategory2);
-            crucibleShopOffer(crucibleShopCategory2);
+            offered = crucibleShopOffer(crucibleShopCategory2);
         }
 
         crucibleShopPicked = 0;
         crucibleShopState = 0;
-        crucibleShopChoices = crucibleShopChoices - 1;
+
+        if (offered > 0) {
+            crucibleShopChoices = crucibleShopChoices - 1;  // else the choice comes back
+        }
 
         if (crucibleShopChoices > 0) {
             crucibleShopShow();
         }
+
+        return;
+    }
+
+    if ((crucibleShopState == 0) && (crucibleShopChoices > 0) && (xsGetTime() >= crucibleShopRetry)) {
+        crucibleShopRetry = xsGetTime() + 5;
+        crucibleShopShow();
     }
 }

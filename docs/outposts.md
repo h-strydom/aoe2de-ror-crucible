@@ -137,6 +137,19 @@ so sinking it at sea still kills them.
      marker, sail to the water by a landing, land the party on the King's tile (the fake), then sail back to the
      marker with the escorts, where a looping trigger removes them (unverified: removal by type in an area failed on
      Gaia bushes once).
+6. **Second playtest (Hard, 2026-11-24)**: turtling 5 minutes was too long, turns too slow, no raids, most spots
+   with 1 or 2 guards at 45 minutes, the first land attack at 15 minutes, the garrison slow to swap lines. Now:
+   - turtled 2 minutes after the last hit;
+   - turns every 90-150 s divided by TURN_SPEED (75, 100, 160%) and by the power;
+   - the power: +3% a minute (400% at most), +25% for each outpost destroyed (and each survivor gains 2 levels);
+     it scales parties, raids, waves, turns, turtled top-ups and the garrison's top-up a turn;
+   - raids: a turn sends one (25, 35, 50% of turns) on the player's villager nearest the outpost outside 22 tiles of
+     the Wonder; raiders chase villagers near where they were sent, then go home to the garrison;
+   - a spot the player is on gets a party at once, again every 45 s (less with the power) while the player stays;
+   - spots want 3 to 8 guards (+ the age, times the aggression and the power), refilled below 75%, two a turn;
+   - attack waves twice as big (60 at most), never before FIRST_WAVE (900, 750, 600 s), and one comes every 5
+     minutes (less with the power) even while spots are being refilled;
+   - when its slots' units or its ship move on, its units swap where they stand, one for one (the old ones die).
 
 ## Open
 
