@@ -184,6 +184,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 speed=meta.BOON_SPEED.key,
                 discount=meta.BOON_DISCOUNT.key,
                 discounts=meta.BOON_DISCOUNTS,
+                rerolls=meta.REROLLS.key,
+                spies=meta.SPIES.key,
             )
             waves.add(ctx, techs, data)
             bases.add(ctx, s)  # optional objectives: a boon choice per Legion base destroyed
@@ -199,7 +201,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 chains=run_meta.age_chains(data),
                 unlocked=run_meta.unlocks(data),
             )
-            relics.add(ctx, s, data, techs, Faction.PLAYER)
+            relics.add(ctx, s, data, techs, Faction.PLAYER, tuple(f for f in Faction if f != Faction.PLAYER))
             ctx.trigger(
                 "No hub buttons",  # the hub's upgrades are data mod techs on every Town Center and Barracks
                 [],

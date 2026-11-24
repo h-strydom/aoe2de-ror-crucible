@@ -25,6 +25,7 @@ CAVALRY, HEAVY_CAVALRY, CATAPHRACT, WAR_ELEPHANT, ARMORED_ELEPHANT, SCYTHE_CHARI
 CENTURION, HEAVY_CATAPULT, HELEPOLIS = 359, 588, 542
 WATCH_TOWER, SENTRY_TOWER, GUARD_TOWER = 79, 234, 235
 SMALL_WALL, MEDIUM_WALL, FORTIFIED_WALL = 72, 117, 155
+TRADE_WORKSHOP = 110  # the player's, by the Wonder (added to the hub 2026-11-24)
 
 TIERS = (5, 10, 20, 20)  # more levels bought (from any tier) to open tiers 2, 3, 4, 5
 TIER_PLAYERS = {1: 2, 2: 3, 3: 4, 4: 5, 5: 6}  # tier -> its player in the hub map
@@ -92,6 +93,7 @@ class Upgrade:
 
 PLACES = (
     Place("wonder", WONDER, 0, copy=False),
+    Place("trade_workshop", TRADE_WORKSHOP, 0),
     Place("town_center_1", TOWN_CENTER, 1),
     Place("barracks_1", BARRACKS, 1, "meta_barracks"),
     Place("town_center_2", TOWN_CENTER, 2),
@@ -713,6 +715,28 @@ HELEPOLISES = Upgrade(
     shows=(HELEPOLIS,),
 )
 
+# ---- the Trade Workshop: the run's extras (on the Wonder in the run: datamod/shop.py) ----
+REROLL_GOLD = 500  # a reroll's price once the run's free ones are spent
+REROLLS = Upgrade(
+    "meta_rerolls",
+    "Rerolls",
+    "Each level is one free reroll a run: the Wonder rerolls the two boon categories on offer. Once they're spent, a "
+    f"reroll costs {REROLL_GOLD} gold.",
+    "trade_workshop",
+    1,
+    5,
+    label="rerolls",
+)
+SPIES_GOLD = 5000
+SPIES = Upgrade(
+    "meta_spies",
+    "Spies",
+    f"The Wonder can research Spies in the run ({SPIES_GOLD} gold): the whole map visible.",
+    "trade_workshop",
+    2,
+    label="spies",
+)
+
 UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for Axemen
     STARTING_RESOURCES,
     TOWN_CENTER_SPEED,
@@ -790,6 +814,8 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     ARTIFACT_COST,
     RUIN_CAP,
     ARTIFACT_SPECIAL,
+    REROLLS,
+    SPIES,
 )
 VILLAGERS = VILLAGERS_UPGRADE  # the name the run knows it by (the unit types are VILLAGER_TYPES)
 

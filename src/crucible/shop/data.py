@@ -1,9 +1,10 @@
 """The XS data block the shop runtime (shop.xs) reads: constants, and crucibleShopData() filling the arrays."""
 
+from crucible import meta
 from crucible.bonuses.model import Civ
 from crucible.boons.model import AXES, LEVELS, RARITY_COSTS, Boon, Category, Rarity
 from crucible.datamod.boons import key
-from crucible.datamod.shop import BOON_BUTTONS, MAX_OFFERED, choice_key
+from crucible.datamod.shop import BOON_BUTTONS, MAX_OFFERED, REROLL_FREE, REROLL_PAID, SPIES, choice_key
 from crucible.datamod.upgrades import RESEARCH_TIME as BOON_TIME
 from crucible.datamod.upgrades import WONDER
 from crucible.shop.config import ShopConfig
@@ -33,11 +34,14 @@ def xs_data(
     speed_tiers: int = 5,
     discount_variable: int = -1,
     discounts: tuple[int, ...] = (),
+    rerolls_variable: int = -1,
+    reroll_signal: int = -1,
 ) -> str:
     """`techs` is the data mod's manifest; `choices_variable` is the trigger variable that re-enables the choices.
     `slots_variable` (more boons per decision) and `speed_variable` (out of `speed_tiers`: shorter research, instant
     at the last) are the trigger variables of meta upgrades, read at each offer; -1 for none. `discount_variable`:
-    the boon discount's level, `discounts` the percent off each level adds."""
+    the boon discount's level, `discounts` the percent off each level adds. `rerolls_variable`: the Rerolls
+    upgrade's level (-1: no reroll button); `reroll_signal`: the trigger variable that shows a reroll."""
     rarities = list(Rarity)
     sets = [
         *(
@@ -87,6 +91,12 @@ const int cCrucibleSlotsVariable = {slots_variable};
 const int cCrucibleSpeedVariable = {speed_variable};
 const int cCrucibleSpeedTiers = {speed_tiers};
 const int cCrucibleBoonTime = {BOON_TIME};
+const int cCrucibleRerollsVariable = {rerolls_variable};
+const int cCrucibleRerollSignal = {reroll_signal};
+const int cCrucibleRerollFree = {techs.get(REROLL_FREE, -1) if reroll_signal >= 0 else -1};
+const int cCrucibleRerollPaid = {techs.get(REROLL_PAID, -1) if reroll_signal >= 0 else -1};
+const int cCrucibleRerollGold = {meta.REROLL_GOLD};
+const int cCrucibleSpies = {techs.get(SPIES, -1)};
 
 int crucibleBoonLevel = -1;  // boon * cCrucibleLevels + level (from 0) -> its tech, -1 if it has none
 int crucibleBoonRarity = -1;  // 0 common, 1 rare, 2 legendary: its price

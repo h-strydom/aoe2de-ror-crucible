@@ -33,7 +33,7 @@ def add(mod: DataMod) -> None:
 
     for place in meta.PLACES:
         if place.copy:
-            mod.manifest[place.copy_key] = mod.copy_unit(aged(mod, place.unit, meta.TIER_AGES[place.tier]))
+            mod.manifest[place.copy_key] = mod.copy_unit(aged(mod, place.unit, meta.TIER_AGES[max(place.tier, 1)]))
 
     for upgrade in meta.UPGRADES:
         mod.manifest[upgrade.tech] = mod.new_tech(

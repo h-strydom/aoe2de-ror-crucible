@@ -41,7 +41,7 @@ from crucible import meta
 from crucible.datamod import count_icons
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
-from crucible.datamod.shop import SEND_WAVE, choice_key
+from crucible.datamod.shop import REROLL_FREE, REROLL_PAID, SEND_WAVE, SPIES, choice_key
 from crucible.scenarios import datamod_check
 from crucible.scenarios.maps import asset
 
@@ -59,7 +59,8 @@ TIER_COUNTERS = (2, 3, 4, 5)  # whose relics count towards tier 2, 3, 4, 5: noth
 STOCKPILE = ("FOOD_STORAGE", "WOOD_STORAGE", "GOLD_STORAGE", "STONE_STORAGE")  # meta.CURRENCY, in order
 XS_RESOURCES = ("cAttributeFood", "cAttributeWood", "cAttributeGold", "cAttributeStone")
 AGES = {1: "DARK", 2: "FEUDAL", 3: "CASTLE", 4: "IMPERIAL", 5: "IMPERIAL"}  # tier -> its player's age (its looks)
-SHOP_TECHS = (SEND_WAVE, choice_key(1), choice_key(2))  # the run's buttons on the Wonder: off in the hub
+# the run's buttons on the Wonder: off in the hub
+SHOP_TECHS = (SEND_WAVE, choice_key(1), choice_key(2), REROLL_FREE, REROLL_PAID, SPIES)
 KEEPER = meta.BARRACKS  # not a type anything hands over by type once the plan is made
 KEEPERS = tuple((2.5 + 4 * n, 2.5) for n in range(len(meta.TIER_PLAYERS)))  # each tier player's, in turn
 

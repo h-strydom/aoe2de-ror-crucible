@@ -8,6 +8,10 @@
 // (cCrucibleButtons) with the fewest unbought boons: they only stack once every button holds one, so a boon the player
 // can't use yet doesn't block the next. crucibleShopOpenPoor() (wave 0) skips the choice: each slot gets the first
 // level of a random common boon, free.
+// Rerolls (the Trade Workshop's): while a choice is up, the Wonder's reroll shows two other categories; the
+// upgrade's level is the free rerolls a run, then a reroll costs gold (the paid tech). Triggers show a reroll
+// (cCrucibleRerollSignal: 1 the free one, 2 the paid one); XS hides them. Spies starts hidden (a trigger
+// shows it for the upgrade).
 
 int crucibleShopState = 0;  // 0 closed, 1 choosing, 2 picked
 int crucibleShopCategory1 = -1;
@@ -23,6 +27,11 @@ int crucibleShopPendingButton = -1;
 int crucibleShopPendingBoon = -1;
 int crucibleShopPendingCount = 0;
 int crucibleShopButtonLoad = -1;  // by button (1 to cCrucibleButtons): unbought boons on it
+int crucibleShopRerollShown = 0;  // 0 none, 1 the free reroll, 2 the paid one; -1 to be shown again
+int crucibleShopRerollsUsed = 0;  // free rerolls used this run
+bool crucibleShopRerollHandled = false;  // a reroll's research seen done, until it's shown again
+int crucibleShopSkip1 = -1;  // categories a reroll leaves out
+int crucibleShopSkip2 = -1;
 
 void crucibleShopInit() {
     if (crucibleShopReady) {
@@ -36,6 +45,16 @@ void crucibleShopInit() {
     crucibleShopButtonLoad = xsArrayCreateInt(cCrucibleButtons + 1, 0, "crucibleShopButtonLoad");
     xsEffectAmount(cDisableTech, cCrucibleChoice1, cAttributeDisable, 0, 1);
     xsEffectAmount(cDisableTech, cCrucibleChoice2, cAttributeDisable, 0, 1);
+
+    if (cCrucibleRerollFree >= 0) {
+        xsEffectAmount(cDisableTech, cCrucibleRerollFree, cAttributeDisable, 0, 1);
+        xsEffectAmount(cDisableTech, cCrucibleRerollPaid, cAttributeDisable, 0, 1);
+    }
+
+    if (cCrucibleSpies >= 0) {
+        xsEffectAmount(cDisableTech, cCrucibleSpies, cAttributeDisable, 0, 1);
+    }
+
     crucibleShopReady = true;
 }
 
@@ -101,6 +120,10 @@ int crucibleShopAvailable(int category = 0) {
 }
 
 bool crucibleShopEligible(int category = 0, int skipAxis = -1) {
+    if ((category == crucibleShopSkip1) || (category == crucibleShopSkip2)) {
+        return (false);
+    }
+
     return ((xsArrayGetInt(crucibleCategoryAxis, category) != skipAxis) && (crucibleShopAvailable(category) > 0));
 }
 
@@ -316,6 +339,95 @@ void crucibleShopOffer(int category = 0) {
     xsChatData("Shop: %d boons offered", offered);
 }
 
+// The reroll the Wonder should show: none without the upgrade or a choice up; the free one while some are left.
+int crucibleShopRerollWanted() {
+    int level = crucibleShopMeta(cCrucibleRerollsVariable);
+
+    if ((cCrucibleRerollFree < 0) || (level <= 0) || (crucibleShopState != 1)) {
+        return (0);
+    }
+
+    if (crucibleShopRerollsUsed < level) {
+        return (1);
+    }
+
+    return (2);
+}
+
+void crucibleShopRerollShow(int wanted = 0) {
+    if (wanted == crucibleShopRerollShown) {
+        return;
+    }
+
+    if (wanted != 1) {
+        xsEffectAmount(cDisableTech, cCrucibleRerollFree, cAttributeDisable, 0, 1);
+    }
+
+    if (wanted != 2) {
+        xsEffectAmount(cDisableTech, cCrucibleRerollPaid, cAttributeDisable, 0, 1);
+    }
+
+    if (wanted > 0) {
+        xsSetTriggerVariable(cCrucibleRerollSignal, wanted);
+    }
+
+    crucibleShopRerollShown = wanted;
+}
+
+// Two other categories than those on offer (the same ones if there are no others).
+void crucibleShopRedraw() {
+    crucibleShopSkip1 = crucibleShopCategory1;
+    crucibleShopSkip2 = crucibleShopCategory2;
+
+    if (crucibleShopRandomCategory(-1) < 0) {
+        crucibleShopSkip1 = -1;
+        crucibleShopSkip2 = -1;
+    }
+
+    crucibleShopShow();
+    crucibleShopSkip1 = -1;
+    crucibleShopSkip2 = -1;
+}
+
+// A reroll researched: redraw if the choice is still up, else give back what it cost; then show the right one.
+void crucibleShopReroll() {
+    if (cCrucibleRerollFree < 0) {
+        return;
+    }
+
+    int free = xsGetTechState(cCrucibleRerollFree, 1);
+    int paid = xsGetTechState(cCrucibleRerollPaid, 1);
+
+    if ((free == cTechStateResearching) || (free == cTechStateQueued)) {
+        return;
+    }
+
+    if ((paid == cTechStateResearching) || (paid == cTechStateQueued)) {
+        return;
+    }
+
+    if ((free == cTechStateDone) || (paid == cTechStateDone)) {
+        if (crucibleShopRerollHandled == false) {
+            crucibleShopRerollHandled = true;
+            crucibleShopRerollShown = -1;  // a researched tech comes back by trigger
+
+            if (crucibleShopState == 1) {
+                if (free == cTechStateDone) {
+                    crucibleShopRerollsUsed++;
+                }
+
+                crucibleShopRedraw();
+            } else if (paid == cTechStateDone) {
+                xsSetPlayerAttribute(1, cAttributeGold, xsPlayerAttribute(1, cAttributeGold) + cCrucibleRerollGold);
+            }
+        }
+    } else {
+        crucibleShopRerollHandled = false;
+    }
+
+    crucibleShopRerollShow(crucibleShopRerollWanted());
+}
+
 // Wave 0 is defeated: no choice, the first level of a common boon, free, on each slot.
 void crucibleShopOpenPoor() {
     crucibleShopInit();
@@ -337,6 +449,7 @@ rule crucibleShop
 {
     crucibleShopInit();
     crucibleShopFreeBought();
+    crucibleShopReroll();
 
     if (crucibleShopState == 1) {
         for (number = 1; < 3) {
