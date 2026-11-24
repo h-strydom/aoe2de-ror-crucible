@@ -232,13 +232,15 @@ ARTIFACTS = Upgrade(
 
 # ---- the towers: what ruins and artifacts do, a stage a tower (playtest 2026-11-23) ----
 RUIN_TRICKLE_RATE = 0.5  # of each resource a second, a ruin
-RUIN_ROOM_EACH = 50  # population room a ruin
+RUIN_ROOM_EACH = 25  # population room a ruin (50 was too much, playtest 2026-11-24)
 RUIN_CAP_EACH = 20  # population limit a ruin
 ARTIFACT_SPEED_PERCENT = 15
 ARTIFACT_DISCOUNT_PERCENT = 20
 ARTIFACT_TRICKLES = {"Granary": (("food", 2, 20),), "Storage Pit": (("wood", 2, 20),)}  # a second: each, at most
 ARTIFACT_TRICKLES["Town Center"] = (("gold", 1, 10), ("stone", 1, 10))
 ARTIFACT_REGENERATION = 60  # tower HP a minute
+ARTIFACT_GARRISON_HEAL = 15  # HP a minute an artifact gives the units garrisoned in its building type
+ARTIFACT_CART_REGENERATION = 120  # the artifact's own HP a minute (of 5000)
 RUIN_TRICKLE = Upgrade(
     "meta_ruin_trickle",
     "Ruin trickle",
@@ -283,7 +285,8 @@ ARTIFACT_SPECIAL = Upgrade(
     "meta_artifact_special",
     "Artifact: bounty",
     "An artifact in a Granary: each Granary gives 2 food a second (20 at most); in a Storage Pit: 2 wood (20); in a "
-    f"Town Center: 1 gold and 1 stone (10 each); in a tower: towers regenerate {ARTIFACT_REGENERATION} HP a minute.",
+    f"Town Center: 1 gold and 1 stone (10 each); in a tower: towers regenerate {ARTIFACT_REGENERATION} HP a minute. "
+    f"Units garrisoned in a building of its type heal {ARTIFACT_GARRISON_HEAL} HP a minute. Each artifact adds more.",
     "tower_4",
     2,
     requires=(("meta_artifact_cost", 1),),

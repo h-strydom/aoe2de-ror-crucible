@@ -1,6 +1,8 @@
 """The Legion's bases (docs/arena.md) as optional objectives: destroying one gives a boon choice in the shop, as a
 defeated wave does.
 
+Destroying one also gives a free reroll more, with the Trade Workshop's Rerolls (playtest 2026-11-24).
+
 A base is destroyed when every building of it is, but its walls and farms (a base is its working buildings and towers;
 nobody should have to clear every wall segment). The four walled posts of watch towers aren't bases: no objective.
 """
@@ -48,7 +50,10 @@ def add(ctx, s) -> None:
             f"Base: {name}",
             [{"type": "destroy_object", "unit_object": u.reference_id} for u in found],
             [
-                {"type": "script_call", "message": f"void crucibleBaseDestroyed{n}() {{ crucibleShopOpen(); }}"},
+                {
+                    "type": "script_call",
+                    "message": f"void crucibleBaseDestroyed{n}() {{ crucibleShopOpen(); crucibleShopRerollGift(); }}",
+                },
                 {"type": "send_chat", "source_player": 1, "message": f"{name} destroyed: a boon choice."},
             ],
             display_as_objective=True,

@@ -27,7 +27,6 @@ CHOICE_TIME = 1
 SEND_WAVE = "send_wave"  # its manifest key
 REROLL_BUTTON, SPIES_BUTTON = 13, 14
 REROLL_FREE, REROLL_PAID, SPIES = "reroll_free", "reroll_paid", "spies"  # manifest keys
-SPIES_TIME = 30
 GOLD = 3  # the data's resource id
 
 
@@ -95,6 +94,6 @@ def add(mod: DataMod) -> None:
         icon=icon_id(Icon.TECHNOLOGY, mod.data),
         location=WONDER,
         button=SPIES_BUTTON,
-        research_time=SPIES_TIME,
+        research_time=CHOICE_TIME,  # instant (playtest 2026-11-24)
         costs=[(GOLD, meta.SPIES_GOLD)],
     )

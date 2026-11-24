@@ -26,6 +26,7 @@ CURRENT_AGE = 6  # resource
 FISHING = 219  # player resource: Fishing Productivity
 TOOL_AGE = 101
 UPGRADE_UNIT = 3  # effect command: a line's next unit takes the last one's place
+ENABLE_UNIT = 2  # effect command: a unit can be built or trained (b 1), or not (b 0)
 VILLAGER_CLASS = 4  # the villager's job units (builder, farmer...) are trained "at" the Town Center: never off
 ALLOWED = (  # what the player can build or train out of the box
     83, 293, 109, 70, 12, 281, 68, 562, 45, 13,  # Stone Age: villagers, Town Center, House, Barracks, Clubman,
@@ -60,6 +61,26 @@ def upgraded(data) -> set[int]:
         for c in data.effects[tech.effect_id].effect_commands
         if c.type == UPGRADE_UNIT
     }
+
+
+def tech_enabled(data, locked: tuple[list[int], list[int]]) -> list[tuple[int, int]]:
+    """(unit, tech): each locked unit a locked tech enables (Improved Bow brings the Improved Bowman, Trireme with
+    Catapult the Catapult Trireme). A tech's enable doesn't undo the trigger's lock: neither unit could be trained
+    (playtest 2026-11-24), so a trigger switches the unit on once the tech is researched."""
+    units, techs = locked
+    found = []
+
+    for tech in techs:
+        effect = data.techs[tech].effect_id
+
+        if effect < 0:
+            continue
+
+        for c in data.effects[effect].effect_commands:
+            if c.type == ENABLE_UNIT and c.b == 1 and c.a in units:
+                found.append((c.a, tech))
+
+    return found
 
 
 def locked(data) -> tuple[list[int], list[int]]:
@@ -97,8 +118,16 @@ def gates(data) -> list[int]:
     return [i for i, u in enumerate(data.civs[1].units) if u and u.type == 80 and u.class_ == GATE_CLASS and u.enabled]
 
 
-def add(ctx, *, player: int, allies: int, gates: list[int], locked: tuple[list[int], list[int]]) -> None:
-    """`locked`: locked(data)."""
+def add(
+    ctx,
+    *,
+    player: int,
+    allies: int,
+    gates: list[int],
+    locked: tuple[list[int], list[int]],
+    enabled: list[tuple[int, int]] = (),
+) -> None:
+    """`locked`: locked(data); `enabled`: tech_enabled(data, locked)."""
     units, techs = locked
     ctx.trigger(
         "Player: the Crucible's tech tree",
@@ -125,6 +154,16 @@ def add(ctx, *, player: int, allies: int, gates: list[int], locked: tuple[list[i
         ),
     ]
     ctx.trigger("Player: no walls or gates", [], off)
+
+    for unit, tech in enabled:
+        if unit in WALLS or unit in gates:
+            continue  # never the player's
+
+        ctx.trigger(
+            f"Player: tech {tech} brings unit {unit}",
+            [{"type": "research_technology", "source_player": player, "technology": tech}],
+            [{"type": "enable_disable_object", "source_player": player, "object_list_unit_id": unit, "enabled": 1}],
+        )
     ctx.trigger(
         "Player: free City Watch",
         [],

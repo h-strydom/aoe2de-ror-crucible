@@ -11,7 +11,9 @@
 // Rerolls (the Trade Workshop's): while a choice is up, the Wonder's reroll shows two other categories; the
 // upgrade's level is the free rerolls a run, then a reroll costs gold (the paid tech). Triggers show a reroll
 // (cCrucibleRerollSignal: 1 the free one, 2 the paid one); XS hides them. Spies starts hidden (a trigger
-// shows it for the upgrade).
+// shows it for the upgrade). A reroll weighs the categories it turns down less from then on, and each Legion base
+// destroyed gives a free reroll more (with the upgrade). A category with fewer boons left than the offer's slots
+// weighs that much less, so the shop spreads out again once a favourite runs dry (playtest 2026-11-24).
 
 int crucibleShopState = 0;  // 0 closed, 1 choosing, 2 picked
 int crucibleShopCategory1 = -1;
@@ -32,6 +34,7 @@ int crucibleShopRerollsUsed = 0;  // free rerolls used this run
 bool crucibleShopRerollHandled = false;  // a reroll's research seen done, until it's shown again
 int crucibleShopSkip1 = -1;  // categories a reroll leaves out
 int crucibleShopSkip2 = -1;
+int crucibleShopRerollBonus = 0;  // free rerolls more this run: a Legion base destroyed each
 
 void crucibleShopInit() {
     if (crucibleShopReady) {
@@ -127,13 +130,48 @@ bool crucibleShopEligible(int category = 0, int skipAxis = -1) {
     return ((xsArrayGetInt(crucibleCategoryAxis, category) != skipAxis) && (crucibleShopAvailable(category) > 0));
 }
 
+int crucibleShopMeta(int variable = -1) {
+    if (variable < 0) {
+        return (0);
+    }
+
+    return (xsTriggerVariable(variable));
+}
+
+int crucibleShopSlots() {
+    int slots = cCrucibleSlots + crucibleShopMeta(cCrucibleSlotsVariable);
+
+    if (slots > cCrucibleMaxSlots) {
+        return (cCrucibleMaxSlots);
+    }
+
+    return (slots);
+}
+
+// Its weight, less in proportion while it has fewer boons left than the offer's slots (at least 1).
+int crucibleShopWeight(int category = 0) {
+    int weight = xsArrayGetInt(crucibleCategoryWeight, category);
+    int available = crucibleShopAvailable(category);
+    int slots = crucibleShopSlots();
+
+    if (available < slots) {
+        weight = weight * available / slots;
+    }
+
+    if (weight < 1) {
+        return (1);
+    }
+
+    return (weight);
+}
+
 // A category with boons left, not of axis `skipAxis`, drawn by weight; -1 if none.
 int crucibleShopRandomCategory(int skipAxis = -1) {
     int total = 0;
 
     for (a = 0; < cCrucibleCategories) {
         if (crucibleShopEligible(a, skipAxis)) {
-            total = total + xsArrayGetInt(crucibleCategoryWeight, a);
+            total = total + crucibleShopWeight(a);
         }
     }
 
@@ -145,7 +183,7 @@ int crucibleShopRandomCategory(int skipAxis = -1) {
 
     for (b = 0; < cCrucibleCategories) {
         if (crucibleShopEligible(b, skipAxis)) {
-            roll = roll - xsArrayGetInt(crucibleCategoryWeight, b);
+            roll = roll - crucibleShopWeight(b);
 
             if (roll < 0) {
                 return (b);
@@ -224,15 +262,6 @@ int crucibleShopBoon(int category = 0) {
     return (-1);
 }
 
-// A meta upgrade's level, read when needed (the bank loads it at the start); 0 without one.
-int crucibleShopMeta(int variable = -1) {
-    if (variable < 0) {
-        return (0);
-    }
-
-    return (xsTriggerVariable(variable));
-}
-
 // The rarity's price less the Wonder's boon discount (percent off by its level); free in the free offer.
 void crucibleShopPrice(int tech = -1, int rarity = 0) {
     int level = crucibleShopMeta(cCrucibleDiscountVariable);
@@ -295,16 +324,12 @@ void crucibleShopFreeBought() {
 // researches, then the next shows.
 void crucibleShopOffer(int category = 0) {
     int offered = 0;
-    int slots = cCrucibleSlots + crucibleShopMeta(cCrucibleSlotsVariable);
+    int slots = crucibleShopSlots();
     int speed = crucibleShopMeta(cCrucibleSpeedVariable);
     int time = cCrucibleBoonTime * (cCrucibleSpeedTiers - speed) / cCrucibleSpeedTiers;
     int boon = -1;  // declared outside the loop: XS runs a declaration in a loop only once
     int tech = -1;
     int button = 0;
-
-    if (slots > cCrucibleMaxSlots) {
-        slots = cCrucibleMaxSlots;
-    }
 
     if (time < 1) {
         time = 1;  // the fastest is 1 s: at 0 the game researches a tech by itself
@@ -347,7 +372,7 @@ int crucibleShopRerollWanted() {
         return (0);
     }
 
-    if (crucibleShopRerollsUsed < level) {
+    if (crucibleShopRerollsUsed < level + crucibleShopRerollBonus) {
         return (1);
     }
 
@@ -374,8 +399,37 @@ void crucibleShopRerollShow(int wanted = 0) {
     crucibleShopRerollShown = wanted;
 }
 
-// Two other categories than those on offer (the same ones if there are no others).
+// A category a reroll turned down weighs less.
+void crucibleShopDisfavour(int category = -1) {
+    int weight = 0;
+
+    if (category < 0) {
+        return;
+    }
+
+    weight = xsArrayGetInt(crucibleCategoryWeight, category) - cCrucibleCategoryRerollPenalty;
+
+    if (weight < cCrucibleCategoryMin) {
+        weight = cCrucibleCategoryMin;
+    }
+
+    xsArraySetInt(crucibleCategoryWeight, category, weight);
+}
+
+// A Legion base destroyed: a free reroll more, with the upgrade.
+void crucibleShopRerollGift() {
+    if ((cCrucibleRerollFree < 0) || (crucibleShopMeta(cCrucibleRerollsVariable) <= 0)) {
+        return;
+    }
+
+    crucibleShopRerollBonus++;
+    xsChatData("Shop: a free reroll more");
+}
+
+// Two other categories than those on offer (the same ones if there are no others); those weigh less from now on.
 void crucibleShopRedraw() {
+    crucibleShopDisfavour(crucibleShopCategory1);
+    crucibleShopDisfavour(crucibleShopCategory2);
     crucibleShopSkip1 = crucibleShopCategory1;
     crucibleShopSkip2 = crucibleShopCategory2;
 

@@ -18,6 +18,9 @@ DAT_FILE = "empires2_x2_p1.dat"
 MANIFEST = "crucible-manifest.json"
 TEMPLATE_TECH = "axe"  # new techs and effects start as copies of this one
 NOWHERE = -1  # a tech's location when no building offers it (a trigger can place it later)
+# Tech ids the game treats as its own whatever the data says: 408 is Spies (a boon that landed on it showed as Spies,
+# with Spies' text and a price per enemy villager, playtest 2026-11-24). New techs skip them.
+RESERVED_TECHS = (408,)
 
 Command = tuple[int, int, int, int, float]  # an effect command: (type, a, b, c, d)
 
@@ -100,9 +103,24 @@ class DataMod:
         research.location_id, research.button_id, research.research_time = location, button, research_time
 
         tech.research_locations = [research]
+        self._skip_reserved()
         self.data.techs.append(tech)
 
         return len(self.data.techs) - 1
+
+    def _skip_reserved(self) -> None:
+        """Fill a reserved id (RESERVED_TECHS) with a tech nobody can research: it needs itself (at research time 0
+        with nothing needed the game would research it by itself, and 408 researched may well be Spies)."""
+        while len(self.data.techs) in RESERVED_TECHS:
+            filler = copy.deepcopy(self._template())
+            filler.name = "Crucible reserved"
+            filler.effect_id = -1
+            filler.civ = -1
+            filler.required_techs, filler.required_tech_count = (len(self.data.techs), -1, -1, -1, -1, -1), 1
+            research = filler.research_locations[0]
+            research.location_id, research.button_id, research.research_time = NOWHERE, 0, 1
+            filler.research_locations = [research]
+            self.data.techs.append(filler)
 
     def copy_unit(self, source: int) -> int:
         """Add a copy of unit `source` to every civ under a new id (the next free one); returns the id. The copy looks

@@ -168,12 +168,14 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                     for t in cleared
                 ],
             )
+            locked = run_rules.locked(data)
             run_rules.add(
                 ctx,
                 player=Faction.PLAYER,
                 allies=Faction.ALLIES,
                 gates=run_rules.gates(data),
-                locked=run_rules.locked(data),
+                locked=locked,
+                enabled=run_rules.tech_enabled(data, locked),
             )
             config = ShopConfig()
             shop.add(  # before the waves

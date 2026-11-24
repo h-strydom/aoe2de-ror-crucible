@@ -13,6 +13,10 @@ What they do is bought at the hub's towers, a stage a tower (meta: RUIN_TRICKLE.
 An artifact another player captures goes back to Gaia (a looping trigger): the player couldn't capture one back from the
 Legion (playtest 2026-11-24).
 
+Each artifact garrisoned counts: two in Barracks boost Barracks twice (a second did nothing, playtest 2026-11-24). The
+bounty stage also heals the units garrisoned in the building type (garrison heal rate, 108: ARTIFACT_GARRISON_HEAL a
+minute an artifact), and the artifact regenerates (ARTIFACT_CART_REGENERATION) wherever it is.
+
 Verified in game (2026-11-23): ruins pay; an artifact garrisons, and boosts and discounts a Town Center and a
 Barracks. The cap (resource 32) and the room (resource 4) from
 XS too (2026-11-24). Unverified: the towers' regeneration.
@@ -43,6 +47,7 @@ STRUCTURES = {  # a building type -> its first building (the rest of its age cha
 WORK_RATE = 13
 COSTS = (103, 104, 105, 106)  # food, wood, gold, stone cost (unit attributes)
 REGENERATION = 109
+GARRISON_HEAL = 108  # a building's garrison heal rate: HP a second (a Town Center's is 0.1); unverified in game
 POPULATION_ROOM, POPULATION_LIMIT = 4, 32  # player resources
 RESOURCES = {"food": 0, "wood": 1, "stone": 2, "gold": 3}
 PLAYER_CIV = 1
@@ -102,14 +107,21 @@ def _apply(name: str, g: int, ids: tuple[int, ...], data, stages: dict[str, str]
     ]
     lines.append("        }")
 
+    lines.append(f"        if ({stages['special']} > 0) {{")
+    heal = meta.ARTIFACT_GARRISON_HEAL / 60
+    lines += [
+        f"            xsEffectAmount(cAddAttribute, {i}, {GARRISON_HEAL}, crucibleRelicSign(on) * {heal}, {player});"
+        for i in ids
+    ]
+
     if name == TOWER:
-        lines.append(f"        if ({stages['special']} > 0) {{")
         lines += [
             f"            xsEffectAmount(cAddAttribute, {i}, {REGENERATION}, crucibleRelicSign(on) * "
             f"{meta.ARTIFACT_REGENERATION}, {player});"
             for i in ids
         ]
-        lines.append("        }")
+
+    lines.append("        }")
 
     return lines + ["    }"]
 
@@ -134,10 +146,11 @@ def xs(ctx, data, player: int, ruins: list[int], artifacts: list[int], artifact:
     for name, payouts in meta.ARTIFACT_TRICKLES.items():
         g = names.index(name)
         count = " + ".join(f"xsGetObjectCount({player}, {i})" for i in found[name])
-        trickles.append(f"    if (xsArrayGetInt(crucibleRelicApplied, {g}) == 1) {{")
+        trickles.append(f"    if (xsArrayGetInt(crucibleRelicApplied, {g}) >= 1) {{")
         trickles.append(f"        count = {count};")
+        trickles.append(f"        times = xsArrayGetInt(crucibleRelicApplied, {g});")
         trickles += [
-            f"        crucibleRelicAdd({RESOURCES[resource]}, crucibleRelicMin(count * {each}, {most}));"
+            f"        crucibleRelicAdd({RESOURCES[resource]}, crucibleRelicMin(count * {each}, {most}) * times);"
             for resource, each, most in payouts
         ]
         trickles.append("    }")
@@ -158,8 +171,8 @@ def xs(ctx, data, player: int, ruins: list[int], artifacts: list[int], artifact:
 
     return f"""// ---- crucible run: ruins and artifacts ----
 int crucibleRelicIds = -1;  // reused: the player's artifacts
-int crucibleRelicHeld = -1;  // building type -> 1 with an artifact garrisoned
-int crucibleRelicApplied = -1;  // building type -> 1 while its stages are on
+int crucibleRelicHeld = -1;  // building type -> artifacts garrisoned in its buildings
+int crucibleRelicApplied = -1;  // building type -> times its stages are on (an artifact each)
 int crucibleRelicBuildings = -1;  // reused: the player's buildings of one type
 int crucibleRelicNames = -1;  // building type -> its name, for the chat
 int crucibleRelicContainers = -1;  // the buildings the player's artifacts are garrisoned in
@@ -210,13 +223,13 @@ void crucibleRelicPick(int vars = -1, int count = 0, int keep = 0) {{
     }}
 }}
 
-// Building type `kind` holds an artifact when one of its buildings (the list) is one of the `count` containers.
+// Building type `kind` holds an artifact for each of the `count` containers that is one of its buildings (the list).
 // Matched by unit id: xsGetUnitType on the container didn't give a building type (playtest 2026-11-23).
 void crucibleRelicMatch(int kind = -1, int count = 0) {{
     for (b = 0; < xsArrayGetSize(crucibleRelicBuildings)) {{
         for (c = 0; < count) {{
             if (xsArrayGetInt(crucibleRelicBuildings, b) == xsArrayGetInt(crucibleRelicContainers, c)) {{
-                xsArraySetInt(crucibleRelicHeld, kind, 1);
+                xsArraySetInt(crucibleRelicHeld, kind, xsArrayGetInt(crucibleRelicHeld, kind) + 1);
             }}
         }}
     }}
@@ -251,6 +264,8 @@ rule crucibleRelicStart
     crucibleRelicContainers = xsArrayCreateInt({meta.ARTIFACT_SPOTS}, -1, "crucibleRelicContainers");
     crucibleRelicNames = xsArrayCreateString({len(names)}, "", "crucibleRelicNames");
 {nl.join(name_sets)}
+    xsEffectAmount(cAddAttribute, {artifact}, {REGENERATION}, {meta.ARTIFACT_CART_REGENERATION}, {player});
+    xsEffectAmount(cAddAttribute, {artifact}, {REGENERATION}, {meta.ARTIFACT_CART_REGENERATION}, {GAIA});
     xsEnableRule("crucibleRelics");
     xsDisableSelf();
 }}
@@ -266,6 +281,7 @@ rule crucibleRelics
     int count = 0;
     int held = 0;
     int garrisoned = 0;
+    int times = 0;
 
     if ({level(meta.RUIN_TRICKLE)} > 0) {{
         for (r = 0; < 4) {{
@@ -313,14 +329,18 @@ rule crucibleRelics
 
     for (h = 0; < {len(names)}) {{
         if (xsArrayGetInt(crucibleRelicHeld, h) != xsArrayGetInt(crucibleRelicApplied, h)) {{
-            if (xsArrayGetInt(crucibleRelicHeld, h) == 1) {{
-                xsChatData("Artifact: " + xsArrayGetString(crucibleRelicNames, h) + " boosted");
-            }} else {{
-                xsChatData("Artifact: " + xsArrayGetString(crucibleRelicNames, h) + " no longer boosted");
-            }}
+            xsChatData("Artifact: " + xsArrayGetString(crucibleRelicNames, h) + " boosted by %d",
+                xsArrayGetInt(crucibleRelicHeld, h));
+        }}
 
-            crucibleRelicApply(h, xsArrayGetInt(crucibleRelicHeld, h) == 1);
-            xsArraySetInt(crucibleRelicApplied, h, xsArrayGetInt(crucibleRelicHeld, h));
+        while (xsArrayGetInt(crucibleRelicApplied, h) < xsArrayGetInt(crucibleRelicHeld, h)) {{
+            crucibleRelicApply(h, true);
+            xsArraySetInt(crucibleRelicApplied, h, xsArrayGetInt(crucibleRelicApplied, h) + 1);
+        }}
+
+        while (xsArrayGetInt(crucibleRelicApplied, h) > xsArrayGetInt(crucibleRelicHeld, h)) {{
+            crucibleRelicApply(h, false);
+            xsArraySetInt(crucibleRelicApplied, h, xsArrayGetInt(crucibleRelicApplied, h) - 1);
         }}
     }}
 

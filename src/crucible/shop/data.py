@@ -11,6 +11,8 @@ from crucible.shop.config import ShopConfig
 
 CATEGORY_WEIGHT = 10  # every category's weight at the start
 CATEGORY_BOOST = 10  # added to a category's weight each time the player picks it (playtest 2026-11-23)
+CATEGORY_REROLL_PENALTY = 5  # taken off each category a reroll turns down (playtest 2026-11-24)
+CATEGORY_MIN = 2  # no category weighs less
 
 
 def label(category: Category) -> str:
@@ -78,6 +80,8 @@ const int cCrucibleRarities = {len(rarities)};
 const int cCrucibleCategories = {len(categories)};
 const int cCrucibleCategoryWeight = {CATEGORY_WEIGHT};
 const int cCrucibleCategoryBoost = {CATEGORY_BOOST};
+const int cCrucibleCategoryRerollPenalty = {CATEGORY_REROLL_PENALTY};
+const int cCrucibleCategoryMin = {CATEGORY_MIN};
 const int cCrucibleDiscountVariable = {discount_variable};
 const int cCrucibleSlots = {min(config.slots, MAX_OFFERED)};
 const int cCrucibleChoices = {config.choices};
