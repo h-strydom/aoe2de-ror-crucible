@@ -84,8 +84,32 @@ so sinking it at sea still kills them.
    difficulty step), 25 at most, 3 more a turn; harassed = any HP lost by its buildings or defenders, or a defender
    killed, and the defenders attack-move to the spot; turtled for 3 minutes after. Units: the archetype's first
    paths, the line at (level / 4 + the Legion's age) along them. Debug chat on for the playtest (`DEBUG`).
-3. **Spots**: the guard squads, the bully and its pressure, help between outposts, harassing gatherers.
-4. **Attack waves**: land outposts from the land markers; sea outposts' ships and transports.
+   Playtest 2026-11-24: fine as far as it went, but the garrisons were too small and in a clump, and hit, they
+   walked to where they were hit and back until they died; outposts never attacked or harassed.
+3. **Spots** and 4. **Attack waves**, built together 2026-11-24 (`scenarios/outposts.py` works out the map's part,
+   `scenarios/outposts.xs` is the runtime, numbers at the top of outposts.py):
+   - garrison: 4 times phase 2's (12 each at the start), spread over 16 posts round the base's buildings; turtled it
+     tops up to 8 times, 4 more every 15 s; at most 120 land units (and 60 ships). Sea outposts: half of it ships
+     (Scout Ships, then War Galleys, Triremes and Catapult Triremes by age and level) on 8 water posts round the
+     island; the ships go for the player's ships and docks within 60 tiles (bullying the docks) whenever there are
+     any;
+   - hit (its buildings, garrison or ships), it turtles: everyone out comes home and joins the garrison, and every
+     2 s the garrison attack-moves at the player's unit nearest the base (within 25 tiles); with none left, back to
+     the posts;
+   - the map hack: every 2 s XS lists the player's units by type (villagers, soldiers, ships, docks);
+   - spots: the build found 50 (gold, stone, hunt; none within 30 tiles of the Wonder), each the spot of every
+     outpost within 50 tiles (the Eastern Outpost has none). A spot is contested while the player has a unit within
+     8 tiles; its pressure goes up 1 every 30 s contested (10 at most), down 1 while clear;
+   - each turn, not turtled: grow, top up the garrison (12 at most), send the garrison back to its posts, then the
+     first of: bully its most pressured contested spot (2 + 2 a pressure + the age, 16 at most: they chase the
+     player's units off it, then stay as its guard); guard an unguarded spot of its own (2 + level / 4 + the age, 8
+     at most: they stand on it and fight whoever comes); help at any contested spot within 60 tiles; raid the
+     player's villagers outside the base within 60 tiles (they chase gatherers, then come home); a sea outpost with
+     player ships or docks in reach leaves it to its ships; else an attack wave (3 + level / 2 + 2 an age + 2 a
+     difficulty step, 30 at most) at the Wonder: land outposts' appear at their nearest land marker, sea outposts'
+     in transports at their two sea markers (Light Transports, 5 each, while two carry it; else Heavy, 10), which
+     sail to a beach 10-30 tiles from the outpost nearest the Wonder, land their party (the fake) and sail off;
+   - debug chat says each turn and what it did (`DEBUG`).
 
 ## Open
 

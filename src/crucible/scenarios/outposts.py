@@ -1,20 +1,28 @@
-"""The Legion's outposts come alive (docs/outposts.md): phase 2, each defends itself and grows.
+"""The Legion's outposts come alive (docs/outposts.md): phases 2-4, defend, guard and bully, attack.
 
 Each of the six bases (`bases.BASES`) rolls an archetype at the start, as a wave lane does (`wave_table.ARCHETYPES`),
 and fields its paths' lines up to the Legion's age (`crucibleWaveAge`, from waves.xs): a higher level fields later
 lines. Outposts never roll upgrades of their own; the Legion's are shared, so they have the waves'.
 
-Every second (XS) an outpost watches its buildings and defenders: any HP lost, or a defender killed, and it's
-harassed: its defenders attack-move to where it was hit. Every few minutes it takes a turn (TICK, TICK_SPREAD): it
-grows (GROW a level a turn, GROW_HARASSED if harassed within TURTLE seconds), and unless harassed tops up its
-defenders (target: START_DEFENDERS, + a level's and an age's worth, at most MAX_DEFENDERS), SPAWN_PER_TICK a turn, and
-calls them home. Once all its buildings are gone (`bases.buildings`: not walls or farms) it does nothing more.
+What an outpost does is XS (outposts.xs, read it for the detail); this module works out the map's part of it:
+- its garrison's posts, spread through its base (POSTS: free tiles round each building in turn), and for the two sea
+  outposts their ships' posts round the island (SEA_POSTS) and the beach their transports land waves on;
+- the spots it guards (`spots`): gold and stone clusters of 4 or more mines, hunt groups of 3 or more, outside the
+  player's base (BaseRadius round the Wonder), each the spot of every outpost within SPOT_RANGE;
+- where its attack waves start: land outposts at the nearest land marker, sea outposts at their two nearest sea
+  markers (by transport);
+- the player's unit types the outposts look for (the map hack: `xsGetPlayerUnitIds` a type at a time).
+
+Playtest 2026-11-24: garrisons 4 times as large (GarrisonScale) and spread through the base, 8 times while turtled
+(TurtleScale); hit, the garrison hunts the player's units near the base (it had walked to where it was hit and back
+until it died); sea outposts keep half the garrison as ships.
 
 Markers (2026-11-23): the Legion's female villagers on land and its Light Transports at sea mark where the outposts'
-attack waves will come from (phase 4); the run takes them off the map and keeps their tiles.
+attack waves come from; the run takes them off the map and keeps their tiles.
 """
 
 import math
+from pathlib import Path
 
 from AoE2ScenarioParser.datasets.terrains import TerrainId
 
@@ -22,26 +30,76 @@ from crucible.datamod.mod import source_dat
 from crucible.scenarios import bases
 from crucible.scenarios import wave_table as table
 
-LEGION = 3
+RUNTIME = Path(__file__).with_name("outposts.xs")
+LEGION, PLAYER = 3, 1
 LAND_MARKER = 293  # VFBAS, the female villager
 SEA_MARKER = 545  # Light Transport
+WONDER = 276
+SEA_OUTPOSTS = ("Western Outpost", "Eastern Outpost")
 
-DEBUG = True  # chat says each outpost's turns: for the playtest only (outposts are meant to be silent)
-START_AT = 10  # seconds: the first look (after waves.xs has set up)
-FIRST_TICK, TICK, TICK_SPREAD = 60, 120, 120  # seconds: the first turn; then every TICK + 0-TICK_SPREAD
-TURTLE = 180  # seconds after the last harassment an outpost stays turtled
-GROW, GROW_HARASSED = 10, 3  # growth points a turn (10 a level): left alone, harassed
-START_DEFENDERS = 3
-LEVELS_PER_DEFENDER = 2
-DEFENDERS_PER_AGE = 2
-DIFFICULTY_DEFENDERS = 2  # more for each step of difficulty above Standard
-MAX_DEFENDERS = 25
-SPAWN_PER_TICK = 3
-LEVELS_PER_LINE = 4  # a level step of this many moves an outpost's units a line on
-SPAWN_TILES = 6
+DEBUG = True  # chat says what each outpost does: for the playtests only (outposts are meant to be silent)
+NUMBERS = {  # the XS constants (cCrucibleOutpost + the name)
+    "Start": 10,  # seconds: the first look (after waves.xs has set up)
+    "FirstTick": 60,  # seconds: the first turn (+ up to half TickSpread)
+    "Tick": 120,  # seconds between turns, + 0 to TickSpread
+    "TickSpread": 120,
+    "Turtle": 180,  # seconds after the last harassment an outpost stays turtled
+    "Grow": 10,  # growth points a turn left alone (10 a level)
+    "GrowHarassed": 3,  # turtled
+    "StartDefenders": 3,  # the garrison's base: + a level's, an age's and a difficulty step's worth
+    "LevelsPerDefender": 2,
+    "DefendersPerAge": 2,
+    "DifficultyDefenders": 2,
+    "GarrisonScale": 4,  # the garrison: its base times this (playtest 2026-11-24)
+    "TurtleScale": 8,  # while turtled
+    "Max": 120,  # land units in a garrison at most
+    "ShipMax": 60,
+    "SpawnPerTick": 12,  # more of the garrison a turn
+    "TurtleSpawnEvery": 15,  # seconds: turtled, it tops up this often
+    "TurtleSpawn": 4,
+    "LevelsPerLine": 4,  # a level step of this many moves its units a line on
+    "MainShare": table.MAIN_SHARE,
+    "OutMax": 80,  # units out (guards, bullies, raiders) at most
+    "GuardBase": 2,  # a guard or raiding party: + a level / 4, + the Legion's age
+    "GuardMax": 8,
+    "RaidMax": 10,
+    "BullyBase": 2,  # a bullying party: + BullyPer a pressure, + the Legion's age
+    "BullyPer": 2,
+    "BullyMax": 16,
+    "PressureEvery": 30,  # seconds: a spot's pressure goes up while contested, down while clear
+    "PressureMax": 10,
+    "WaveBase": 3,  # an attack wave: + a level / 2, + 2 an age, + 2 a difficulty step
+    "WaveMax": 30,
+    "TransportMax": 8,
+    "LightTransport": 545,
+    "HeavyTransport": 37,
+    "LightCapacity": 5,
+    "HeavyCapacity": 10,
+    "LandTimeout": 150,  # seconds: a transport lands (or leaves) by then wherever it is
+    "ScanEvery": 2,  # seconds between looks at the player's units
+    "EnemyMax": 400,
+}
+RANGES = {  # tiles (floats in XS)
+    "HuntRange": 25.0,  # turtled, the garrison hunts the player's units this near its base
+    "SpotRadius": 8.0,  # the player's units this near a spot contest it
+    "HelpRange": 60.0,  # parties help at spots and raid gatherers this near their base
+    "BaseRadius": 30.0,  # the player's base: round the Wonder; gatherers outside it are raided
+    "SeaRange": 60.0,  # ships go for the player's ships and docks this near their base
+}
+POSTS, SEA_POSTS = 16, 8
+SPOT_RANGE = 50  # a spot belongs to every outpost this near
+GOLD, STONE = 66, 102
+HUNT_CLASSES, HUNT_EXTRA = (9,), (1301,)  # prey (gazelles, deer...) and elephants
+MINES, HERD = 4, 3  # a spot's least mines or animals
+LINK = {"gold": 3.0, "stone": 3.0, "hunt": 5.0}  # tiles: a cluster's members are this near one another
+LAND_CLASSES = (0, 4, 6, 12, 13, 18, 23, 24, 35, 36, 44, 47, 55)  # what the outposts hunt and harass on land
+VILLAGER_CLASS = 4
+SEA_CLASSES = (2, 20, 21, 22)  # trade boats, transports, fishing boats, warships
+DOCKS = (45, 133, 47, 51)
+SHIP_LINES = ((539, table.Age.STONE), (21, table.Age.BRONZE), (442, table.Age.IRON), (420, table.Age.IRON))
 AGES = len(table.Age)
 SLOTS = (table.Slot.MELEE, table.Slot.RANGED)
-WATER = {t.value for t in TerrainId if "WATER" in t.name}
+WATER = {t.value for t in TerrainId if "WATER" in t.name and "BRIDGE" not in t.name}
 BLOCKED = WATER | {t.value for t in TerrainId if "FOREST" in t.name}
 BUILDING = 80
 
@@ -89,10 +147,36 @@ def pools() -> list[list[int]]:
     return found
 
 
-def spawn_tiles(s, home: tuple[float, float], near: int = SPAWN_TILES) -> list[tuple[int, int]]:
-    """Land tiles near `home` clear of any unit (buildings by a wider margin): where defenders appear."""
+def ship_pools() -> list[list[int]]:
+    """By age: the ships a sea outpost fields, later is better."""
+    return [[unit for unit, at in SHIP_LINES if at <= age] for age in table.Age]
+
+
+def player_types(data) -> tuple[list[tuple[int, bool]], list[int]]:
+    """The unit types the player may have that outposts look for: (land: (type, a villager?)), sea (ships, docks)."""
+    units = data.civs[PLAYER].units
+    land, sea = [], list(DOCKS)
+
+    for i, u in enumerate(units):
+        if not (u and u.type == 70 and u.creatable) or u.name.startswith("Hero"):
+            continue
+
+        trained = any(c.unit_id >= 0 for c in u.creatable.train_locations)
+
+        if not trained and u.class_ != VILLAGER_CLASS:  # every villager's job, female ones aren't trained
+            continue
+
+        if u.class_ in LAND_CLASSES:
+            land.append((i, u.class_ == VILLAGER_CLASS))
+        elif u.class_ in SEA_CLASSES:
+            sea.append(i)
+
+    return land, sea
+
+
+def _taken(s) -> list[tuple[float, float, float]]:
+    """Every unit's tile and how far to keep clear of it (buildings wider)."""
     data = source_dat().civs[1].units
-    mm = s.map_manager
     taken = []
 
     for player in s.unit_manager.units:
@@ -100,26 +184,138 @@ def spawn_tiles(s, home: tuple[float, float], near: int = SPAWN_TILES) -> list[t
             unit = data[u.unit_const] if u.unit_const < len(data) else None
             taken.append((u.x, u.y, 2.5 if unit and unit.type == BUILDING else 1.2))
 
-    def free(x: int, y: int) -> bool:
-        if mm.get_tile(x, y).terrain_id in BLOCKED:
-            return False
+    return taken
 
-        return all(math.dist((x + 0.5, y + 0.5), (ux, uy)) > r for ux, uy, r in taken)
 
-    hx, hy = home
-    size = mm.map_size
+def _free(s, taken, x: int, y: int) -> bool:
+    if s.map_manager.get_tile(x, y).terrain_id in BLOCKED:
+        return False
+
+    return all(math.dist((x + 0.5, y + 0.5), (ux, uy)) > r for ux, uy, r in taken)
+
+
+def _around(s, x: float, y: float, near: int):
+    size = s.map_manager.map_size
+
+    for tx in range(max(0, int(x) - near), min(size, int(x) + near + 1)):
+        for ty in range(max(0, int(y) - near), min(size, int(y) + near + 1)):
+            yield tx, ty
+
+
+def posts(s, found: list, count: int = POSTS, taken=None) -> list[tuple[float, float]]:
+    """Free land tiles spread through a base: the nearest free tile to each of its buildings in turn, 2 tiles apart."""
+    taken = _taken(s) if taken is None else taken
+    near = {}
+
+    for b in found:
+        tiles = [t for t in _around(s, b.x, b.y, 5) if _free(s, taken, *t)]
+        near[b.reference_id] = sorted(tiles, key=lambda t: math.dist((t[0] + 0.5, t[1] + 0.5), (b.x, b.y)))
+
+    chosen = []
+
+    while len(chosen) < count:
+        added = False
+
+        for b in found:
+            for t in near[b.reference_id]:
+                if all(math.dist(t, c) >= 2 for c in chosen):
+                    chosen.append(t)
+                    added = True
+                    break
+
+            if len(chosen) == count:
+                break
+
+        if not added:
+            raise ValueError(f"only {len(chosen)} posts round {[b.reference_id for b in found]}")
+
+    return [(x + 0.5, y + 0.5) for x, y in chosen]
+
+
+def sea_posts(s, home: tuple[float, float], count: int = SEA_POSTS) -> list[tuple[float, float]]:
+    """Water tiles round an island outpost, 6 to 16 tiles out, 4 apart: where its ships keep."""
+    mm = s.map_manager
     tiles = [
-        (x, y)
-        for x in range(max(0, int(hx) - 12), min(size, int(hx) + 13))
-        for y in range(max(0, int(hy) - 12), min(size, int(hy) + 13))
-        if free(x, y)
+        t
+        for t in _around(s, *home, 16)
+        if mm.get_tile(*t).terrain_id in WATER and 6 <= math.dist((t[0] + 0.5, t[1] + 0.5), home) <= 16
     ]
     tiles.sort(key=lambda t: math.dist((t[0] + 0.5, t[1] + 0.5), home))
+    chosen = []
 
-    if len(tiles) < near:
-        raise ValueError(f"only {len(tiles)} free land tiles near {home}")
+    for t in tiles:
+        if all(math.dist(t, c) >= 4 for c in chosen):
+            chosen.append(t)
 
-    return tiles[:near]
+        if len(chosen) == count:
+            return [(x + 0.5, y + 0.5) for x, y in chosen]
+
+    raise ValueError(f"only {len(chosen)} sea posts round {home}")
+
+
+def beach(s, home: tuple[float, float], wonder: tuple[float, float], taken=None) -> tuple[tuple, tuple]:
+    """Where a sea outpost's transports land: a free shore tile 10 to 30 tiles from it, the nearest the Wonder; (the
+    land tile, the water tile off it)."""
+    mm = s.map_manager
+    taken = _taken(s) if taken is None else taken
+    size = mm.map_size
+    best = None
+
+    for x, y in _around(s, *home, 30):
+        if not 10 <= math.dist((x + 0.5, y + 0.5), home) <= 30 or not _free(s, taken, x, y):
+            continue
+
+        for wx, wy in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if 0 <= wx < size and 0 <= wy < size and mm.get_tile(wx, wy).terrain_id in WATER:
+                d = math.dist((x, y), wonder)
+
+                if best is None or d < best[0]:
+                    best = (d, (x + 0.5, y + 0.5), (wx + 0.5, wy + 0.5))
+
+    if best is None:
+        raise ValueError(f"no beach near {home}")
+
+    return best[1], best[2]
+
+
+def _clusters(points: list[tuple[float, float]], link: float) -> list[list[tuple[float, float]]]:
+    groups = []
+
+    for p in points:
+        joined = [g for g in groups if any(math.dist(p, q) <= link for q in g)]
+        merged = [p, *(q for g in joined for q in g)]
+        groups = [g for g in groups if g not in joined] + [merged]
+
+    return groups
+
+
+def spots(s, wonder: tuple[float, float]) -> list[tuple[str, float, float]]:
+    """The resource spots outposts guard: (kind, x, y), outside the player's base."""
+    data = source_dat().civs[0].units
+    kinds = {"gold": [], "stone": [], "hunt": []}
+
+    for u in s.unit_manager.units[0]:
+        unit = data[u.unit_const] if u.unit_const < len(data) else None
+
+        if u.unit_const == GOLD:
+            kinds["gold"].append((u.x, u.y))
+        elif u.unit_const == STONE:
+            kinds["stone"].append((u.x, u.y))
+        elif u.unit_const in HUNT_EXTRA or (unit and unit.class_ in HUNT_CLASSES):
+            kinds["hunt"].append((u.x, u.y))
+
+    found = []
+
+    for kind, points in kinds.items():
+        least = HERD if kind == "hunt" else MINES
+
+        for group in _clusters(points, LINK[kind]):
+            x, y = sum(p[0] for p in group) / len(group), sum(p[1] for p in group) / len(group)
+
+            if len(group) >= least and math.dist((x, y), wonder) > RANGES["BaseRadius"]:
+                found.append((kind, round(x, 1), round(y, 1)))
+
+    return sorted(found, key=lambda f: (f[1], f[2]))
 
 
 def _ints(name: str, values: list[int]) -> list[str]:
@@ -140,17 +336,42 @@ def _strings(name: str, values: list[str]) -> list[str]:
     return lines + [f'    xsArraySetString({name}, {n}, "{v}");' for n, v in enumerate(values)]
 
 
-def xs(s) -> str:
-    """The outposts' XS (after waves.xs: it reads crucibleWaveAge and crucibleWaveFactor)."""
-    homes, buildings, starts, tiles = [], [], [], []
+def plan(s, markers: dict[str, list[tuple[float, float]]]) -> dict[str, list]:
+    """Each outpost's part of the map, by outpost: home, buildings, posts, sea posts, sea?, markers, beach, spots."""
+    wonder = next((u.x, u.y) for u in s.unit_manager.units[PLAYER] if u.unit_const == WONDER)
+    taken = _taken(s)
+    every = spots(s, wonder)
+    found = {key: [] for key in ("home", "buildings", "posts", "sea_posts", "sea", "markers", "beach", "spots")}
 
-    for _, box in bases.BASES:
-        found = bases.buildings(s, box)
-        home = (sum(u.x for u in found) / len(found), sum(u.y for u in found) / len(found))
-        homes.append(home)
+    for name, box in bases.BASES:
+        built = bases.buildings(s, box)
+        home = (sum(u.x for u in built) / len(built), sum(u.y for u in built) / len(built))
+        sea = name in SEA_OUTPOSTS
+        nearest = sorted(markers["sea" if sea else "land"], key=lambda m: math.dist(m, home))
+        found["home"].append(home)
+        found["buildings"].append([u.reference_id for u in built])
+        found["posts"].append(posts(s, built, taken=taken))
+        found["sea_posts"].append(sea_posts(s, home) if sea else [home] * SEA_POSTS)
+        found["sea"].append(sea)
+        found["markers"].append((nearest[0], nearest[1] if sea else nearest[0]))
+        found["beach"].append(beach(s, home, wonder, taken) if sea else (home, home))
+        found["spots"].append([n for n, (_, x, y) in enumerate(every) if math.dist((x, y), home) <= SPOT_RANGE])
+
+    found["every_spot"] = every
+    found["wonder"] = wonder
+
+    return found
+
+
+def xs(s, markers: dict[str, list[tuple[float, float]]]) -> str:
+    """The outposts' XS (after waves.xs: it reads crucibleWaveAge and crucibleWaveFactor). `markers`: take(s)."""
+    p = plan(s, markers)
+    land, sea = player_types(source_dat())
+    starts, buildings = [], []
+
+    for found in p["buildings"]:
         starts.append(len(buildings))
-        buildings += [u.reference_id for u in found]
-        tiles += spawn_tiles(s, home)
+        buildings += found
 
     starts.append(len(buildings))
     pool_start, pool_units = [], []
@@ -160,349 +381,86 @@ def xs(s) -> str:
         pool_units += units
 
     pool_start.append(len(pool_units))
+    ship_start, ship_units = [], []
+
+    for units in ship_pools():
+        ship_start.append(len(ship_units))
+        ship_units += units
+
+    ship_start.append(len(ship_units))
+    spot_start, own = [], []
+
+    for found in p["spots"]:
+        spot_start.append(len(own))
+        own += found
+
+    spot_start.append(len(own))
+    every = p["every_spot"]
+    flat = [post for found in p["posts"] for post in found]
+    sea_flat = [post for found in p["sea_posts"] for post in found]
     setup = [
-        *_floats("crucibleOutpostHomeX", [x for x, _ in homes]),
-        *_floats("crucibleOutpostHomeY", [y for _, y in homes]),
+        *_floats("crucibleOutpostHomesX", [x for x, _ in p["home"]]),
+        *_floats("crucibleOutpostHomesY", [y for _, y in p["home"]]),
         *_ints("crucibleOutpostBuildingStart", starts),
         *_ints("crucibleOutpostBuildings", buildings),
-        *_floats("crucibleOutpostTileX", [x + 0.5 for x, _ in tiles]),
-        *_floats("crucibleOutpostTileY", [y + 0.5 for _, y in tiles]),
+        *_floats("crucibleOutpostPostX", [x for x, _ in flat]),
+        *_floats("crucibleOutpostPostY", [y for _, y in flat]),
+        *_floats("crucibleOutpostSeaPostX", [x for x, _ in sea_flat]),
+        *_floats("crucibleOutpostSeaPostY", [y for _, y in sea_flat]),
+        *_ints("crucibleOutpostIsSea", [int(at_sea) for at_sea in p["sea"]]),
+        *_floats("crucibleOutpostMarkerX", [m[0][0] for m in p["markers"]]),
+        *_floats("crucibleOutpostMarkerY", [m[0][1] for m in p["markers"]]),
+        *_floats("crucibleOutpostMarker2X", [m[1][0] for m in p["markers"]]),
+        *_floats("crucibleOutpostMarker2Y", [m[1][1] for m in p["markers"]]),
+        *_floats("crucibleOutpostBeachX", [b[0][0] for b in p["beach"]]),
+        *_floats("crucibleOutpostBeachY", [b[0][1] for b in p["beach"]]),
+        *_floats("crucibleOutpostBeachWaterX", [b[1][0] for b in p["beach"]]),
+        *_floats("crucibleOutpostBeachWaterY", [b[1][1] for b in p["beach"]]),
         *_ints("crucibleOutpostPoolStart", pool_start),
         *_ints("crucibleOutpostPoolUnits", pool_units),
+        *_ints("crucibleOutpostShipPoolStart", ship_start),
+        *_ints("crucibleOutpostShipPoolUnits", ship_units),
         *_ints("crucibleOutpostMain", [int(a.main) for a in table.ARCHETYPES]),
         *_strings("crucibleOutpostName", [name for name, _ in bases.BASES]),
         *_strings("crucibleOutpostArchetypeName", [a.name for a in table.ARCHETYPES]),
+        *_floats("crucibleOutpostSpotX", [x for _, x, _ in every]),
+        *_floats("crucibleOutpostSpotY", [y for _, _, y in every]),
+        *_strings("crucibleOutpostSpotName", [f"the {kind} at {int(x)}, {int(y)}" for kind, x, y in every]),
+        *_ints("crucibleOutpostSpotStart", spot_start),
+        *_ints("crucibleOutpostOwnSpots", own),
+        *_ints("crucibleOutpostLandTypes", [t for t, _ in land]),
+        *_ints("crucibleOutpostLandVillager", [int(v) for _, v in land]),
+        *_ints("crucibleOutpostSeaTypes", sea),
+    ]
+    arrays = sorted({line.split(" = ")[0].strip() for line in setup if " = xsArrayCreate" in line})
+    constants = [
+        f"const int cCrucibleOutposts = {len(bases.BASES)};",
+        f"const int cCrucibleOutpostPosts = {POSTS};",
+        f"const int cCrucibleOutpostSeaPosts = {SEA_POSTS};",
+        f"const int cCrucibleOutpostSpots = {len(every)};",
+        f"const int cCrucibleOutpostAges = {AGES};",
+        f"const int cCrucibleOutpostArchetypes = {len(table.ARCHETYPES)};",
+        f"const int cCrucibleOutpostLegion = {LEGION};",
+        f"const int cCrucibleOutpostPlayer = {PLAYER};",
+        f"const bool cCrucibleOutpostDebug = {'true' if DEBUG else 'false'};",
+        f"const float cCrucibleOutpostWonderX = {float(p['wonder'][0])};",
+        f"const float cCrucibleOutpostWonderY = {float(p['wonder'][1])};",
+        *(f"const int cCrucibleOutpost{name} = {value};" for name, value in NUMBERS.items()),
+        *(f"const float cCrucibleOutpost{name} = {value};" for name, value in RANGES.items()),
     ]
     nl = "\n"
+    header = f"""// ---- crucible run: the Legion's outposts, data (generated: scenarios/outposts.py) ----
+{nl.join(constants)}
+{nl.join(f"int {name} = -1;" for name in arrays)}
 
-    return f"""// ---- crucible run: the Legion's outposts (docs/outposts.md, scenarios/outposts.py) ----
-const int cCrucibleOutposts = {len(bases.BASES)};
-const int cCrucibleOutpostMax = {MAX_DEFENDERS};
-const int cCrucibleOutpostTiles = {SPAWN_TILES};
-const int cCrucibleOutpostAges = {AGES};
-const bool cCrucibleOutpostDebug = {"true" if DEBUG else "false"};
-int crucibleOutpostHomeX = -1;
-int crucibleOutpostHomeY = -1;
-int crucibleOutpostBuildingStart = -1;  // by outpost: where its buildings start in crucibleOutpostBuildings (+1: end)
-int crucibleOutpostBuildings = -1;  // unit ids
-int crucibleOutpostBuildingHp = -1;  // by building: its HP last second
-int crucibleOutpostTileX = -1;  // by outpost * cCrucibleOutpostTiles: where defenders appear
-int crucibleOutpostTileY = -1;
-int crucibleOutpostPoolStart = -1;  // by (archetype * 2 + slot) * ages + age (+1: end)
-int crucibleOutpostPoolUnits = -1;
-int crucibleOutpostMain = -1;  // by archetype: its main slot
-int crucibleOutpostName = -1;
-int crucibleOutpostArchetypeName = -1;
-int crucibleOutpostArchetype = -1;  // by outpost
-int crucibleOutpostGrowth = -1;  // by outpost: 10 a level
-int crucibleOutpostAlive = -1;  // by outpost: 1 while a building stands
-int crucibleOutpostNextTurn = -1;  // by outpost: seconds
-int crucibleOutpostHarassedAt = -1;  // by outpost: seconds, -1 never
-int crucibleOutpostSpawned = -1;  // by outpost: units spawned (picks the next tile)
-int crucibleOutpostDefenders = -1;  // by outpost * cCrucibleOutpostMax: unit ids, -1 a free place
-int crucibleOutpostDefenderHp = -1;
-int crucibleOutpostIds = -1;  // a reused list of ids for xsTaskUnits
-
-float crucibleOutpostHp(int id = -1) {{
-    float hp = xsGetUnitProperty(id, cUnitHitpoints);
-
-    if (hp < 0.0) {{
-        return (0.0);
-    }}
-
-    return (hp);
-}}
-
-vector crucibleOutpostHome(int o = 0) {{
-    return (xsVectorSet(xsArrayGetFloat(crucibleOutpostHomeX, o), xsArrayGetFloat(crucibleOutpostHomeY, o), 0.0));
-}}
-
-int crucibleOutpostLevel(int o = 0) {{
-    return (xsArrayGetInt(crucibleOutpostGrowth, o) / 10);
-}}
-
-bool crucibleOutpostTurtled(int o = 0) {{
-    int at = xsArrayGetInt(crucibleOutpostHarassedAt, o);
-
-    return ((at >= 0) && (xsGetTime() - at < {TURTLE}));
-}}
-
-int crucibleOutpostCount(int o = 0) {{
-    int found = 0;
-
-    for (d = 0; < cCrucibleOutpostMax) {{
-        if (xsArrayGetInt(crucibleOutpostDefenders, o * cCrucibleOutpostMax + d) >= 0) {{
-            found++;
-        }}
-    }}
-
-    return (found);
-}}
-
-int crucibleOutpostTarget(int o = 0) {{
-    int target = {START_DEFENDERS} + crucibleOutpostLevel(o) / {LEVELS_PER_DEFENDER};
-
-    target = target + crucibleWaveAge * {DEFENDERS_PER_AGE} + (crucibleWaveFactor - 1) * {DIFFICULTY_DEFENDERS};
-
-    if (target > cCrucibleOutpostMax) {{
-        return (cCrucibleOutpostMax);
-    }}
-
-    return (target);
-}}
-
-// Its archetype's unit for `slot` at the Legion's age: later lines with level.
-int crucibleOutpostUnit(int o = 0, int slot = 0) {{
-    int k = (xsArrayGetInt(crucibleOutpostArchetype, o) * 2 + slot) * cCrucibleOutpostAges + crucibleWaveAge;
-    int start = xsArrayGetInt(crucibleOutpostPoolStart, k);
-    int count = xsArrayGetInt(crucibleOutpostPoolStart, k + 1) - start;
-    int pick = crucibleOutpostLevel(o) / {LEVELS_PER_LINE} + crucibleWaveAge;
-
-    if (count <= 0) {{
-        return (-1);
-    }}
-
-    if (pick > count - 1) {{
-        pick = count - 1;
-    }}
-
-    return (xsArrayGetInt(crucibleOutpostPoolUnits, start + pick));
-}}
-
-// Every defender of `o` attack-moves to `at`.
-void crucibleOutpostSend(int o = 0, vector at = cInvalidVector) {{
-    int n = 0;
-    int id = -1;
-
-    for (d = 0; < cCrucibleOutpostMax) {{
-        id = xsArrayGetInt(crucibleOutpostDefenders, o * cCrucibleOutpostMax + d);
-
-        if (id >= 0) {{
-            n++;
-        }}
-    }}
-
-    if (n == 0) {{
-        return;
-    }}
-
-    xsArrayResizeInt(crucibleOutpostIds, n);
-    n = 0;
-
-    for (d = 0; < cCrucibleOutpostMax) {{
-        id = xsArrayGetInt(crucibleOutpostDefenders, o * cCrucibleOutpostMax + d);
-
-        if (id >= 0) {{
-            xsArraySetInt(crucibleOutpostIds, n, id);
-            n++;
-        }}
-    }}
-
-    xsTaskUnits(crucibleOutpostIds, cActionTypeAttackMove, at);
-}}
-
-void crucibleOutpostSpawn(int o = 0) {{
-    int slot = xsArrayGetInt(crucibleOutpostMain, xsArrayGetInt(crucibleOutpostArchetype, o));
-    int unit = -1;
-    int id = -1;
-    int k = 0;
-    int t = o * cCrucibleOutpostTiles + xsArrayGetInt(crucibleOutpostSpawned, o) % cCrucibleOutpostTiles;
-    vector at = xsVectorSet(xsArrayGetFloat(crucibleOutpostTileX, t), xsArrayGetFloat(crucibleOutpostTileY, t), 0.0);
-
-    if (xsGetRandomNumberLH(0, 100) >= {table.MAIN_SHARE}) {{
-        slot = 1 - slot;
-    }}
-
-    unit = crucibleOutpostUnit(o, slot);
-
-    if (unit < 0) {{
-        unit = crucibleOutpostUnit(o, 1 - slot);
-    }}
-
-    for (d = 0; < cCrucibleOutpostMax) {{
-        k = o * cCrucibleOutpostMax + d;
-
-        if (xsArrayGetInt(crucibleOutpostDefenders, k) < 0) {{
-            id = xsCreateUnit(unit, {LEGION}, at, false, false, false);
-            xsArraySetInt(crucibleOutpostDefenders, k, id);
-            xsArraySetFloat(crucibleOutpostDefenderHp, k, crucibleOutpostHp(id));
-            xsArraySetInt(crucibleOutpostSpawned, o, xsArrayGetInt(crucibleOutpostSpawned, o) + 1);
-            return;
-        }}
-    }}
-}}
-
-void crucibleOutpostSay(int o = 0, string what = "") {{
-    string name = xsArrayGetString(crucibleOutpostName, o);
-    string kind = xsArrayGetString(crucibleOutpostArchetypeName, xsArrayGetInt(crucibleOutpostArchetype, o));
-
-    xsChatData(name + " (" + kind + "): " + what + ", level %d", crucibleOutpostLevel(o));
-}}
-
-void crucibleOutpostTurn(int o = 0) {{
-    bool turtled = crucibleOutpostTurtled(o);
-    int spawn = 0;
-
-    if (turtled) {{
-        xsArraySetInt(crucibleOutpostGrowth, o, xsArrayGetInt(crucibleOutpostGrowth, o) + {GROW_HARASSED});
-    }} else {{
-        xsArraySetInt(crucibleOutpostGrowth, o, xsArrayGetInt(crucibleOutpostGrowth, o) + {GROW});
-        spawn = crucibleOutpostTarget(o) - crucibleOutpostCount(o);
-
-        if (spawn > {SPAWN_PER_TICK}) {{
-            spawn = {SPAWN_PER_TICK};
-        }}
-
-        for (n = 0; < spawn) {{
-            crucibleOutpostSpawn(o);
-        }}
-    }}
-
-    crucibleOutpostSend(o, crucibleOutpostHome(o));
-
-    if (cCrucibleOutpostDebug) {{
-        if (turtled) {{
-            crucibleOutpostSay(o, "turtled, " + crucibleOutpostCount(o) + " defenders");
-        }} else {{
-            crucibleOutpostSay(o, "+" + spawn + " defenders, " + crucibleOutpostCount(o) + " in all");
-        }}
-    }}
-}}
-
-// One second of outpost `o`: its buildings' and defenders' HP (harassed?), destroyed?, its turn.
-void crucibleOutpostWatch(int o = 0) {{
-    int now = xsGetTime();
-    float total = 0.0;
-    float hp = 0.0;
-    int id = -1;
-    int k = 0;
-    bool hit = false;
-    vector at = cInvalidVector;
-
-    for (b = xsArrayGetInt(crucibleOutpostBuildingStart, o); < xsArrayGetInt(crucibleOutpostBuildingStart, o + 1)) {{
-        id = xsArrayGetInt(crucibleOutpostBuildings, b);
-        hp = crucibleOutpostHp(id);
-        total = total + hp;
-
-        if (hp < xsArrayGetFloat(crucibleOutpostBuildingHp, b) - 0.5) {{
-            hit = true;
-            at = xsGetUnitPosition(id);
-        }}
-
-        xsArraySetFloat(crucibleOutpostBuildingHp, b, hp);
-    }}
-
-    if (total <= 0.0) {{
-        xsArraySetInt(crucibleOutpostAlive, o, 0);
-
-        if (cCrucibleOutpostDebug) {{
-            crucibleOutpostSay(o, "destroyed, no more turns");
-        }}
-
-        return;
-    }}
-
-    for (d = 0; < cCrucibleOutpostMax) {{
-        k = o * cCrucibleOutpostMax + d;
-        id = xsArrayGetInt(crucibleOutpostDefenders, k);
-
-        if (id < 0) {{
-            continue;
-        }}
-
-        hp = crucibleOutpostHp(id);
-
-        if (hp < xsArrayGetFloat(crucibleOutpostDefenderHp, k) - 0.5) {{
-            hit = true;
-
-            if (hp > 0.0) {{
-                at = xsGetUnitPosition(id);
-            }}
-        }}
-
-        if (hp <= 0.0) {{
-            xsArraySetInt(crucibleOutpostDefenders, k, -1);
-        }}
-
-        xsArraySetFloat(crucibleOutpostDefenderHp, k, hp);
-    }}
-
-    if (hit) {{
-        if (cCrucibleOutpostDebug && (crucibleOutpostTurtled(o) == false)) {{
-            crucibleOutpostSay(o, "harassed, turtles");
-        }}
-
-        xsArraySetInt(crucibleOutpostHarassedAt, o, now);
-
-        if (xsVectorGetX(at) < 0.0) {{
-            at = crucibleOutpostHome(o);
-        }}
-
-        crucibleOutpostSend(o, at);
-    }}
-
-    if (now >= xsArrayGetInt(crucibleOutpostNextTurn, o)) {{
-        xsArraySetInt(crucibleOutpostNextTurn, o, now + {TICK} + xsGetRandomNumberLH(0, {TICK_SPREAD}));
-        crucibleOutpostTurn(o);
-    }}
-}}
-
-rule crucibleOutpostStart
-    active
-    minInterval 1
-{{
-    if (xsGetTime() < {START_AT}) {{
-        return;
-    }}
-
+void crucibleOutpostData() {{
 {nl.join(setup)}
-    crucibleOutpostBuildingHp = xsArrayCreateFloat({len(buildings)}, 0.0, "crucibleOutpostBuildingHp");
-    crucibleOutpostArchetype = xsArrayCreateInt(cCrucibleOutposts, 0, "crucibleOutpostArchetype");
-    crucibleOutpostGrowth = xsArrayCreateInt(cCrucibleOutposts, 0, "crucibleOutpostGrowth");
-    crucibleOutpostAlive = xsArrayCreateInt(cCrucibleOutposts, 1, "crucibleOutpostAlive");
-    crucibleOutpostNextTurn = xsArrayCreateInt(cCrucibleOutposts, 0, "crucibleOutpostNextTurn");
-    crucibleOutpostHarassedAt = xsArrayCreateInt(cCrucibleOutposts, -1, "crucibleOutpostHarassedAt");
-    crucibleOutpostSpawned = xsArrayCreateInt(cCrucibleOutposts, 0, "crucibleOutpostSpawned");
-    crucibleOutpostDefenders = xsArrayCreateInt(cCrucibleOutposts * cCrucibleOutpostMax, -1,
-        "crucibleOutpostDefenders");
-    crucibleOutpostDefenderHp = xsArrayCreateFloat(cCrucibleOutposts * cCrucibleOutpostMax, 0.0,
-        "crucibleOutpostDefenderHp");
-    crucibleOutpostIds = xsArrayCreateInt(1, -1, "crucibleOutpostIds");
-
-    for (b = 0; < {len(buildings)}) {{
-        xsArraySetFloat(crucibleOutpostBuildingHp, b, crucibleOutpostHp(xsArrayGetInt(crucibleOutpostBuildings, b)));
-    }}
-
-    for (o = 0; < cCrucibleOutposts) {{
-        xsArraySetInt(crucibleOutpostArchetype, o, xsGetRandomNumberLH(0, {len(table.ARCHETYPES)}));
-        xsArraySetInt(crucibleOutpostNextTurn, o, {FIRST_TICK} + xsGetRandomNumberLH(0, {TICK_SPREAD // 2}));
-
-        for (n = 0; < {START_DEFENDERS}) {{
-            crucibleOutpostSpawn(o);
-        }}
-
-        if (cCrucibleOutpostDebug) {{
-            crucibleOutpostSay(o, "starts with " + crucibleOutpostCount(o) + " defenders");
-        }}
-    }}
-
-    xsEnableRule("crucibleOutposts");
-    xsDisableSelf();
-}}
-
-rule crucibleOutposts
-    inactive
-    minInterval 1
-{{
-    for (o = 0; < cCrucibleOutposts) {{
-        if (xsArrayGetInt(crucibleOutpostAlive, o) == 1) {{
-            crucibleOutpostWatch(o);
-        }}
-    }}
 }}
 """
 
+    return header + "\n" + RUNTIME.read_text(encoding="utf-8")
 
-def add(ctx, s) -> None:
-    """The outposts' XS; call after waves.add (its XS comes first)."""
-    ctx.xs(xs(s))
+
+def add(ctx, s, markers: dict[str, list[tuple[float, float]]]) -> None:
+    """The outposts' XS; call after waves.add (its XS comes first). `markers`: take(s), before anything else."""
+    ctx.xs(xs(s, markers))
