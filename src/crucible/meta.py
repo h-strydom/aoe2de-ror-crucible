@@ -238,11 +238,11 @@ ARTIFACT_SPEED_PERCENT = 15
 ARTIFACT_DISCOUNT_PERCENT = 20
 ARTIFACT_TRICKLES = {"Granary": (("food", 2, 20),), "Storage Pit": (("wood", 2, 20),)}  # a second: each, at most
 ARTIFACT_TRICKLES["Town Center"] = (("gold", 1, 10), ("stone", 1, 10))
-# tower HP a minute an artifact (regeneration, 109): 60 showed as 2 HP a second, so a quarter of that now (playtest
-# 2026-11-24: the attribute looks to count double; to confirm)
-ARTIFACT_REGENERATION = 15
-ARTIFACT_GARRISON_HEAL = 15  # HP a minute an artifact gives the units garrisoned in its building type (by XS)
-ARTIFACT_HEAL_EVERY = 4  # seconds between the garrison heal's steps
+# The regeneration attribute (109) looks to show as twice its value a minute: 60 on towers gave 2 HP a second
+# (playtest 2026-11-24; to confirm). The HP a minute below are what shows; the attribute gets half.
+REGENERATION_SHOWN = 2
+ARTIFACT_REGENERATION = 30  # tower HP a minute an artifact (a quarter of the 120 that showed)
+ARTIFACT_UNIT_REGENERATION = 15  # HP a minute an artifact gives the units its building type trains
 ARTIFACT_CART_REGENERATION = 120  # the artifact's own HP a minute (of 5000)
 RUIN_TRICKLE = Upgrade(
     "meta_ruin_trickle",
@@ -288,9 +288,9 @@ ARTIFACT_SPECIAL = Upgrade(
     "meta_artifact_special",
     "Artifact: bounty",
     "An artifact in a Granary: each Granary gives 2 food a second (20 at most); in a Storage Pit: 2 wood (20); in a "
-    f"Town Center: 1 gold and 1 stone (10 each); in a tower: towers regenerate {ARTIFACT_REGENERATION * 2} HP a "
-    "minute. "
-    f"Units garrisoned in a building of its type heal {ARTIFACT_GARRISON_HEAL} HP a minute. Each artifact adds more.",
+    f"Town Center: 1 gold and 1 stone (10 each); in a tower: towers regenerate {ARTIFACT_REGENERATION} HP a minute. "
+    f"The units a building of its type trains regenerate {ARTIFACT_UNIT_REGENERATION} HP a minute (Barracks: "
+    "infantry; Dock: ships; Town Center: villagers). Each artifact adds more.",
     "tower_4",
     2,
     requires=(("meta_artifact_cost", 1),),

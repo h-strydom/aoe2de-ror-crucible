@@ -7,7 +7,7 @@ Parked work, roughly in order. Move an item into its own doc once it's being bui
 Built but not yet seen working in a playtest. Strike each off once confirmed.
 
 - Artifact in a tower (Guard Tower bounty): towers regenerate about 30 HP a minute an artifact (attribute 15; 60
-  showed as 2 HP a second, so the attribute may count double: check the rate).
+  showed as 2 HP a second, so the attribute may count double: check the rate; units' regeneration assumes it).
 - Artifact in a Granary or Storage Pit (Guard Tower bounty): 2 food or wood a second per building, 20 at most.
 - Artifact in a Town Center (Guard Tower bounty): 1 gold and 1 stone a second per Town Center, 10 each at most.
 - Composite Bowmen trainable once Composite Bow is researched (upgrade-only units no longer locked: also Broad and
@@ -17,8 +17,8 @@ Built but not yet seen working in a playtest. Strike each off once confirmed.
 - No boon shows as Spies (new techs skip id 408).
 - An artifact the Legion captures goes back to Gaia, and can be captured again.
 - Two artifacts in one building type boost it twice; the artifact regenerates 120 HP a minute; with the bounty,
-  units garrisoned in its building type heal 15 HP a minute an artifact, now by XS (the garrison heal rate healed no
-  Cataphracts in a Stable): Cataphracts in a Stable with an artifact heal.
+  the units its building type trains regenerate 15 HP a minute an artifact (an artifact in a Stable: Cataphracts
+  regenerate anywhere; Barracks infantry, Dock ships, Town Center villagers...).
 - A ruin gives 25 population room (was 50).
 - Trade Workshop (hub, by the Wonder): Rerolls (5 levels) and Spies. In the run, the Wonder's button 13 rerolls the
   boon categories on offer (free per level, then 500 gold); button 14, Spies (5000 gold), shows the whole map.
