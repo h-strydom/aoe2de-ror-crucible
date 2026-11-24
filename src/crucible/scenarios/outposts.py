@@ -1,39 +1,41 @@
-"""The Legion's outposts come alive (docs/outposts.md): phases 2-4, defend, guard and bully, attack.
+"""The Legion's outposts come alive (docs/outposts.md): defend, guard their spots, attack.
 
 Each of the six bases (`bases.BASES`) rolls an archetype at the start, as a wave lane does (`wave_table.ARCHETYPES`),
 and fields its paths' lines up to the Legion's age (`crucibleWaveAge`, from waves.xs): a higher level fields later
 lines. Outposts never roll upgrades of their own; the Legion's are shared, so they have the waves'.
 
-What an outpost does is XS (outposts.xs, read it for the detail); this module works out the map's part of it:
-- its garrison's posts, spread through its base (POSTS: free tiles round each building in turn), and for the two sea
-  outposts their ships' posts round the island (SEA_POSTS) and the beach their transports land waves on;
-- the spots it guards (`spots`): gold and stone clusters of 4 or more mines, hunt groups of 3 or more, outside the
-  player's base (BaseRadius round the Wonder), each the spot of every outpost within SPOT_RANGE;
-- where its attack waves start: land outposts at the nearest land marker, sea outposts at their two nearest sea
-  markers (by transport);
-- the player's unit types the outposts look for (the map hack: `xsGetPlayerUnitIds` a type at a time).
+What an outpost does is XS (outposts.xs, read it for the detail); this module works out the map's part of it, from
+the markers placed on the arena (player 4's, 2026-11-24; the run takes them off the map and keeps their tiles):
+- Priests: where an outpost's garrison stands about, each unit wandering round one or patrolling between two;
+- Scouts: the spots it guards (resources); a spot with more resources gets more guards (`SPOT_EACH`); a spot belongs
+  to the nearest outpost its units can walk to;
+- Fishing Boats: where a sea outpost's ships keep;
+- Kings: where a sea outpost's transports land their waves, the 3 nearest it (one at random a wave).
+Units come out of the outpost's buildings (a free tile by each: `doors`), ships out of its docks; a building
+destroyed spawns nothing more, so with its docks gone a sea outpost has no more ships.
+The Legion's own markers stay as they were: its female villagers on the south edge, where land outposts' waves come
+from, and its Light Transports on the map's edge, where a sea outpost's transports (and their escorts) come from and
+go back to; a trigger removes them there (`exits`).
 
-Playtest 2026-11-24: garrisons 4 times as large (GarrisonScale) and spread through the base, 8 times while turtled
-(TurtleScale); hit, the garrison hunts the player's units near the base (it had walked to where it was hit and back
-until it died); sea outposts keep half the garrison as ships.
-
-Markers (2026-11-23): the Legion's female villagers on land and its Light Transports at sea mark where the outposts'
-attack waves come from; the run takes them off the map and keeps their tiles.
+Playtest 2026-11-24 (standard): the aggression felt right for Hard, so Moderate and Standard scale it down
+(AGGRESSION); the garrison is 2, 4 and 6 times the first test's (GARRISON_SCALE), twice that while turtled.
 """
 
 import math
+from collections import deque
+from functools import cache
 from pathlib import Path
-
-from AoE2ScenarioParser.datasets.terrains import TerrainId
 
 from crucible.datamod.mod import source_dat
 from crucible.scenarios import bases
 from crucible.scenarios import wave_table as table
 
 RUNTIME = Path(__file__).with_name("outposts.xs")
-LEGION, PLAYER = 3, 1
-LAND_MARKER = 293  # VFBAS, the female villager
-SEA_MARKER = 545  # Light Transport
+LEGION, PLAYER, MARKERS = 3, 1, 4
+LAND_MARKER = 293  # the Legion's female villager: a land outpost's waves start here
+SEA_MARKER = 545  # the Legion's Light Transport: a sea outpost's transports start (and leave) here
+SHIP_SPOT, POST, LANDING, GUARD_SPOT = 13, 125, 434, 448  # player 4's Fishing Boat, Priest, King, Scout
+MARKER_TYPES = (SHIP_SPOT, POST, LANDING, GUARD_SPOT)
 WONDER = 276
 SEA_OUTPOSTS = ("Western Outpost", "Eastern Outpost")
 
@@ -41,81 +43,116 @@ DEBUG = True  # chat says what each outpost does: for the playtests only (outpos
 NUMBERS = {  # the XS constants (cCrucibleOutpost + the name)
     "Start": 10,  # seconds: the first look (after waves.xs has set up)
     "FirstTick": 60,  # seconds: the first turn (+ up to half TickSpread)
-    "Tick": 120,  # seconds between turns, + 0 to TickSpread
+    "Tick": 120,  # seconds between turns on Hard, + 0 to TickSpread (longer on easier difficulties: AGGRESSION)
     "TickSpread": 120,
-    "Turtle": 180,  # seconds after the last harassment an outpost stays turtled
+    "Turtle": 300,  # seconds after the last harassment an outpost stays turtled
     "Grow": 10,  # growth points a turn left alone (10 a level)
     "GrowHarassed": 3,  # turtled
-    "StartDefenders": 3,  # the garrison's base: + a level's, an age's and a difficulty step's worth
+    "StartDefenders": 3,  # the garrison's base: + a level's and an age's worth, times GARRISON_SCALE
     "LevelsPerDefender": 2,
     "DefendersPerAge": 2,
-    "DifficultyDefenders": 2,
-    "GarrisonScale": 4,  # the garrison: its base times this (playtest 2026-11-24)
-    "TurtleScale": 8,  # while turtled
     "Max": 120,  # land units in a garrison at most
-    "ShipMax": 60,
-    "SpawnPerTick": 12,  # more of the garrison a turn
-    "TurtleSpawnEvery": 15,  # seconds: turtled, it tops up this often
-    "TurtleSpawn": 4,
+    "ShipMax": 40,
+    "Members": 220,  # units an outpost keeps track of: garrison, spot guards, ships
+    "SpawnPerTick": 3,  # more of the garrison a turn (12 replenished too fast, playtest 2026-11-24)
+    "TurtleSpawnEvery": 30,  # seconds: turtled and left alone, it tops up this often
+    "TurtleSpawn": 2,
     "LevelsPerLine": 4,  # a level step of this many moves its units a line on
     "MainShare": table.MAIN_SHARE,
-    "OutMax": 80,  # units out (guards, bullies, raiders) at most
-    "GuardBase": 2,  # a guard or raiding party: + a level / 4, + the Legion's age
-    "GuardMax": 8,
-    "RaidMax": 10,
-    "BullyBase": 2,  # a bullying party: + BullyPer a pressure, + the Legion's age
+    "BullyBase": 2,  # a party sent to a contested spot: + BullyPer a pressure, + the Legion's age
     "BullyPer": 2,
     "BullyMax": 16,
+    "SpotMax": 24,  # guards at one spot at most
     "PressureEvery": 30,  # seconds: a spot's pressure goes up while contested, down while clear
     "PressureMax": 10,
-    "WaveBase": 3,  # an attack wave: + a level / 2, + 2 an age, + 2 a difficulty step
+    "WaveBase": 3,  # an attack wave: + a level / 2, + 2 an age (times AGGRESSION)
     "WaveMax": 30,
     "TransportMax": 8,
     "LightTransport": 545,
     "HeavyTransport": 37,
     "LightCapacity": 5,
     "HeavyCapacity": 10,
-    "LandTimeout": 150,  # seconds: a transport lands (or leaves) by then wherever it is
-    "ScanEvery": 2,  # seconds between looks at the player's units
+    "EscortPer": 6,  # an escort ship for every this many in a wave, + 1
+    "EscortMax": 4,
+    "Escorts": 16,  # escorts out at once at most
+    "LandTimeout": 150,  # seconds: a transport lands by then wherever it is; then it's forgotten
+    "ScanEvery": 2,  # seconds between looks at the player's units (and new orders)
     "EnemyMax": 400,
+    "WanderEvery": 6,  # seconds between a wanderer's steps, + 0 to WanderSpread
+    "WanderSpread": 8,
+    "PatrolEvery": 3,  # every this many garrison units, one patrols between two posts
 }
 RANGES = {  # tiles (floats in XS)
-    "HuntRange": 25.0,  # turtled, the garrison hunts the player's units this near its base
+    "HuntRange": 25.0,  # the player's units this near an outpost stop its spawning, and turtled it hunts them
     "SpotRadius": 8.0,  # the player's units this near a spot contest it
-    "HelpRange": 60.0,  # parties help at spots and raid gatherers this near their base
-    "BaseRadius": 30.0,  # the player's base: round the Wonder; gatherers outside it are raided
-    "SeaRange": 60.0,  # ships go for the player's ships and docks this near their base
+    "SeaRange": 60.0,  # ships go for the player's ships and docks this near their outpost
+    "PostWander": 3.0,  # how far a garrison unit wanders from its post
+    "SpotWander": 4.0,  # a spot guard from its spot
+    "ShipWander": 4.0,  # a ship from its spot
+    "Landed": 4.0,  # a transport this near its landing lands its party
 }
-POSTS, SEA_POSTS = 16, 8
-SPOT_RANGE = 50  # a spot belongs to every outpost this near
-GOLD, STONE = 66, 102
-HUNT_CLASSES, HUNT_EXTRA = (9,), (1301,)  # prey (gazelles, deer...) and elephants
-MINES, HERD = 4, 3  # a spot's least mines or animals
-LINK = {"gold": 3.0, "stone": 3.0, "hunt": 5.0}  # tiles: a cluster's members are this near one another
-LAND_CLASSES = (0, 4, 6, 12, 13, 18, 23, 24, 35, 36, 44, 47, 55)  # what the outposts hunt and harass on land
+GARRISON_SCALE = (2, 4, 6)  # by difficulty (Standard, Moderate, Hard): the garrison, its base times this
+TURTLE_SCALE = (4, 8, 12)  # while turtled
+AGGRESSION = (50, 75, 100)  # percent: parties and waves this size, turns this much more often
+KINGS_PER_SIDE = 3
+SPOT_EACH = 1000  # a spot's resources: a guard each this many (2 to 6), + the Legion's age
+SPOT_GUARDS = (2, 6)
+SPOT_REACH = 7  # tiles round a scout whose resources count
+SEA_SPAWN = 3  # tiles in from a sea marker (on the map's edge) its transports start at; they leave at the marker
+EXIT = 1  # tiles round a sea marker a trigger removes the Legion's transports and escorts in
+AGES = len(table.Age)
+SLOTS = (table.Slot.MELEE, table.Slot.RANGED)
+LAND_CLASSES = (0, 4, 6, 12, 13, 18, 23, 24, 35, 36, 44, 47, 55)  # what the outposts hunt on land
 VILLAGER_CLASS = 4
 SEA_CLASSES = (2, 20, 21, 22)  # trade boats, transports, fishing boats, warships
 DOCKS = (45, 133, 47, 51)
 SHIP_LINES = ((539, table.Age.STONE), (21, table.Age.BRONZE), (442, table.Age.IRON), (420, table.Age.IRON))
-AGES = len(table.Age)
-SLOTS = (table.Slot.MELEE, table.Slot.RANGED)
-WATER = {t.value for t in TerrainId if "WATER" in t.name and "BRIDGE" not in t.name}
-BLOCKED = WATER | {t.value for t in TerrainId if "FOREST" in t.name}
+CLUBMAN, SCOUT_SHIP = 281, 539  # whose terrain restrictions say where land units walk and ships sail
 BUILDING = 80
 
 
+@cache
+def _data():
+    """The game's data (parsed once: it takes seconds)."""
+    return source_dat()
+
+
+@cache
+def walkable() -> frozenset[int]:
+    """The terrains land units walk on (RoR's shallows and beaches too)."""
+    return _passable(CLUBMAN)
+
+
+@cache
+def sailable() -> frozenset[int]:
+    """The terrains ships sail on (shallows and beaches too: docks stand on shallows)."""
+    return _passable(SCOUT_SHIP)
+
+
+def _passable(unit: int) -> frozenset[int]:
+    data = _data()
+    restriction = data.terrain_restrictions[data.civs[PLAYER].units[unit].terrain_restriction]
+
+    return frozenset(t for t, value in enumerate(restriction.passable_buildable_dmg_multiplier) if value > 0)
+
+
 def take(s) -> dict[str, list[tuple[float, float]]]:
-    """Remove the markers from scenario `s`; returns their tiles: {"land": [...], "sea": [...]}."""
-    units = s.unit_manager.units[LEGION]
-    found = {"land": [], "sea": []}
+    """Remove the markers from scenario `s`; returns their tiles by kind: land, sea (the Legion's), posts, spots,
+    ship_spots, landings (player 4's)."""
+    kinds = {
+        LEGION: {LAND_MARKER: "land", SEA_MARKER: "sea"},
+        MARKERS: {POST: "posts", GUARD_SPOT: "spots", SHIP_SPOT: "ship_spots", LANDING: "landings"},
+    }
+    found = {kind: [] for by_type in kinds.values() for kind in by_type.values()}
     markers = []
 
-    for unit in units:
-        kind = {LAND_MARKER: "land", SEA_MARKER: "sea"}.get(unit.unit_const)
+    for player, by_type in kinds.items():
+        for unit in s.unit_manager.units[player]:
+            kind = by_type.get(unit.unit_const)
 
-        if kind:
-            found[kind].append((unit.x, unit.y))
-            markers.append(unit)
+            if kind:
+                found[kind].append((unit.x, unit.y))
+                markers.append(unit)
 
     for unit in markers:
         s.unit_manager.remove_unit(unit=unit)
@@ -152,6 +189,11 @@ def ship_pools() -> list[list[int]]:
     return [[unit for unit, at in SHIP_LINES if at <= age] for age in table.Age]
 
 
+def ship_types() -> list[int]:
+    """Every ship an outpost fields, and its transports."""
+    return sorted({unit for unit, _ in SHIP_LINES} | {NUMBERS["LightTransport"], NUMBERS["HeavyTransport"]})
+
+
 def player_types(data) -> tuple[list[tuple[int, bool]], list[int]]:
     """The unit types the player may have that outposts look for: (land: (type, a villager?)), sea (ships, docks)."""
     units = data.civs[PLAYER].units
@@ -175,23 +217,20 @@ def player_types(data) -> tuple[list[tuple[int, bool]], list[int]]:
 
 
 def _taken(s) -> list[tuple[float, float, float]]:
-    """Every unit's tile and how far to keep clear of it (buildings wider)."""
-    data = source_dat().civs[1].units
+    """Every unit's tile and how far to keep clear of it (buildings by their size)."""
+    data = _data().civs[1].units
     taken = []
 
     for player in s.unit_manager.units:
         for u in player:
             unit = data[u.unit_const] if u.unit_const < len(data) else None
-            taken.append((u.x, u.y, 2.5 if unit and unit.type == BUILDING else 1.2))
+            taken.append((u.x, u.y, _size(unit) + 0.5 if unit and unit.type == BUILDING else 1.0))
 
     return taken
 
 
-def _free(s, taken, x: int, y: int) -> bool:
-    if s.map_manager.get_tile(x, y).terrain_id in BLOCKED:
-        return False
-
-    return all(math.dist((x + 0.5, y + 0.5), (ux, uy)) > r for ux, uy, r in taken)
+def _size(unit) -> float:
+    return max(unit.clearance_size[0], unit.clearance_size[1], 0.5)
 
 
 def _around(s, x: float, y: float, near: int):
@@ -202,120 +241,168 @@ def _around(s, x: float, y: float, near: int):
             yield tx, ty
 
 
-def posts(s, found: list, count: int = POSTS, taken=None) -> list[tuple[float, float]]:
-    """Free land tiles spread through a base: the nearest free tile to each of its buildings in turn, 2 tiles apart."""
-    taken = _taken(s) if taken is None else taken
-    near = {}
-
-    for b in found:
-        tiles = [t for t in _around(s, b.x, b.y, 5) if _free(s, taken, *t)]
-        near[b.reference_id] = sorted(tiles, key=lambda t: math.dist((t[0] + 0.5, t[1] + 0.5), (b.x, b.y)))
-
-    chosen = []
-
-    while len(chosen) < count:
-        added = False
-
-        for b in found:
-            for t in near[b.reference_id]:
-                if all(math.dist(t, c) >= 2 for c in chosen):
-                    chosen.append(t)
-                    added = True
-                    break
-
-            if len(chosen) == count:
-                break
-
-        if not added:
-            raise ValueError(f"only {len(chosen)} posts round {[b.reference_id for b in found]}")
-
-    return [(x + 0.5, y + 0.5) for x, y in chosen]
-
-
-def sea_posts(s, home: tuple[float, float], count: int = SEA_POSTS) -> list[tuple[float, float]]:
-    """Water tiles round an island outpost, 6 to 16 tiles out, 4 apart: where its ships keep."""
+def door(s, building, taken, dock: bool) -> tuple[float, float] | None:
+    """A free tile by `building` its units come out at (water by a dock); None if there's none."""
+    data = _data().civs[1].units
     mm = s.map_manager
-    tiles = [
-        t
-        for t in _around(s, *home, 16)
-        if mm.get_tile(*t).terrain_id in WATER and 6 <= math.dist((t[0] + 0.5, t[1] + 0.5), home) <= 16
-    ]
-    tiles.sort(key=lambda t: math.dist((t[0] + 0.5, t[1] + 0.5), home))
-    chosen = []
-
-    for t in tiles:
-        if all(math.dist(t, c) >= 4 for c in chosen):
-            chosen.append(t)
-
-        if len(chosen) == count:
-            return [(x + 0.5, y + 0.5) for x, y in chosen]
-
-    raise ValueError(f"only {len(chosen)} sea posts round {home}")
-
-
-def beach(s, home: tuple[float, float], wonder: tuple[float, float], taken=None) -> tuple[tuple, tuple]:
-    """Where a sea outpost's transports land: a free shore tile 10 to 30 tiles from it, the nearest the Wonder; (the
-    land tile, the water tile off it)."""
-    mm = s.map_manager
-    taken = _taken(s) if taken is None else taken
-    size = mm.map_size
+    reach = _size(data[building.unit_const]) + 3
     best = None
 
-    for x, y in _around(s, *home, 30):
-        if not 10 <= math.dist((x + 0.5, y + 0.5), home) <= 30 or not _free(s, taken, x, y):
+    for tx, ty in _around(s, building.x, building.y, math.ceil(reach)):
+        centre = (tx + 0.5, ty + 0.5)
+        d = math.dist(centre, (building.x, building.y))
+        terrain = mm.get_tile(tx, ty).terrain_id
+
+        if d > reach or terrain not in (sailable() if dock else walkable()):
             continue
 
-        for wx, wy in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-            if 0 <= wx < size and 0 <= wy < size and mm.get_tile(wx, wy).terrain_id in WATER:
-                d = math.dist((x, y), wonder)
+        if all(math.dist(centre, (ux, uy)) > r for ux, uy, r in taken) and (best is None or d < best[0]):
+            best = (d, centre)
 
-                if best is None or d < best[0]:
-                    best = (d, (x + 0.5, y + 0.5), (wx + 0.5, wy + 0.5))
-
-    if best is None:
-        raise ValueError(f"no beach near {home}")
-
-    return best[1], best[2]
+    return best[1] if best else None
 
 
-def _clusters(points: list[tuple[float, float]], link: float) -> list[list[tuple[float, float]]]:
-    groups = []
+def regions(s) -> list[list[int]]:
+    """Each tile's region (tiles a land unit can walk between), -1 where it can't walk; [x][y]."""
+    mm = s.map_manager
+    size = mm.map_size
+    region = [[-1] * size for _ in range(size)]
+    count = 0
 
-    for p in points:
-        joined = [g for g in groups if any(math.dist(p, q) <= link for q in g)]
-        merged = [p, *(q for g in joined for q in g)]
-        groups = [g for g in groups if g not in joined] + [merged]
+    for x in range(size):
+        for y in range(size):
+            if region[x][y] >= 0 or mm.get_tile(x, y).terrain_id not in walkable():
+                continue
 
-    return groups
+            region[x][y] = count
+            queue = deque([(x, y)])
+
+            while queue:
+                cx, cy = queue.popleft()
+
+                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
+                    inside = 0 <= nx < size and 0 <= ny < size
+
+                    if inside and region[nx][ny] < 0 and mm.get_tile(nx, ny).terrain_id in walkable():
+                        region[nx][ny] = count
+                        queue.append((nx, ny))
+
+            count += 1
+
+    return region
 
 
-def spots(s, wonder: tuple[float, float]) -> list[tuple[str, float, float]]:
-    """The resource spots outposts guard: (kind, x, y), outside the player's base."""
-    data = source_dat().civs[0].units
-    kinds = {"gold": [], "stone": [], "hunt": []}
+def resources(s, at: tuple[float, float]) -> int:
+    """The food, wood, stone and gold Gaia's units hold within SPOT_REACH of `at` (trees left out)."""
+    data = _data().civs[0].units
+    total = 0
 
     for u in s.unit_manager.units[0]:
         unit = data[u.unit_const] if u.unit_const < len(data) else None
 
-        if u.unit_const == GOLD:
-            kinds["gold"].append((u.x, u.y))
-        elif u.unit_const == STONE:
-            kinds["stone"].append((u.x, u.y))
-        elif u.unit_const in HUNT_EXTRA or (unit and unit.class_ in HUNT_CLASSES):
-            kinds["hunt"].append((u.x, u.y))
+        if unit and unit.class_ != 15 and math.dist((u.x, u.y), at) <= SPOT_REACH:  # 15: trees
+            total += sum(r.amount for r in unit.resource_storages if r.type in (0, 1, 2, 3) and r.amount > 0)
 
-    found = []
+    return int(total)
 
-    for kind, points in kinds.items():
-        least = HERD if kind == "hunt" else MINES
 
-        for group in _clusters(points, LINK[kind]):
-            x, y = sum(p[0] for p in group) / len(group), sum(p[1] for p in group) / len(group)
+def _water_near(s, at: tuple[float, float]) -> tuple[float, float]:
+    """The nearest tile only ships can use (open water) to `at`."""
+    mm = s.map_manager
+    water = sailable() - walkable()
+    tiles = [t for t in _around(s, *at, 8) if mm.get_tile(*t).terrain_id in water]
 
-            if len(group) >= least and math.dist((x, y), wonder) > RANGES["BaseRadius"]:
-                found.append((kind, round(x, 1), round(y, 1)))
+    if not tiles:
+        raise ValueError(f"no water near the landing at {at}")
 
-    return sorted(found, key=lambda f: (f[1], f[2]))
+    x, y = min(tiles, key=lambda t: math.dist((t[0] + 0.5, t[1] + 0.5), at))
+
+    return x + 0.5, y + 0.5
+
+
+def _inward(s, at: tuple[float, float], by: float) -> tuple[float, float]:
+    """`by` tiles in from the map's edge nearest `at`."""
+    size = s.map_manager.map_size
+    x, y = at
+    edges = {(by, 0.0): x, (-by, 0.0): size - x, (0.0, by): y, (0.0, -by): size - y}
+    dx, dy = min(edges, key=edges.get)
+
+    return x + dx, y + dy
+
+
+def exits(s, sea: list[tuple[float, float]]) -> list[tuple[int, int, int, int]]:
+    """The areas (x1, y1, x2, y2) round each sea marker where transports and escorts are removed."""
+    size = s.map_manager.map_size
+    clip = lambda v: max(0, min(size - 1, int(v)))  # noqa: E731
+
+    return [(clip(x - EXIT), clip(y - EXIT), clip(x + EXIT), clip(y + EXIT)) for x, y in sea]
+
+
+def plan(s, markers: dict[str, list[tuple[float, float]]]) -> dict[str, list]:
+    """Each outpost's part of the map, by outpost; and the spots, the sea markers, the Wonder."""
+    wonder = next((u.x, u.y) for u in s.unit_manager.units[PLAYER] if u.unit_const == WONDER)
+    taken = _taken(s)
+    region = regions(s)
+    keys = ("home", "buildings", "doors", "posts", "ship_spots", "landings", "sea", "marker", "sea_markers")
+    found = {key: [] for key in keys}
+    homes = []
+
+    for _, box in bases.BASES:
+        built = bases.buildings(s, box)
+        homes.append((sum(u.x for u in built) / len(built), sum(u.y for u in built) / len(built)))
+
+    def nearest_outpost(at, among=None) -> int:
+        among = range(len(homes)) if among is None else among
+        return min(among, key=lambda o: math.dist(homes[o], at))
+
+    sea_flags = [name in SEA_OUTPOSTS for name, _ in bases.BASES]
+    sea_ones = [o for o, sea in enumerate(sea_flags) if sea]
+    land_regions = []
+
+    for o, (name, box) in enumerate(bases.BASES):
+        built = bases.buildings(s, box)
+        home = homes[o]
+        doors = []
+
+        for u in built:
+            dock = u.unit_const in DOCKS
+            at = door(s, u, taken, dock)
+
+            if at:
+                doors.append((u.reference_id, at, dock))
+
+        land = [at for _, at, dock in doors if not dock]
+
+        if not land:
+            raise ValueError(f"{name}: no door for land units")
+
+        land_regions.append(region[int(land[0][0])][int(land[0][1])])
+        posts = [p for p in markers["posts"] if nearest_outpost(p) == o] or [home]
+        ship_spots = [p for p in markers["ship_spots"] if nearest_outpost(p, sea_ones) == o] if sea_flags[o] else []
+        kings = sorted(markers["landings"], key=lambda k: math.dist(k, home))[:KINGS_PER_SIDE]
+        sea_markers = sorted(markers["sea"], key=lambda m: math.dist(m, home))[:2]
+        found["home"].append(home)
+        found["buildings"].append([u.reference_id for u in built])
+        found["doors"].append(doors)
+        found["posts"].append(posts)
+        found["ship_spots"].append(ship_spots or [home])
+        found["landings"].append([(k, _water_near(s, k)) for k in kings] if sea_flags[o] else [])
+        found["sea"].append(sea_flags[o])
+        found["marker"].append(min(markers["land"], key=lambda m: math.dist(m, home)))
+        found["sea_markers"].append([(_inward(s, m, SEA_SPAWN), m) for m in sea_markers] if sea_flags[o] else [])
+
+    spots = []
+
+    for at in sorted(markers["spots"]):
+        reachable = [o for o in range(len(homes)) if land_regions[o] == region[int(at[0])][int(at[1])]]
+        owner = nearest_outpost(at, reachable) if reachable else -1
+        guards = min(max(round(resources(s, at) / SPOT_EACH), SPOT_GUARDS[0]), SPOT_GUARDS[1])
+        spots.append((at, owner, guards))
+
+    found["spots"] = spots
+    found["wonder"] = wonder
+
+    return found
 
 
 def _ints(name: str, values: list[int]) -> list[str]:
@@ -336,86 +423,59 @@ def _strings(name: str, values: list[str]) -> list[str]:
     return lines + [f'    xsArraySetString({name}, {n}, "{v}");' for n, v in enumerate(values)]
 
 
-def plan(s, markers: dict[str, list[tuple[float, float]]]) -> dict[str, list]:
-    """Each outpost's part of the map, by outpost: home, buildings, posts, sea posts, sea?, markers, beach, spots."""
-    wonder = next((u.x, u.y) for u in s.unit_manager.units[PLAYER] if u.unit_const == WONDER)
-    taken = _taken(s)
-    every = spots(s, wonder)
-    found = {key: [] for key in ("home", "buildings", "posts", "sea_posts", "sea", "markers", "beach", "spots")}
+def _flat(per_outpost: list[list]) -> tuple[list[int], list]:
+    """(each outpost's start in the flat list, + the end), the flat list."""
+    starts, flat = [], []
 
-    for name, box in bases.BASES:
-        built = bases.buildings(s, box)
-        home = (sum(u.x for u in built) / len(built), sum(u.y for u in built) / len(built))
-        sea = name in SEA_OUTPOSTS
-        nearest = sorted(markers["sea" if sea else "land"], key=lambda m: math.dist(m, home))
-        found["home"].append(home)
-        found["buildings"].append([u.reference_id for u in built])
-        found["posts"].append(posts(s, built, taken=taken))
-        found["sea_posts"].append(sea_posts(s, home) if sea else [home] * SEA_POSTS)
-        found["sea"].append(sea)
-        found["markers"].append((nearest[0], nearest[1] if sea else nearest[0]))
-        found["beach"].append(beach(s, home, wonder, taken) if sea else (home, home))
-        found["spots"].append([n for n, (_, x, y) in enumerate(every) if math.dist((x, y), home) <= SPOT_RANGE])
+    for items in per_outpost:
+        starts.append(len(flat))
+        flat += items
 
-    found["every_spot"] = every
-    found["wonder"] = wonder
-
-    return found
+    return starts + [len(flat)], flat
 
 
 def xs(s, markers: dict[str, list[tuple[float, float]]]) -> str:
-    """The outposts' XS (after waves.xs: it reads crucibleWaveAge and crucibleWaveFactor). `markers`: take(s)."""
+    """The outposts' XS (after waves.xs: it reads crucibleWaveAge and crucibleWaveDifficulty). `markers`: take(s)."""
     p = plan(s, markers)
-    land, sea = player_types(source_dat())
-    starts, buildings = [], []
-
-    for found in p["buildings"]:
-        starts.append(len(buildings))
-        buildings += found
-
-    starts.append(len(buildings))
-    pool_start, pool_units = [], []
-
-    for units in pools():
-        pool_start.append(len(pool_units))
-        pool_units += units
-
-    pool_start.append(len(pool_units))
-    ship_start, ship_units = [], []
-
-    for units in ship_pools():
-        ship_start.append(len(ship_units))
-        ship_units += units
-
-    ship_start.append(len(ship_units))
-    spot_start, own = [], []
-
-    for found in p["spots"]:
-        spot_start.append(len(own))
-        own += found
-
-    spot_start.append(len(own))
-    every = p["every_spot"]
-    flat = [post for found in p["posts"] for post in found]
-    sea_flat = [post for found in p["sea_posts"] for post in found]
+    land, sea = player_types(_data())
+    building_start, buildings = _flat(p["buildings"])
+    door_start, doors = _flat(p["doors"])
+    post_start, posts = _flat(p["posts"])
+    ship_spot_start, ship_spots = _flat(p["ship_spots"])
+    landing_start, landings = _flat(p["landings"])
+    sea_start, sea_markers = _flat(p["sea_markers"])
+    pool_start, pool_units = _flat(pools())
+    ship_start, ship_units = _flat(ship_pools())
+    spots = p["spots"]
     setup = [
         *_floats("crucibleOutpostHomesX", [x for x, _ in p["home"]]),
         *_floats("crucibleOutpostHomesY", [y for _, y in p["home"]]),
-        *_ints("crucibleOutpostBuildingStart", starts),
+        *_ints("crucibleOutpostBuildingStart", building_start),
         *_ints("crucibleOutpostBuildings", buildings),
-        *_floats("crucibleOutpostPostX", [x for x, _ in flat]),
-        *_floats("crucibleOutpostPostY", [y for _, y in flat]),
-        *_floats("crucibleOutpostSeaPostX", [x for x, _ in sea_flat]),
-        *_floats("crucibleOutpostSeaPostY", [y for _, y in sea_flat]),
+        *_ints("crucibleOutpostDoorStart", door_start),
+        *_ints("crucibleOutpostDoorBuilding", [ref for ref, _, _ in doors]),
+        *_floats("crucibleOutpostDoorX", [at[0] for _, at, _ in doors]),
+        *_floats("crucibleOutpostDoorY", [at[1] for _, at, _ in doors]),
+        *_ints("crucibleOutpostDoorDock", [int(dock) for _, _, dock in doors]),
+        *_ints("crucibleOutpostPostStart", post_start),
+        *_floats("crucibleOutpostPostX", [x for x, _ in posts]),
+        *_floats("crucibleOutpostPostY", [y for _, y in posts]),
+        *_ints("crucibleOutpostShipSpotStart", ship_spot_start),
+        *_floats("crucibleOutpostShipSpotX", [x for x, _ in ship_spots]),
+        *_floats("crucibleOutpostShipSpotY", [y for _, y in ship_spots]),
+        *_ints("crucibleOutpostLandingStart", landing_start),
+        *_floats("crucibleOutpostLandingX", [k[0] for k, _ in landings]),
+        *_floats("crucibleOutpostLandingY", [k[1] for k, _ in landings]),
+        *_floats("crucibleOutpostLandingWaterX", [w[0] for _, w in landings]),
+        *_floats("crucibleOutpostLandingWaterY", [w[1] for _, w in landings]),
+        *_ints("crucibleOutpostSeaMarkerStart", sea_start),
+        *_floats("crucibleOutpostSeaSpawnX", [spawn[0] for spawn, _ in sea_markers]),
+        *_floats("crucibleOutpostSeaSpawnY", [spawn[1] for spawn, _ in sea_markers]),
+        *_floats("crucibleOutpostSeaExitX", [m[0] for _, m in sea_markers]),
+        *_floats("crucibleOutpostSeaExitY", [m[1] for _, m in sea_markers]),
         *_ints("crucibleOutpostIsSea", [int(at_sea) for at_sea in p["sea"]]),
-        *_floats("crucibleOutpostMarkerX", [m[0][0] for m in p["markers"]]),
-        *_floats("crucibleOutpostMarkerY", [m[0][1] for m in p["markers"]]),
-        *_floats("crucibleOutpostMarker2X", [m[1][0] for m in p["markers"]]),
-        *_floats("crucibleOutpostMarker2Y", [m[1][1] for m in p["markers"]]),
-        *_floats("crucibleOutpostBeachX", [b[0][0] for b in p["beach"]]),
-        *_floats("crucibleOutpostBeachY", [b[0][1] for b in p["beach"]]),
-        *_floats("crucibleOutpostBeachWaterX", [b[1][0] for b in p["beach"]]),
-        *_floats("crucibleOutpostBeachWaterY", [b[1][1] for b in p["beach"]]),
+        *_floats("crucibleOutpostMarkerX", [m[0] for m in p["marker"]]),
+        *_floats("crucibleOutpostMarkerY", [m[1] for m in p["marker"]]),
         *_ints("crucibleOutpostPoolStart", pool_start),
         *_ints("crucibleOutpostPoolUnits", pool_units),
         *_ints("crucibleOutpostShipPoolStart", ship_start),
@@ -423,21 +483,22 @@ def xs(s, markers: dict[str, list[tuple[float, float]]]) -> str:
         *_ints("crucibleOutpostMain", [int(a.main) for a in table.ARCHETYPES]),
         *_strings("crucibleOutpostName", [name for name, _ in bases.BASES]),
         *_strings("crucibleOutpostArchetypeName", [a.name for a in table.ARCHETYPES]),
-        *_floats("crucibleOutpostSpotX", [x for _, x, _ in every]),
-        *_floats("crucibleOutpostSpotY", [y for _, _, y in every]),
-        *_strings("crucibleOutpostSpotName", [f"the {kind} at {int(x)}, {int(y)}" for kind, x, y in every]),
-        *_ints("crucibleOutpostSpotStart", spot_start),
-        *_ints("crucibleOutpostOwnSpots", own),
+        *_floats("crucibleOutpostSpotX", [at[0] for at, _, _ in spots]),
+        *_floats("crucibleOutpostSpotY", [at[1] for at, _, _ in spots]),
+        *_ints("crucibleOutpostSpotOwner", [owner for _, owner, _ in spots]),
+        *_ints("crucibleOutpostSpotGuards", [guards for _, _, guards in spots]),
+        *_strings("crucibleOutpostSpotName", [f"the spot at {int(at[0])}, {int(at[1])}" for at, _, _ in spots]),
         *_ints("crucibleOutpostLandTypes", [t for t, _ in land]),
         *_ints("crucibleOutpostLandVillager", [int(v) for _, v in land]),
         *_ints("crucibleOutpostSeaTypes", sea),
+        *_ints("crucibleOutpostGarrisonScale", list(GARRISON_SCALE)),
+        *_ints("crucibleOutpostTurtleScale", list(TURTLE_SCALE)),
+        *_ints("crucibleOutpostAggression", list(AGGRESSION)),
     ]
     arrays = sorted({line.split(" = ")[0].strip() for line in setup if " = xsArrayCreate" in line})
     constants = [
         f"const int cCrucibleOutposts = {len(bases.BASES)};",
-        f"const int cCrucibleOutpostPosts = {POSTS};",
-        f"const int cCrucibleOutpostSeaPosts = {SEA_POSTS};",
-        f"const int cCrucibleOutpostSpots = {len(every)};",
+        f"const int cCrucibleOutpostSpots = {len(spots)};",
         f"const int cCrucibleOutpostAges = {AGES};",
         f"const int cCrucibleOutpostArchetypes = {len(table.ARCHETYPES)};",
         f"const int cCrucibleOutpostLegion = {LEGION};",
@@ -462,5 +523,17 @@ void crucibleOutpostData() {{
 
 
 def add(ctx, s, markers: dict[str, list[tuple[float, float]]]) -> None:
-    """The outposts' XS; call after waves.add (its XS comes first). `markers`: take(s), before anything else."""
+    """The outposts' XS, and the triggers that take their transports and escorts off the map at the sea markers they
+    sail back to (XS can only kill a unit, and it showed sinking); call after waves.add (its XS comes first).
+    `markers`: take(s), before anything else."""
+    for n, area in enumerate(exits(s, markers["sea"])):
+        for unit in ship_types():
+            where = {"area": list(area)}
+            ctx.trigger(
+                f"Outposts: ship {unit} leaves at sea marker {n}",
+                [{"type": "objects_in_area", "source_player": LEGION, "object_list": unit, "quantity": 1, **where}],
+                [{"type": "remove_object", "source_player": LEGION, "object_list_unit_id": unit, **where}],
+                looping=True,
+            )
+
     ctx.xs(xs(s, markers))

@@ -111,7 +111,35 @@ so sinking it at sea still kills them.
      sail to a beach 10-30 tiles from the outpost nearest the Wonder, land their party (the fake) and sail off;
    - debug chat says each turn and what it did (`DEBUG`).
 
+   Playtest 2026-11-24 (standard): the aggression felt right for Hard; the garrisons spawned from thin air at their
+   posts and overspawned once the player left; they clumped; 4 times the garrison was right for Moderate, 6 for Hard;
+   old units stayed in the garrison; far too many ships, stacked; the Western Outpost's transports landed in a
+   strange spot; transports sank when they left (killed, not removed).
+5. **Markers, buildings and rounds**, rebuilt 2026-11-24 to the user's design:
+   - markers placed by hand on the arena (player 4's, taken off the map by the build): Priests where the garrison
+     stands about (5 an outpost), Scouts the spots it guards (13; a spot belongs to the nearest outpost its units can
+     walk to, and gets 2 to 6 guards by its resources, a guard a 1000, + the Legion's age), Fishing Boats where a sea
+     outpost's ships keep (3 each), Kings where its transports land (the 3 nearest it, one at random a wave);
+   - units come out of a free tile by one of the outpost's buildings in turn (any building for land units, a dock for
+     ships); a destroyed building makes none, so with its docks gone a sea outpost has no more ships;
+   - behaviour: the garrison wanders round its post (every third unit patrols between two posts), spot guards wander
+     on their spot, ships round their spot; each takes a step every 6-14 s;
+   - each turn (2-4 minutes on Hard, longer on easier difficulties): turtled (hit in the last 5 minutes) and the
+     player still near (25 tiles), it defends (the garrison hunts) and makes nothing; turtled and the player gone, it
+     bolsters (2 every 30 s towards twice its garrison); not turtled, it makes nothing while the player is near, else
+     tops up 3 and sends guards to the first of its spots the player is on (a bigger party the longer the player
+     stays) or that is short of guards; every spot guarded, an attack wave. Spot guards fighting away don't turtle it;
+   - the garrison's base (3 + level / 2 + 2 an age) times 2, 4 or 6 by difficulty (Standard, Moderate, Hard), twice
+     that turtled; parties and waves 50, 75 or 100% (Hard is what Standard was);
+   - units of lines the outpost has moved on from leave the garrison first: as spot guards, and from land outposts in
+     attack waves;
+   - sea waves: transports (and an escort ship for every 6 in the wave, + 1, 4 at most) start 3 tiles in from a sea
+     marker, sail to the water by a landing, land the party on the King's tile (the fake), then sail back to the
+     marker with the escorts, where a looping trigger removes them (unverified: removal by type in an area failed on
+     Gaia bushes once).
+
 ## Open
 
 - the numbers: defenders per level, the level cap, party sizes per pressure, tick length per difficulty
+- a sea outpost's outdated units: they only leave as spot guards (only the Western Outpost has a spot on its island)
 - the four walled posts: left as they are
