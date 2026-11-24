@@ -6,12 +6,15 @@ Parked work, roughly in order. Move an item into its own doc once it's being bui
 
 Built but not yet seen working in a playtest. Strike each off once confirmed.
 
-- Ruin housing (Sentry Tower stage): +50 population room a ruin held (player resource 4 from XS).
-- Ruin population (Guard Tower stage): +20 population limit a ruin held (player resource 32 from XS).
 - Artifact in a tower (Guard Tower bounty): towers regenerate 60 HP a minute.
 - Artifact in a Granary or Storage Pit (Guard Tower bounty): 2 food or wood a second per building, 20 at most.
 - Artifact in a Town Center (Guard Tower bounty): 1 gold and 1 stone a second per Town Center, 10 each at most.
 - Hub: "Reset everything" and "Save and win" each ask for confirmation; "No, go back" asks again.
+- Composite Bowmen trainable once Composite Bow is researched (upgrade-only units no longer locked: also Broad and
+  Long Swordsmen, Heavy Cavalry, later towers and the rest).
+- An artifact the Legion captures goes back to Gaia, and can be captured again.
+- Trade Workshop (hub, by the Wonder): Rerolls (5 levels) and Spies. In the run, the Wonder's button 13 rerolls the
+  boon categories on offer (free per level, then 500 gold); button 14, Spies (5000 gold), shows the whole map.
 
 ## Boons
 

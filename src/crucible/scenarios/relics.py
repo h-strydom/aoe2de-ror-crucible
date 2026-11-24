@@ -10,8 +10,12 @@ What they do is bought at the hub's towers, a stage a tower (meta: RUIN_TRICKLE.
 - artifacts: the building type works faster (work rate), then its units and techs cost less, then a Granary trickles
   food, a Storage Pit wood, a Town Center gold and stone (per building, capped), and towers regenerate.
 
+An artifact another player captures goes back to Gaia (a looping trigger): the player couldn't capture one back from the
+Legion (playtest 2026-11-24).
+
 Verified in game (2026-11-23): ruins pay; an artifact garrisons, and boosts and discounts a Town Center and a
-Barracks. Unverified: the cap (resource 32) and the room (resource 4) from XS, the towers' regeneration.
+Barracks. The cap (resource 32) and the room (resource 4) from
+XS too (2026-11-24). Unverified: the towers' regeneration.
 """
 
 from crucible import meta
@@ -327,7 +331,7 @@ rule crucibleRelics
 """
 
 
-def add(ctx, s, data, techs: dict[str, int], player: int) -> None:
+def add(ctx, s, data, techs: dict[str, int], player: int, others: tuple[int, ...]) -> None:
     """The map's ruins and artifacts (Gaia's): artifacts become the garrisonable copy; each gets a trigger that removes
     it once XS sets its variable; then the XS."""
     from crucible.scenarios.run_meta import _variable_id
@@ -341,6 +345,21 @@ def add(ctx, s, data, techs: dict[str, int], player: int) -> None:
     for unit in artifacts:
         unit.unit_const = copy
         unit.capture_flag = CAPTURE_MULTIPLE
+
+    for other in others:
+        ctx.trigger(
+            f"Relics: player {other}'s artifacts back to Gaia",
+            [{"type": "own_objects", "source_player": other, "object_list": copy, "quantity": 1}],
+            [
+                {
+                    "type": "change_ownership",
+                    "source_player": other,
+                    "target_player": GAIA,
+                    "object_list_unit_id": copy,
+                }
+            ],
+            looping=True,
+        )
 
     variables = {}
 

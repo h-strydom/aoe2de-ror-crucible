@@ -25,6 +25,7 @@ AGES = ((1, 101), (2, 102), (3, 103))  # (current age the player reaches, the ag
 CURRENT_AGE = 6  # resource
 FISHING = 219  # player resource: Fishing Productivity
 TOOL_AGE = 101
+UPGRADE_UNIT = 3  # effect command: a line's next unit takes the last one's place
 VILLAGER_CLASS = 4  # the villager's job units (builder, farmer...) are trained "at" the Town Center: never off
 ALLOWED = (  # what the player can build or train out of the box
     83, 293, 109, 70, 12, 281, 68, 562, 45, 13,  # Stone Age: villagers, Town Center, House, Barracks, Clubman,
@@ -50,15 +51,31 @@ def techs_at(data, building: int) -> list[int]:
     ]
 
 
+def upgraded(data) -> set[int]:
+    """The units only an upgrade brings (a line's later units, a building's later looks)."""
+    return {
+        c.b
+        for tech in data.techs
+        if tech.effect_id >= 0
+        for c in data.effects[tech.effect_id].effect_commands
+        if c.type == UPGRADE_UNIT
+    }
+
+
 def locked(data) -> tuple[list[int], list[int]]:
-    """What the player can't build, train or research out of the box: (units, techs)."""
+    """What the player can't build, train or research out of the box: (units, techs). Units only an upgrade brings
+    are left alone: their upgrades are locked, and a unit switched off by trigger stayed off once upgraded to (no
+    Composite Bowman button after Composite Bow, playtest 2026-11-24)."""
     units = data.civs[1].units
     trained = {
         i
         for i, u in enumerate(units)
         if u and u.creatable and any(c.unit_id >= 0 for c in u.creatable.train_locations)
     }
-    off_units = sorted(i for i in trained if i not in ALLOWED and units[i].class_ != VILLAGER_CLASS)
+    later = upgraded(data)
+    off_units = sorted(
+        i for i in trained if i not in ALLOWED and units[i].class_ != VILLAGER_CLASS and i not in later
+    )
     buildings = {i for i in trained if units[i].type == 80} | {TOWN_CENTER}
     off_techs = sorted(
         {tech for building in buildings for tech in techs_at(data, building) if tech not in NOT_LOCKED}
