@@ -105,9 +105,9 @@ OWN_UPGRADE = (28,)  # Wheel: its own upgrade, not in the Market's row
 NEVER = (19,)  # Writing: shared vision with allies, and the Traders (everyone's ally) see the whole map
 # The gather bonuses (player resources) each Wonder density upgrade multiplies: food (and fishing), wood, mining
 GATHER = {"food": (190, 219), "wood": (189,), "mining": (47, 79)}
-# Upgrade -> (unit, the age the player needs) it unlocks.
+# Upgrade -> (unit, the age the player needs) it unlocks. Not Watch Towers: researching Watch Tower brings them
+# (run_rules.tech_enabled); unlocking them here gave them in the Tool Age unresearched (playtest 2026-11-25).
 UNIT_UNLOCKS = {
-    meta.TOWER.key: ((79, 1),),  # building Watch Towers (the tech alone didn't, playtest 2026-11-23)
     meta.ACADEMY_UPGRADE.key: ((meta.ACADEMY, 2), (93, 2)),  # and Hoplites
     meta.SIEGE_WORKSHOP_UPGRADE.key: ((meta.SIEGE_WORKSHOP, 2), (280, 2)),  # and Stone Throwers
     meta.TEMPLE_UPGRADE.key: ((meta.TEMPLE, 2), (125, 2)),  # and Priests

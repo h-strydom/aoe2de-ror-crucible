@@ -148,7 +148,8 @@ so sinking it at sea still kills them.
    - a spot the player is on gets a party at once, again every 45 s (less with the power) while the player stays;
    - spots want 3 to 8 guards (+ the age, times the aggression and the power), refilled below 75%, two a turn;
    - attack waves back to their first size (2x was massive, playtest 2026-11-25; 60 at most), never before FIRST_WAVE (900, 750, 600 s), and one comes every 5
-     minutes (less with the power) even while spots are being refilled;
+     minutes (less with the power) even while spots are being refilled; at least 60 s between any two outposts'
+     waves (they had piled up at the spawn, playtest 2026-11-25);
    - when its slots' units or its ship move on, its units swap where they stand, one for one (the old ones die).
 
 ## Open

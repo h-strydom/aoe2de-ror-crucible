@@ -84,6 +84,8 @@ NUMBERS = {  # the XS constants (cCrucibleOutpost + the name)
     "WaveScale": 1,  # the first tests' size: 2 was massive (playtests 2026-11-24 and 25)
     "WaveMax": 60,
     "WaveOverdue": 300,  # seconds: a wave comes even while spots are being refilled (less with the power)
+    "WaveGap": 60,  # seconds between any two outposts' attack waves: they had piled up at the spawn (playtest
+    # 2026-11-25); not shortened by the power
     "TransportMax": 8,
     "LightTransport": 545,
     "HeavyTransport": 37,

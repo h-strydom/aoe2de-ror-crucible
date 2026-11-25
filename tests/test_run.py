@@ -38,7 +38,8 @@ def test_run_hands_the_base_to_the_allies(tmp_path, techs):
         assert {"Meta: melee 281", "Meta: melee 77", "Meta: Bowmen 2 as 39", "Meta: Cavalry 3 as 283"} <= names
         assert {"Meta: towers as 234", "Meta: Academy unlocks unit 93"} <= names
         assert not any(n.startswith("Meta: walls") for n in names)
-        assert "Meta: Watch Tower unlocks unit 79" in names  # building Watch Towers
+        assert "Meta: Watch Tower unlocks unit 79" not in names  # researching Watch Tower brings them
+        assert "Player: tech 16 brings unit 79" in names
         assert {"Meta: Iron Age unlocks 103", "Meta: starting resources 5"} <= names
         assert {"Player: no walls or gates", "Win: claim victory offered", "Win: claim victory"} <= names
         cleared = next(t for t in s.trigger_manager.triggers if t.name == "Allies: camp buildings cleared")

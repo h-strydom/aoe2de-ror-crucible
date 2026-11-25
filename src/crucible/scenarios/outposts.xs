@@ -30,6 +30,7 @@ int crucibleOutpostShipY = -1;
 int crucibleOutpostSpawned = -1;  // by outpost: units made (takes its doors in turn)
 int crucibleOutpostNextBully = -1;  // by outpost: seconds, its next party to a spot the player is on
 int crucibleOutpostLastWave = -1;  // by outpost: seconds, its last attack wave
+int crucibleOutpostLastAnyWave = -1000;  // seconds: any outpost's last attack wave
 int crucibleOutpostSeenUnit = -1;  // by outpost * 3: its two slots' units and its ship when it last swapped
 int crucibleOutpostFallen = 0;  // outposts destroyed
 int crucibleOutpostBuildingHp = -1;  // by building: its HP last second
@@ -1366,7 +1367,12 @@ void crucibleOutpostTurn(int o = 0) {
         return;
     }
 
+    if (now - crucibleOutpostLastAnyWave < cCrucibleOutpostWaveGap) {
+        return;  // another outpost's wave is still on its way out
+    }
+
     xsArraySetInt(crucibleOutpostLastWave, o, now);
+    crucibleOutpostLastAnyWave = now;
 
     if (crucibleOutpostSea(o)) {
         crucibleOutpostSeaWave(o, crucibleOutpostWaveSize(o));
