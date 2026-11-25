@@ -176,7 +176,6 @@ int crucibleRelicApplied = -1;  // building type -> times its stages are on (an 
 int crucibleRelicBuildings = -1;  // reused: the player's buildings of one type
 int crucibleRelicNames = -1;  // building type -> its name, for the chat
 int crucibleRelicContainers = -1;  // the buildings the player's artifacts are garrisoned in
-int crucibleRelicSeen = -1;  // artifacts held and garrisoned, last said in the chat (as held * 100 + garrisoned)
 int crucibleRelicRoom = 0;  // population room given so far
 int crucibleRelicLimit = 0;  // population limit given so far
 const float cCrucibleRelicSpeed = {speed};
@@ -327,18 +326,7 @@ rule crucibleRelics
         crucibleRelicScan(garrisoned);
     }}
 
-    if (held * 100 + garrisoned != crucibleRelicSeen) {{
-        crucibleRelicSeen = held * 100 + garrisoned;
-        xsChatData("Artifacts held: %d", held);
-        xsChatData("Artifacts found garrisoned: %d", garrisoned);
-    }}
-
     for (h = 0; < {len(names)}) {{
-        if (xsArrayGetInt(crucibleRelicHeld, h) != xsArrayGetInt(crucibleRelicApplied, h)) {{
-            xsChatData("Artifact: " + xsArrayGetString(crucibleRelicNames, h) + " boosted by %d",
-                xsArrayGetInt(crucibleRelicHeld, h));
-        }}
-
         while (xsArrayGetInt(crucibleRelicApplied, h) < xsArrayGetInt(crucibleRelicHeld, h)) {{
             crucibleRelicApply(h, true);
             xsArraySetInt(crucibleRelicApplied, h, xsArrayGetInt(crucibleRelicApplied, h) + 1);

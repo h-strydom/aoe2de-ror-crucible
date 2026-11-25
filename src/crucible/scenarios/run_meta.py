@@ -38,6 +38,7 @@ AGE_TECHS = ((1, 101), (2, 102), (3, 103))  # (the age reached, its tech): Tool,
 UPGRADE_UNIT = 3  # effect command
 CURRENT_AGE = 6  # resource
 TRAIN_TIME, FOOD_COST = 101, 103  # unit attributes
+ENABLE_UNIT = 2  # effect command: a unit can be built or trained (b 1)
 WHALE_CLASS = 63
 SLOTS = {  # where starting soldiers stand: tiles, in the order they fill
     "melee": ((104, 114), (105, 114), (105, 115), (104, 115), (103, 114)),
@@ -176,6 +177,38 @@ def unlocks(data) -> dict[str, dict[int, list[int]]]:
     }
 
 
+def helpers(data) -> dict[int, list[int]]:
+    """Unit -> RoR's hidden techs that switch it on (research time 0 at a building: Ballista, Chariot, Elephant
+    Archer...). They didn't research themselves in the run, so Helepolis and Heavy Chariots, which need them, never
+    showed, and Elephant Archer's (it has a button) sat on the Archery Range (playtest 2026-11-25): the trigger that
+    unlocks a unit researches them."""
+    found = {}
+
+    for i, tech in enumerate(data.techs):
+        places = [r for r in tech.research_locations if r.location_id >= 0]
+
+        if not places or any(r.research_time > 0 for r in places) or tech.effect_id < 0:
+            continue
+
+        for c in data.effects[tech.effect_id].effect_commands:
+            if c.type == ENABLE_UNIT and c.b == 1:
+                found.setdefault(c.a, []).append(i)
+
+    return found
+
+
+def shown_helpers(data) -> list[int]:
+    """The hidden techs (helpers()) that have a button: switched off until their unit is unlocked."""
+    return sorted(
+        {
+            tech
+            for techs in helpers(data).values()
+            for tech in techs
+            if any(r.button_id > 0 for r in data.techs[tech].research_locations if r.location_id >= 0)
+        }
+    )
+
+
 def _prerequisite(tech: int, player: int) -> dict:
     """A condition: `tech` researched, or for an age tech, the player in that age."""
     age = next((age for age, age_tech in AGE_TECHS if age_tech == tech), None)
@@ -184,6 +217,23 @@ def _prerequisite(tech: int, player: int) -> dict:
         return {"type": "accumulate_attribute", "source_player": player, "attribute": CURRENT_AGE, "quantity": age}
 
     return {"type": "research_technology", "source_player": player, "technology": tech}
+
+
+def _researched(techs, player: int) -> list[dict]:
+    """Effects: each of `techs` switched on and researched."""
+    return [
+        effect
+        for tech in techs
+        for effect in (
+            {"type": "enable_disable_technology", "source_player": player, "technology": tech, "enabled": 1},
+            {
+                "type": "research_technology",
+                "source_player": player,
+                "technology": tech,
+                "force_research_technology": 1,
+            },
+        )
+    ]
 
 
 def _at_least(key: str, level: int) -> list[dict]:
@@ -295,9 +345,23 @@ def add(
     villagers,
     chains: dict[int, dict[int, int]],
     unlocked: dict[str, dict[int, list[int]]],
+    helped: dict[int, list[int]] | None = None,
+    shown: list[int] = (),
 ) -> None:
     """`villagers`: where each extra villager starts (tile centres), in order. `chains`: age_chains(). `unlocked`:
-    unlocks()."""
+    unlocks(). `helped`: helpers(); `shown`: shown_helpers()."""
+    helped = helped or {}
+
+    if shown:
+        ctx.trigger(
+            "Meta: hidden techs' buttons off",
+            [],
+            [
+                {"type": "enable_disable_technology", "source_player": player, "technology": tech, "enabled": 0}
+                for tech in shown
+            ],
+        )
+
     blocks.bank.load(ctx, dict.fromkeys(meta.KEYS, 0), name="Meta: load upgrades")
 
     for level, (x, y) in enumerate(villagers[: meta.VILLAGERS.levels], start=1):
@@ -357,7 +421,15 @@ def add(
                 + [
                     {"type": "accumulate_attribute", "source_player": player, "attribute": CURRENT_AGE, "quantity": age}
                 ],
-                [{"type": "enable_disable_object", "source_player": player, "object_list_unit_id": unit, "enabled": 1}],
+                [
+                    {
+                        "type": "enable_disable_object",
+                        "source_player": player,
+                        "object_list_unit_id": unit,
+                        "enabled": 1,
+                    },
+                    *_researched(helped.get(unit, ()), player),
+                ],
             )
 
     _defences(ctx, s, allies, player)

@@ -202,6 +202,8 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 villagers=META_VILLAGERS,
                 chains=run_meta.age_chains(data),
                 unlocked=run_meta.unlocks(data),
+                helped=run_meta.helpers(data),
+                shown=run_meta.shown_helpers(data),
             )
             relics.add(ctx, s, data, techs, Faction.PLAYER, tuple(f for f in Faction if f != Faction.PLAYER))
             ctx.trigger(

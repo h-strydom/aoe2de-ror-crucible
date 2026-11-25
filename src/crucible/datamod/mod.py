@@ -19,8 +19,9 @@ MANIFEST = "crucible-manifest.json"
 TEMPLATE_TECH = "axe"  # new techs and effects start as copies of this one
 NOWHERE = -1  # a tech's location when no building offers it (a trigger can place it later)
 # Tech ids the game treats as its own whatever the data says: 408 is Spies (a boon that landed on it showed as Spies,
-# with Spies' text and a price per enemy villager, playtest 2026-11-24). New techs skip them.
-RESERVED_TECHS = (408,)
+# with Spies' text and a price per enemy villager, playtest 2026-11-24); 553 took about 40 s in the hub though its
+# research time was 1 s (Tribute landed on it, playtest 2026-11-25; to confirm it's the id). New techs skip them.
+RESERVED_TECHS = (408, 553)
 
 Command = tuple[int, int, int, int, float]  # an effect command: (type, a, b, c, d)
 

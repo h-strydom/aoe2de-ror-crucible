@@ -44,7 +44,7 @@ MARKER_TYPES = (SHIP_SPOT, POST, LANDING, GUARD_SPOT)
 WONDER = 276
 SEA_OUTPOSTS = ("Western Outpost", "Eastern Outpost")
 
-DEBUG = True  # chat says what each outpost does: for the playtests only (outposts are meant to be silent)
+DEBUG = False  # True: chat says what each outpost does (playtests only; the chat spam is off, 2026-11-25)
 NUMBERS = {  # the XS constants (cCrucibleOutpost + the name)
     "Start": 10,  # seconds: the first look (after waves.xs has set up)
     "FirstTick": 60,  # seconds: the first turn (+ up to half TickSpread)
@@ -123,6 +123,8 @@ KINGS_PER_SIDE = 3
 SPOT_EACH = 1000  # a spot's resources: a guard each this many (SPOT_GUARDS), + the Legion's age
 SPOT_GUARDS = (3, 8)  # 1 or 2 guards at 45 minutes was too few (playtest 2026-11-24)
 SPOT_REACH = 7  # tiles round a scout whose resources count
+CLIFF_CLASS = 34
+CLIFF_CLEAR = 1.0  # tiles more clear of a cliff's corner
 SEA_SPAWN = 3  # tiles in from a sea marker (on the map's edge) its transports start at; they leave at the marker
 EXIT = 1  # tiles round a sea marker a trigger removes the Legion's transports and escorts in
 AGES = len(table.Age)
@@ -131,7 +133,15 @@ LAND_CLASSES = (0, 4, 6, 12, 13, 18, 23, 24, 35, 36, 44, 47, 55)  # what the out
 VILLAGER_CLASS = 4
 SEA_CLASSES = (2, 20, 21, 22)  # trade boats, transports, fishing boats, warships
 DOCKS = (45, 133, 47, 51)
-SHIP_LINES = ((539, table.Age.STONE), (21, table.Age.BRONZE), (442, table.Age.IRON), (420, table.Age.IRON))
+# (ship, from the age): an outpost's ships are a mix of its age's latest, at random (Iron: Triremes, Catapult
+# Triremes and Fire Galleys, playtest 2026-11-25)
+SHIP_LINES = (
+    (539, table.Age.STONE),  # Scout Ship
+    (21, table.Age.BRONZE),  # War Galley
+    (442, table.Age.IRON),  # Trireme
+    (420, table.Age.IRON),  # Catapult Trireme
+    (1103, table.Age.IRON),  # Fire Galley
+)
 CLUBMAN, SCOUT_SHIP = 281, 539  # whose terrain restrictions say where land units walk and ships sail
 BUILDING = 80
 
@@ -210,8 +220,14 @@ def pools() -> list[list[int]]:
 
 
 def ship_pools() -> list[list[int]]:
-    """By age: the ships a sea outpost fields, later is better."""
-    return [[unit for unit, at in SHIP_LINES if at <= age] for age in table.Age]
+    """By age: the ships a sea outpost fields, a mix (the age's latest ones)."""
+    pools = []
+
+    for age in table.Age:
+        latest = max(at for _, at in SHIP_LINES if at <= age)
+        pools.append([unit for unit, at in SHIP_LINES if at == latest])
+
+    return pools
 
 
 def ship_types() -> list[int]:
@@ -242,14 +258,19 @@ def player_types(data) -> tuple[list[tuple[int, bool]], list[int]]:
 
 
 def _taken(s) -> list[tuple[float, float, float]]:
-    """Every unit's tile and how far to keep clear of it (buildings by their size)."""
-    data = _data().civs[1].units
+    """Every unit's tile and how far to keep clear of it (buildings by their size, cliffs by theirs: a door a tile
+    from a cliff's centre put units in the cliff, playtest 2026-11-25)."""
+    data, gaia = _data().civs[1].units, _data().civs[0].units  # cliffs are only Gaia's
     taken = []
 
     for player in s.unit_manager.units:
         for u in player:
-            unit = data[u.unit_const] if u.unit_const < len(data) else None
-            taken.append((u.x, u.y, _size(unit) + 0.5 if unit and unit.type == BUILDING else 1.0))
+            unit = (data[u.unit_const] or gaia[u.unit_const]) if u.unit_const < len(data) else None
+
+            if unit and unit.class_ == CLIFF_CLASS:
+                taken.append((u.x, u.y, _size(unit) * math.sqrt(2) + CLIFF_CLEAR))  # its corners too
+            else:
+                taken.append((u.x, u.y, _size(unit) + 0.5 if unit and unit.type == BUILDING else 1.0))
 
     return taken
 
@@ -425,6 +446,22 @@ def plan(s, markers: dict[str, list[tuple[float, float]]]) -> dict[str, list]:
         spots.append((at, owner, guards))
 
     found["spots"] = spots
+    # Every outpost guards every spot it can walk to, nearest first; a spot's owner sends its parties, and its
+    # heirs (nearest first) take it over when it falls (one back base gone left its spots free, playtest 2026-11-25)
+    found["spot_heirs"] = [
+        sorted(
+            (o for o in range(len(homes)) if land_regions[o] == region[int(at[0])][int(at[1])]),
+            key=lambda o, at=at: math.dist(homes[o], at),
+        )
+        for at, _, _ in spots
+    ]
+    found["spot_order"] = [
+        sorted(
+            (n for n, heirs in enumerate(found["spot_heirs"]) if o in heirs),
+            key=lambda n, o=o: math.dist(homes[o], spots[n][0]),
+        )
+        for o in range(len(homes))
+    ]
     found["wonder"] = wonder
 
     return found
@@ -472,6 +509,8 @@ def xs(s, markers: dict[str, list[tuple[float, float]]]) -> str:
     pool_start, pool_units = _flat(pools())
     ship_start, ship_units = _flat(ship_pools())
     spots = p["spots"]
+    order_start, order = _flat(p["spot_order"])
+    heir_start, heirs = _flat(p["spot_heirs"])
     setup = [
         *_floats("crucibleOutpostHomesX", [x for x, _ in p["home"]]),
         *_floats("crucibleOutpostHomesY", [y for _, y in p["home"]]),
@@ -512,6 +551,10 @@ def xs(s, markers: dict[str, list[tuple[float, float]]]) -> str:
         *_floats("crucibleOutpostSpotY", [at[1] for at, _, _ in spots]),
         *_ints("crucibleOutpostSpotOwner", [owner for _, owner, _ in spots]),
         *_ints("crucibleOutpostSpotGuards", [guards for _, _, guards in spots]),
+        *_ints("crucibleOutpostSpotOrderStart", order_start),
+        *_ints("crucibleOutpostSpotOrder", order),
+        *_ints("crucibleOutpostSpotHeirStart", heir_start),
+        *_ints("crucibleOutpostSpotHeirs", heirs),
         *_strings("crucibleOutpostSpotName", [f"the spot at {int(at[0])}, {int(at[1])}" for at, _, _ in spots]),
         *_ints("crucibleOutpostLandTypes", [t for t, _ in land]),
         *_ints("crucibleOutpostLandVillager", [int(v) for _, v in land]),

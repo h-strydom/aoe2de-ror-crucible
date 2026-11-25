@@ -541,7 +541,6 @@ void crucibleWaveSpawn(int lane = 0, int n = 0, int k = -1) {
     int id = xsCreateUnit(unit, cCrucibleWaveLegion, xsVectorSet(x, y, 0.0), false, false, false);
 
     if (id < 0) {
-        xsChatData("Waves: could not spawn unit %d", unit);
         return;
     }
 
@@ -722,7 +721,6 @@ void crucibleWaveSetUpLanes() {
         crucibleWaveRollPath(lane, 0);
         crucibleWaveRollPath(lane, 1);
         xsSetTriggerVariable(crucibleWaveLaneVariable(lane), roll + 1);  // the lane's caption
-        xsChatData(xsArrayGetString(crucibleWaveLaneName, lane) + ": " + xsArrayGetString(crucibleWaveArchetypeName, roll));
     }
 }
 
@@ -777,9 +775,9 @@ void crucibleWavePay(int wave = 0) {
     int variable = xsArrayGetInt(crucibleWaveCurrencyVariable, currency);
     xsSetTriggerVariable(variable, xsTriggerVariable(variable) + crucibleWaveFactor);
     xsSetTriggerVariable(cCrucibleWaveBankVariable, 1);
-    xsChatData("Wave " + wave + " defeated: +" + crucibleWaveFactor + " "
-        + xsArrayGetString(crucibleWaveCurrencyName, currency) + " ("
-        + xsTriggerVariable(variable) + " banked)");
+    xsDisplayInstructions("Wave " + wave + " defeated: +" + crucibleWaveFactor + " "
+        + xsArrayGetString(crucibleWaveCurrencyName, currency) + " (" + xsTriggerVariable(variable) + " banked)", 8, 1,
+        -1, cPanelMiddle, false, false, "", 1);
 }
 
 // Each sent wave with no unit left alive is defeated: count it once. Wave 0 gives free Poor boons; later waves a
@@ -915,8 +913,6 @@ rule crucibleWaveStart
     crucibleWaveSetUpLanes();
     xsSetPlayerAttribute(cCrucibleWaveCounterPlayer, cCrucibleWaveCounterRelics, 0);
     xsSetTriggerVariable(cCrucibleWaveTimerVariable, 1);
-    xsChatData("Waves: difficulty %d (0 Standard, 1 Moderate, 2 Hard), scale and currency times "
-        + crucibleWaveFactor, crucibleWaveDifficulty);
     xsDisableSelf();
 }
 

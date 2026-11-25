@@ -6,6 +6,11 @@ Parked work, roughly in order. Move an item into its own doc once it's being bui
 
 Built but not yet seen working in a playtest. Strike each off once confirmed.
 
+- Playtest 2026-11-25 fixes: Watch Towers only once researched; outpost waves at least 60 s apart; RoR's hidden
+  unit techs researched with their unit's unlock (Helepolis, Heavy Chariots and the rest show; no Elephant Archer
+  tech on Archery Range slot 8); outpost doors kept off cliffs; chat spam off, notifications kept; every outpost
+  guards every spot it can reach, nearest first, a fallen outpost's spots pass on; Iron Age sea outposts field
+  Triremes, Catapult Triremes and Fire Galleys; Tribute off tech id 553 (was ~40 s in the hub).
 - Artifact in a tower (Guard Tower bounty): towers regenerate about 30 HP a minute an artifact (attribute 15; 60
   showed as 2 HP a second, so the attribute may count double: check the rate; units' regeneration assumes it).
 - Artifact in a Granary or Storage Pit (Guard Tower bounty): 2 food or wood a second per building, 20 at most.

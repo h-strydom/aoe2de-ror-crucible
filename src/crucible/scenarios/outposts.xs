@@ -31,7 +31,7 @@ int crucibleOutpostSpawned = -1;  // by outpost: units made (takes its doors in 
 int crucibleOutpostNextBully = -1;  // by outpost: seconds, its next party to a spot the player is on
 int crucibleOutpostLastWave = -1;  // by outpost: seconds, its last attack wave
 int crucibleOutpostLastAnyWave = -1000;  // seconds: any outpost's last attack wave
-int crucibleOutpostSeenUnit = -1;  // by outpost * 3: its two slots' units and its ship when it last swapped
+int crucibleOutpostSeenUnit = -1;  // by outpost * 3: its two slots' units and the age (its fleet) when it last swapped
 int crucibleOutpostFallen = 0;  // outposts destroyed
 int crucibleOutpostBuildingHp = -1;  // by building: its HP last second
 int crucibleOutpostMemberId = -1;  // by outpost * cCrucibleOutpostMembers: unit id, -1 a free place
@@ -452,13 +452,19 @@ int crucibleOutpostUnit(int o = 0) {
 int crucibleOutpostShipUnit(int o = 0) {
     int start = xsArrayGetInt(crucibleOutpostShipPoolStart, crucibleWaveAge);
     int count = xsArrayGetInt(crucibleOutpostShipPoolStart, crucibleWaveAge + 1) - start;
-    int pick = crucibleOutpostLevel(o) / cCrucibleOutpostLevelsPerLine + crucibleWaveAge;
+    return (xsArrayGetInt(crucibleOutpostShipPoolUnits, start + crucibleOutpostRandom(count)));  // a mix
+}
 
-    if (pick > count - 1) {
-        pick = count - 1;
+// A ship of the Legion's age's fleet.
+bool crucibleOutpostShipCurrent(int unit = -1) {
+    for (k = xsArrayGetInt(crucibleOutpostShipPoolStart, crucibleWaveAge); < xsArrayGetInt(crucibleOutpostShipPoolStart,
+        crucibleWaveAge + 1)) {
+        if (xsArrayGetInt(crucibleOutpostShipPoolUnits, k) == unit) {
+            return (true);
+        }
     }
 
-    return (xsArrayGetInt(crucibleOutpostShipPoolUnits, start + pick));
+    return (false);
 }
 
 // A unit of a line it has moved on from (neither slot's unit now).
@@ -1153,19 +1159,53 @@ int crucibleOutpostContested(int o = 0) {
     return (best);
 }
 
-// Its spot with too few guards (under cCrucibleOutpostSpotLow percent of what it wants); -1 if none.
-int crucibleOutpostUnguarded(int o = 0) {
-    for (s = 0; < cCrucibleOutpostSpots) {
-        if (xsArrayGetInt(crucibleOutpostSpotOwner, s) != o) {
-            continue;
-        }
+// Every outpost's guards at a spot.
+int crucibleOutpostSpotTotal(int spot = 0) {
+    int found = 0;
 
-        if (crucibleOutpostMemberCount(o, 2, s) * 100 < crucibleOutpostSpotWanted(s) * cCrucibleOutpostSpotLow) {
+    for (o = 0; < cCrucibleOutposts) {
+        found = found + crucibleOutpostMemberCount(o, 2, spot);
+    }
+
+    return (found);
+}
+
+// The nearest spot it can walk to with too few guards, all outposts' (under cCrucibleOutpostSpotLow percent of what
+// it wants); -1 if none.
+int crucibleOutpostUnguarded(int o = 0) {
+    int s = -1;
+
+    for (k = xsArrayGetInt(crucibleOutpostSpotOrderStart, o); < xsArrayGetInt(crucibleOutpostSpotOrderStart, o + 1)) {
+        s = xsArrayGetInt(crucibleOutpostSpotOrder, k);
+
+        if (crucibleOutpostSpotTotal(s) * 100 < crucibleOutpostSpotWanted(s) * cCrucibleOutpostSpotLow) {
             return (s);
         }
     }
 
     return (-1);
+}
+
+// A fallen outpost's spots go to the nearest living outpost that can walk to each.
+void crucibleOutpostBequeath(int o = 0) {
+    int heir = -1;
+
+    for (s = 0; < cCrucibleOutpostSpots) {
+        if (xsArrayGetInt(crucibleOutpostSpotOwner, s) != o) {
+            continue;
+        }
+
+        xsArraySetInt(crucibleOutpostSpotOwner, s, -1);
+
+        for (k = xsArrayGetInt(crucibleOutpostSpotHeirStart, s); < xsArrayGetInt(crucibleOutpostSpotHeirStart, s + 1)) {
+            heir = xsArrayGetInt(crucibleOutpostSpotHeirs, k);
+
+            if (xsArrayGetInt(crucibleOutpostAlive, heir) == 1) {
+                xsArraySetInt(crucibleOutpostSpotOwner, s, heir);
+                break;
+            }
+        }
+    }
 }
 
 // A party to the spot the player is on (more the longer the player stays); false if the player is on none.
@@ -1181,7 +1221,7 @@ bool crucibleOutpostBully(int o = 0) {
     size = cCrucibleOutpostBullyBase + xsArrayGetInt(crucibleOutpostSpotPressure, spot) * cCrucibleOutpostBullyPer
         + crucibleWaveAge;
     size = crucibleOutpostCap(crucibleOutpostScaled(size, 1), cCrucibleOutpostBullyMax);
-    size = crucibleOutpostCap(size, cCrucibleOutpostSpotMax - crucibleOutpostMemberCount(o, 2, spot));
+    size = crucibleOutpostCap(size, cCrucibleOutpostSpotMax - crucibleOutpostSpotTotal(spot));
     made = crucibleOutpostGuard(o, spot, size);
     crucibleOutpostSay(o, "the player is on " + xsArrayGetString(crucibleOutpostSpotName, spot) + ": sends " + made);
 
@@ -1254,7 +1294,7 @@ void crucibleOutpostSwap(int o = 0) {
 
         if (role == 3) {
             unit = crucibleOutpostShipUnit(o);
-            old = (xsArrayGetInt(crucibleOutpostMemberType, k) != unit);
+            old = (crucibleOutpostShipCurrent(xsArrayGetInt(crucibleOutpostMemberType, k)) == false);
         } else {
             unit = crucibleOutpostUnit(o);
             old = crucibleOutpostOutdated(o, xsArrayGetInt(crucibleOutpostMemberType, k));
@@ -1288,7 +1328,7 @@ bool crucibleOutpostMovedOn(int o = 0) {
     int units = xsArrayGetSize(crucibleOutpostSeenUnit) / cCrucibleOutposts;
     int now0 = crucibleOutpostSlotUnit(o, 0);
     int now1 = crucibleOutpostSlotUnit(o, 1);
-    int ship = crucibleOutpostShipUnit(o);
+    int ship = crucibleWaveAge;  // the fleet changes with the age (its ships are a mix)
 
     if ((xsArrayGetInt(crucibleOutpostSeenUnit, o * units) == now0)
         && (xsArrayGetInt(crucibleOutpostSeenUnit, o * units + 1) == now1)
@@ -1348,7 +1388,7 @@ void crucibleOutpostTurn(int o = 0) {
             break;
         }
 
-        size = crucibleOutpostSpotWanted(spot) - crucibleOutpostMemberCount(o, 2, spot);
+        size = crucibleOutpostSpotWanted(spot) - crucibleOutpostSpotTotal(spot);
         made = crucibleOutpostGuard(o, spot, size);
         where = xsArrayGetString(crucibleOutpostSpotName, spot);
         crucibleOutpostSay(o, "guards " + where + " with " + made + " more");
@@ -1409,6 +1449,7 @@ void crucibleOutpostWatch(int o = 0) {
     if (total <= 0.0) {
         xsArraySetInt(crucibleOutpostAlive, o, 0);
         crucibleOutpostFallen++;
+        crucibleOutpostBequeath(o);
         crucibleOutpostSay(o, "destroyed, no more turns: the others grow stronger");
 
         for (other = 0; < cCrucibleOutposts) {

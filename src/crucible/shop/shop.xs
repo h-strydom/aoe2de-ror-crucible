@@ -225,7 +225,7 @@ void crucibleShopShow() {
 
     if (crucibleShopCategory1 < 0) {
         if (crucibleShopEmptySaid == false) {
-            xsChatData("Shop: no boons left to offer: your choices wait for the next");
+            xsDisplayInstructions("No boons left to offer: your choices wait for the next", 8, 1, -1, cPanelMiddle, false, false, "", 1);
             crucibleShopEmptySaid = true;
         }
 
@@ -245,7 +245,7 @@ void crucibleShopShow() {
     }
 
     crucibleShopState = 1;
-    xsChatData("Shop: choose a boon category on the Wonder");
+    xsDisplayInstructions("Choose a boon category on the Wonder", 8, 1, -1, cPanelMiddle, false, false, "", 1);
 }
 
 // A wave is defeated: grant its choices, and show one unless a choice is already up.
@@ -382,8 +382,6 @@ int crucibleShopOffer(int category = 0) {
         }
     }
 
-    xsChatData("Shop: %d boons offered", offered);
-
     return (offered);
 }
 
@@ -446,7 +444,7 @@ void crucibleShopRerollGift() {
     }
 
     crucibleShopRerollBonus++;
-    xsChatData("Shop: a free reroll more");
+    xsDisplayInstructions("A free reroll more", 8, 1, -1, cPanelMiddle, false, false, "", 1);
 }
 
 // Two other categories than those on offer (the same ones if there are no others); those weigh less from now on.
