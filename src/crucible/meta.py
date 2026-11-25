@@ -26,6 +26,7 @@ CENTURION, HEAVY_CATAPULT, HELEPOLIS = 359, 588, 542
 WATCH_TOWER, SENTRY_TOWER, GUARD_TOWER = 79, 234, 235
 SMALL_WALL, MEDIUM_WALL, FORTIFIED_WALL = 72, 117, 155
 TRADE_WORKSHOP = 110  # the player's, by the Wonder (added to the hub 2026-11-24)
+COLOSSEUM, ZENOBIAS_TOWER = 263, 76  # tier 5's, added to the hub 2026-11-25
 
 TIERS = (5, 10, 20, 20)  # more levels bought (from any tier) to open tiers 2, 3, 4, 5
 TIER_PLAYERS = {1: 2, 2: 3, 3: 4, 4: 5, 5: 6}  # tier -> its player in the hub map
@@ -131,6 +132,8 @@ PLACES = (
     Place("stable_5", STABLE, 5, "meta_stable"),
     Place("academy_5", ACADEMY, 5, "meta_academy"),
     Place("siege_workshop_5", SIEGE_WORKSHOP, 5, "meta_siege_workshop"),
+    Place("colosseum", COLOSSEUM, 5),  # prestige: expensive, game-changing upgrades that start you over (to come)
+    Place("zenobias_tower", ZENOBIAS_TOWER, 5),  # the siege towers
 )
 
 # ---- the Wonder: global upgrades, more as the tiers open ----
@@ -698,6 +701,24 @@ HELEPOLISES = Upgrade(
     shows=(HELEPOLIS,),
 )
 
+# ---- Zenobia's Tower: siege towers, built beside the others (datamod/siege_towers.py) ----
+BALLISTA_TOWERS = Upgrade(
+    "meta_ballista_tower",
+    "Ballista Towers",
+    "The Granary's Siege Towers (after Ballistics) lets villagers build Ballista Towers (300 stone, 100 gold): your "
+    "Ballista line in a tower, Helepolis and siege boons included.",
+    "zenobias_tower",
+    1,
+)
+CATAPULT_TOWERS = Upgrade(
+    "meta_catapult_tower",
+    "Catapult Towers",
+    "The Granary's Siege Towers (after Ballistics) lets villagers build Catapult Towers (100 stone, 300 gold): your "
+    "Stone Thrower line in a tower, Catapult, Heavy Catapult and siege boons included.",
+    "zenobias_tower",
+    2,
+)
+
 # ---- the Trade Workshop: the run's extras (on the Wonder in the run: datamod/shop.py) ----
 REROLL_GOLD = 500  # a reroll's price once the run's free ones are spent
 REROLLS = Upgrade(
@@ -806,6 +827,8 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     CENTURIONS,
     HEAVY_CATAPULTS,
     HELEPOLISES,
+    BALLISTA_TOWERS,
+    CATAPULT_TOWERS,
     RUIN_TRICKLE,
     ARTIFACT_SPEED,
     RUIN_ROOM,

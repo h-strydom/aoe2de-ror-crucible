@@ -29,6 +29,7 @@ from math import dist
 from aoe2ed import blocks
 
 from crucible import meta
+from crucible.datamod import siege_towers
 
 VILLAGER_MALE, VILLAGER_FEMALE = 83, 293
 HOUSE, SCOUT = 70, 448
@@ -86,7 +87,13 @@ UNLOCKS = {
     meta.CENTURIONS.key: (79,),
     meta.HEAVY_CATAPULTS.key: (36,),
     meta.HELEPOLISES.key: (27,),
+    meta.BALLISTA_TOWERS.key: (siege_towers.TOWER_TECH,),  # the Granary's Siege Towers
+    meta.CATAPULT_TOWERS.key: (siege_towers.TOWER_TECH,),
 }
+# Tech -> its prerequisites where the data mod changed them
+REQUIRES = {siege_towers.TOWER_TECH: siege_towers.TOWER_TECH_REQUIRES}
+# Upgrade -> the data mod's tower (manifest key) the Siege Towers research brings with it
+SIEGE_TOWERS = {meta.BALLISTA_TOWERS.key: "ballista_tower", meta.CATAPULT_TOWERS.key: "catapult_tower"}
 # Upgrade -> (building, age) whose techs of that age it unlocks: the buildings' rows.
 ROWS = {
     meta.MARKET_TECHS.key: (meta.MARKET, 1),
@@ -172,7 +179,7 @@ def unlocks(data) -> dict[str, dict[int, list[int]]]:
         techs[key] = tuple(t for t in at if (_age(data, t) or first) == age and t not in (*OWN_UPGRADE, *NEVER))
 
     return {
-        key: {tech: [r for r in data.techs[tech].required_techs if r >= 0] for tech in found}
+        key: {tech: list(REQUIRES.get(tech, [r for r in data.techs[tech].required_techs if r >= 0])) for tech in found}
         for key, found in techs.items()
     }
 
@@ -347,9 +354,10 @@ def add(
     unlocked: dict[str, dict[int, list[int]]],
     helped: dict[int, list[int]] | None = None,
     shown: list[int] = (),
+    towers: dict[str, int] | None = None,
 ) -> None:
     """`villagers`: where each extra villager starts (tile centres), in order. `chains`: age_chains(). `unlocked`:
-    unlocks(). `helped`: helpers(); `shown`: shown_helpers()."""
+    unlocks(). `helped`: helpers(); `shown`: shown_helpers(). `towers`: the data mod's manifest (its siege towers)."""
     helped = helped or {}
 
     if shown:
@@ -429,6 +437,21 @@ def add(
                         "enabled": 1,
                     },
                     *_researched(helped.get(unit, ()), player),
+                ],
+            )
+
+    for key, tower in SIEGE_TOWERS.items():
+        if towers and tower in towers:
+            ctx.trigger(
+                f"Meta: {meta.TITLES[key]} built",
+                _at_least(key, 1) + [_prerequisite(siege_towers.TOWER_TECH, player)],
+                [
+                    {
+                        "type": "enable_disable_object",
+                        "source_player": player,
+                        "object_list_unit_id": towers[tower],
+                        "enabled": 1,
+                    }
                 ],
             )
 

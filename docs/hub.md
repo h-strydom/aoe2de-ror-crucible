@@ -58,6 +58,14 @@ itself) for now.
 | Storage Pit upgrades | 2 | Storage Pit 1 | 1 | | Tool Working and the three Leather Armors |
 | Watch Tower | 2 | Granary 1 | 1 | | the base's towers are yours, and Watch Towers can be built |
 | Walls | 2 | Granary 2 | 1 | | the base's Small Walls are yours, still damaged (the Fortified Walls stay the Allies') |
+| Ballista Towers | 5 | Zenobia's Tower 1 | 1 | | the Granary's Siege Towers (after Ballistics) lets villagers build Ballista Towers (slot 12) |
+| Catapult Towers | 5 | Zenobia's Tower 2 | 1 | | the same for Catapult Towers (slot 13) |
+
+Tier 5 also has the Colosseum (prestige: expensive, game-changing upgrades that start you over; empty for now) and
+Zenobia's Tower (added 2026-11-25). The siege towers are their siege line in a tower: the Ballista or Stone Thrower's
+attacks, ranges, reload and blast, upgraded with it (Helepolis; Catapult, Heavy Catapult) and by siege techs and
+boons (not their cost cuts), plus building and tower upgrades; no Guard Tower attack or range (datamod/siege_towers).
+Ballista Tower: 300 stone, 100 gold; Catapult Tower: 100 stone, 300 gold.
 
 The Axemen upgrade needs the Clubmen; Axemen need the Axemen upgrade. An unlocked tech still waits for its own prerequisites (its age, its building). Kept buildings change hands at the start of the run; 3 seconds in the Allies' other
 buildings but walls and towers are removed. Starting soldiers stand in slots by the Wonder (5 melee, 5 ranged, a scout, 3 cavalry, 1 siege).

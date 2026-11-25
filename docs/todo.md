@@ -6,6 +6,10 @@ Parked work, roughly in order. Move an item into its own doc once it's being bui
 
 Built but not yet seen working in a playtest. Strike each off once confirmed.
 
+- Siege towers (2026-11-25): Zenobia's Tower in the hub sells Ballista and Catapult Towers; in the run the Granary's
+  Siege Towers (after Ballistics) lets villagers build them on slots 12 and 13. Check they shoot as the Ballista /
+  Stone Thrower (minimum range too), grow with Helepolis / Catapult / Heavy Catapult and siege boons, keep their own
+  costs, and that the Guard Tower is untouched. The Colosseum shows, empty.
 - Playtest 2026-11-25 fixes: Watch Towers only once researched; outpost waves at least 60 s apart; RoR's hidden
   unit techs researched with their unit's unlock (Helepolis, Heavy Chariots and the rest show; no Elephant Archer
   tech on Archery Range slot 8); outpost doors kept off cliffs; chat spam off, notifications kept; every outpost

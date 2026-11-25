@@ -204,6 +204,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
                 unlocked=run_meta.unlocks(data),
                 helped=run_meta.helpers(data),
                 shown=run_meta.shown_helpers(data),
+                towers=techs,
             )
             relics.add(ctx, s, data, techs, Faction.PLAYER, tuple(f for f in Faction if f != Faction.PLAYER))
             ctx.trigger(

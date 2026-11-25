@@ -7,7 +7,7 @@ from pathlib import Path
 from aoe2ed.screens import mod_dir
 
 from crucible.bonuses.model import Modifier
-from crucible.datamod import artifacts, boons, buildings, civs, count_icons, hub, shop, upgrades
+from crucible.datamod import artifacts, boons, buildings, civs, count_icons, hub, shop, siege_towers, upgrades
 from crucible.datamod.mod import MANIFEST, MOD, DataMod
 
 
@@ -23,6 +23,7 @@ def build(
     mod = DataMod.from_ror()
     civs.strip_bonuses(mod)
     buildings.add(mod)  # before the hub copies its places
+    siege_towers.add(mod)  # after buildings: the towers keep its counter
     upgrades.add(mod, modifiers, buttons)
     boons.add(mod)  # the tiered boons the shop offers
     shop.add(mod)
@@ -32,6 +33,8 @@ def build(
 
     for part in extra:
         part(mod)
+
+    siege_towers.mirror(mod)  # last: every siege change made to the towers too
 
     return mod.write(out)
 
