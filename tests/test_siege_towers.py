@@ -45,8 +45,27 @@ def test_siege_changes_reach_the_towers_once_but_not_their_cost():
     before = len(_commands(mod, 37, catapult))
     siege_towers.mirror(mod)
     alchemy = _commands(mod, 37, catapult)  # +1 attack to each of the Stone Thrower line
-    assert before == 0 and len(alchemy) == 1
+    assert before == 0 and alchemy.count((4, 9, 4 * 256 + 1)) == 1  # once, and the towers' fire arrows undone
 
     cost = mod.new_effect("cost", [(5, -1, 13, 104, 0.5)])  # a siege cost cut
     siege_towers.mirror(mod)
     assert not [c for c in mod.data.effects[cost].effect_commands if c.a == catapult]
+
+
+def test_siege_towers_take_no_tower_range_or_attack_and_no_siege_hit_points():
+    mod = _mod()
+    siege_towers.mirror(mod)
+    names = {t.name: i for i, t in enumerate(mod.data.techs)}
+
+    for tower in siege_towers.TOWERS:
+        unit = mod.manifest[tower.key]
+        wood = _commands(mod, names["Wood Working"], unit)  # +1 range to towers, undone
+        assert (4, siege_towers.RANGE, -1.0) in wood
+        alchemy = mod.data.effects[mod.data.techs[names["Alchemy"]].effect_id].effect_commands
+        tower_fire = [c.d for c in alchemy if c.b == 52 and c.c == siege_towers.ATTACK]
+        assert all((4, siege_towers.ATTACK, -d) in _commands(mod, names["Alchemy"], unit) for d in tower_fire)
+        assert mod.data.civs[1].units[unit].type_50.break_off_combat == 26 if tower.siege_class == 13 else True
+
+    hit_points = mod.new_effect("siege hit points", [(5, -1, 13, 0, 1.1)])
+    siege_towers.mirror(mod)
+    assert not [c for c in mod.data.effects[hit_points].effect_commands if c.a == mod.manifest["catapult_tower"]]

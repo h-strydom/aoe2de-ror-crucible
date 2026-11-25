@@ -1,9 +1,10 @@
 """Siege towers (Zenobia's Tower in the hub, 2026-11-25): a Ballista Tower and a Catapult Tower villagers build
 beside the other towers (they don't replace the Guard Tower). Each is its siege weapon in a tower: its attacks, range,
 minimum range, reload, accuracy, projectile and blast come from the Ballista or the Stone Thrower, and follow that line
-as it upgrades (Helepolis; Catapult, Heavy Catapult) and as siege techs and boons change it (all but its cost and
-train time). As towers (class 52) they take building and tower upgrades and boons too, but not the Guard Tower's
-attack and range (those come by upgrading the Watch Tower line, which they're not on).
+as it upgrades (Helepolis; Catapult, Heavy Catapult) and as siege techs and boons change those (only those: Stone
+Thrower HP gave the Catapult Tower HP, playtest 2026-11-26). As towers (class 52) they take building and tower
+upgrades and boons (hit points, armour, sight) but none of the towers' attack or range: Wood Working's range and a
+tower range boon reached them (playtest 2026-11-26), so each such change to class 52 is undone for them.
 
 The Granary's Catapult Tower research (RoR's Ballista Tower upgrade) no longer upgrades towers: with the hub upgrades it
 lets villagers build them, once Ballistics is researched (run_meta).
@@ -21,7 +22,9 @@ TOWER_TECH_REQUIRES = (106, 103)  # Ballistics, the Iron Age (no Guard Tower)
 SET, ADD, MULTIPLY = 0, 4, 5  # effect command types
 UPGRADE_UNIT = 3
 ATTACK, RELOAD, ACCURACY, RANGE, PROJECTILE, MIN_RANGE, BLAST_WIDTH, BLAST_LEVEL, LOS = 9, 10, 11, 12, 16, 20, 22, 44, 1
-NOT_MIRRORED = (100, 101, 103, 104, 105, 106)  # costs and train time: siege boons' cost cuts aren't the towers'
+SHOOTING = (ATTACK, RELOAD, ACCURACY, RANGE, PROJECTILE, MIN_RANGE, BLAST_WIDTH, BLAST_LEVEL)  # what they take from
+# their siege line, and don't take from the towers'
+TOWER_CLASS = 52
 LOS_MARGIN = 2  # tiles of sight beyond its range
 ADDED = (  # (attribute, field) an upgrade adds the difference of
     (RANGE, "max_range"),
@@ -62,6 +65,7 @@ COPIED = (
     "displayed_attack",
     "displayed_range",
     "displayed_reload_time",
+    "break_off_combat",  # the combat abilities: catapults' (26) avoid hitting their own side
 )
 
 
@@ -71,6 +75,7 @@ def add(mod: DataMod) -> None:
         unit = mod.copy_unit(TOWER_BASE)
         mod.manifest[tower.key] = unit
         name = mod.strings.add(tower.title)
+        creation = mod.strings.add(f"Build {tower.title}")  # the button's (it said Ballista Tower on both)
         help_id = mod.strings.add(
             f"Build <b>{tower.title}<b> (<cost>)\nA tower that shoots as your {tower.title.split()[0]} line does."
         )
@@ -84,6 +89,7 @@ def add(mod: DataMod) -> None:
             built.name = f"Crucible {tower.key}"
             built.enabled = 0  # a trigger switches it on (run_meta)
             built.language_dll_name = built.creatable.button_short_tooltip_id = name
+            built.language_dll_creation = creation
             built.language_dll_help = built.creatable.button_extended_tooltip_id = help_id
 
             for field in COPIED:
@@ -168,8 +174,9 @@ def _tower_tech(mod: DataMod) -> None:
 
 
 def mirror(mod: DataMod) -> None:
-    """Every change to a tower's siege line (by unit or by class: techs, boons, bonuses), its cost and train time
-    left out, made to the tower too. Last: after every part has added its techs."""
+    """Every change to how a tower's siege line shoots (by unit or by class: techs, boons, bonuses) made to the tower
+    too, a range change with sight; every change to how towers shoot undone for it. Last: after every part has added
+    its techs."""
     targets = []
 
     for tower in TOWERS:
@@ -182,16 +189,23 @@ def mirror(mod: DataMod) -> None:
         found = []
 
         for c in effect.effect_commands:
-            if c.type not in (SET, ADD, MULTIPLY) or c.c in NOT_MIRRORED:
+            if c.type not in (SET, ADD, MULTIPLY) or c.c not in SHOOTING:
                 continue
 
             key = ("unit", c.a) if c.a >= 0 else ("class", c.b)
+            changes = []
 
-            mirrored = (c.type, by_target.get(key, -1), -1, c.c, c.d)
+            if key in by_target:
+                changes.append((c.type, by_target[key], -1, c.c, c.d))
+
+                if c.type == ADD and c.c == RANGE:
+                    changes.append((ADD, by_target[key], -1, LOS, c.d))
+            elif key == ("class", TOWER_CLASS) and c.type in (ADD, MULTIPLY) and c.d:
+                undone = -c.d if c.type == ADD else 1 / c.d  # an attack's -(class * 256 + amount), as Masonry's
+                changes += [(c.type, mod.manifest[tower.key], -1, c.c, undone) for tower in TOWERS]
 
             # once a tower: a tech often changes each unit of the line alike (Alchemy, boons), +1 three times else
-            if key in by_target and mirrored not in found:
-                found.append(mirrored)
+            found += [change for change in changes if change not in found]
 
         if found:
             _append(mod, effect, found)
