@@ -147,7 +147,7 @@ so sinking it at sea still kills them.
      the Wonder; raiders chase villagers near where they were sent, then go home to the garrison;
    - a spot the player is on gets a party at once, again every 45 s (less with the power) while the player stays;
    - spots want 3 to 8 guards (+ the age, times the aggression and the power), refilled below 75%, two a turn;
-   - attack waves twice as big (60 at most), never before FIRST_WAVE (900, 750, 600 s), and one comes every 5
+   - attack waves back to their first size (2x was massive, playtest 2026-11-25; 60 at most), never before FIRST_WAVE (900, 750, 600 s), and one comes every 5
      minutes (less with the power) even while spots are being refilled;
    - when its slots' units or its ship move on, its units swap where they stand, one for one (the old ones die).
 

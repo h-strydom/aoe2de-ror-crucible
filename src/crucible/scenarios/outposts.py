@@ -23,7 +23,7 @@ Second playtest (Hard): turtling for 5 minutes was too long (2 now), turns too s
 with 1 or 2 guards at 45 minutes, the first land attack at 15 minutes. Now everything grows with time
 (TimeGrowth: parties, waves, turns, turtled top-ups) and with each outpost destroyed (FallenBonus, and the
 survivors gain levels); raids hunt the player's villagers outside their base; a spot the player is on gets a
-party at once; attack waves are twice as big and come from FIRST_WAVE on; units swap to a better line at once.
+party at once; attack waves come from FIRST_WAVE on; units swap to a better line at once.
 """
 
 import math
@@ -81,7 +81,7 @@ NUMBERS = {  # the XS constants (cCrucibleOutpost + the name)
     "PressureEvery": 30,  # seconds: a spot's pressure goes up while contested, down while clear
     "PressureMax": 10,
     "WaveBase": 3,  # an attack wave: + a level / 2, + 2 an age, times WaveScale (and the aggression, the power)
-    "WaveScale": 2,  # twice the first tests' (playtest 2026-11-24)
+    "WaveScale": 1,  # the first tests' size: 2 was massive (playtests 2026-11-24 and 25)
     "WaveMax": 60,
     "WaveOverdue": 300,  # seconds: a wave comes even while spots are being refilled (less with the power)
     "TransportMax": 8,
