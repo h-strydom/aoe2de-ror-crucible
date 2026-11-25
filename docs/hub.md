@@ -65,7 +65,7 @@ Tier 5 also has the Colosseum (prestige: expensive, game-changing upgrades that 
 Zenobia's Tower (added 2026-11-25). The siege towers are their siege line in a tower: the Ballista or Stone Thrower's
 attacks, ranges, reload and blast, upgraded with it (Helepolis; Catapult, Heavy Catapult) and by siege techs and
 boons (not their cost cuts), plus building and tower upgrades; no Guard Tower attack or range (datamod/siege_towers).
-Ballista Tower: 300 stone, 100 gold; Catapult Tower: 100 stone, 300 gold.
+Ballista Tower: 200 stone, 300 gold; Catapult Tower: 300 stone, 200 gold.
 
 The Axemen upgrade needs the Clubmen; Axemen need the Axemen upgrade. An unlocked tech still waits for its own prerequisites (its age, its building). Kept buildings change hands at the start of the run; 3 seconds in the Allies' other
 buildings but walls and towers are removed. Starting soldiers stand in slots by the Wonder (5 melee, 5 ranged, a scout, 3 cavalry, 1 siege).
@@ -73,6 +73,23 @@ buildings but walls and towers are removed. Starting soldiers stand in slots by 
 A decision at every start stays open while the player shops: **Reset everything** clears the bank at once and shows
 from the next start (restart the mission; a one-button decision still offers to save and win), **Save and win** ends
 the hub in a victory, which starts the run (purchases are stored as they're made). No Begin button.
+
+## Prices (first pass, 2026-11-26)
+
+`meta.PRICES`: food, wood, gold and stone a level, from a simulation (`_Workspace/crucible-wave-sim`: `node ages.js`
+samples the Legion's age at each wave, `prices.py` plays campaigns of runs on it and searches the prices). Each
+defeated wave pays the difficulty's factor (1, 2, 3) of its Legion age's resource: Stone food, Tool wood, Bronze
+gold, Iron and later stone. A Moderate run pays about 10 food, 20 wood from wave 15, 28 gold from wave 22, and stone
+only past wave 28, so a tier is priced in what the player earns while buying it: tier 1 food and wood, tier 2 adds
+a little gold, tier 3 wood and gold, tiers 4 and 5 gold with some stone; the Trade Workshop's extras wood, gold
+and stone.
+
+Assumed players (waves defeated a run, with nothing bought to everything bought, +-25%): average on Moderate 10 to
+40, good on Hard 12 to 32 (struggles even with most upgrades). Results: the average Moderate player has everything
+after about 30 runs (10-90%: 23-40), tiers 2-5 opening around runs 1, 3, 4, 11; the good Hard player after about
+18 (15-24). A casual Standard player (14 to 40 waves, a factor of 1) would need about 140 runs. Everything costs
+about 155 food, 317 wood, 242 gold, 54 stone. For scale: 2026-11-25's testing (every upgrade free) collected 133
+food, 119 wood, 148 gold, 107 stone.
 
 ## The bank
 

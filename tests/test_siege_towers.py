@@ -69,3 +69,12 @@ def test_siege_towers_take_no_tower_range_or_attack_and_no_siege_hit_points():
     hit_points = mod.new_effect("siege hit points", [(5, -1, 13, 0, 1.1)])
     siege_towers.mirror(mod)
     assert not [c for c in mod.data.effects[hit_points].effect_commands if c.a == mod.manifest["catapult_tower"]]
+
+
+def test_siege_tower_buttons_have_their_tooltips():
+    mod = _mod()
+
+    for tower in siege_towers.TOWERS:
+        unit = mod.data.civs[1].units[mod.manifest[tower.key]]
+        tooltip = mod.strings.texts[unit.language_dll_creation + siege_towers.TOOLTIP_OFFSET]
+        assert tooltip.startswith(f"Build <b>{tower.title}<b> (<cost>)")

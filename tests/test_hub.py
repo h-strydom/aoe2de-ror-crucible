@@ -111,3 +111,12 @@ def test_tier_buildings_need_the_tier_before():
 
     assert all(meta.TIER_GIVEN[tier] == (meta.TOWN_CENTER, meta.GRANARY, meta.STORAGE_PIT) for tier in (2, 3, 4))
     assert ("meta_axe", 1) in meta.SHORT_SWORD.requires
+
+
+def test_every_upgrade_has_a_price_of_mixed_resources_and_no_early_stone():
+    from crucible import meta
+
+    for u in meta.UPGRADES:
+        tier = u.tier or meta.place(u.place).tier
+        assert sum(1 for amount in u.cost if amount) >= 2, u.key  # a mix of resources
+        assert tier == 0 or tier >= 4 or u.cost[3] == 0, u.key  # stone only from Iron Age waves: late tiers

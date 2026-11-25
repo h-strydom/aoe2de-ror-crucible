@@ -25,6 +25,7 @@ ATTACK, RELOAD, ACCURACY, RANGE, PROJECTILE, MIN_RANGE, BLAST_WIDTH, BLAST_LEVEL
 SHOOTING = (ATTACK, RELOAD, ACCURACY, RANGE, PROJECTILE, MIN_RANGE, BLAST_WIDTH, BLAST_LEVEL)  # what they take from
 # their siege line, and don't take from the towers'
 TOWER_CLASS = 52
+TOOLTIP_OFFSET = 20_000
 LOS_MARGIN = 2  # tiles of sight beyond its range
 ADDED = (  # (attribute, field) an upgrade adds the difference of
     (RANGE, "max_range"),
@@ -45,10 +46,16 @@ class Tower:
         self.button = button  # on the villager's build panel
         self.costs = costs  # (resource id, amount): stone 2, gold 3
 
+    @property
+    def blurb(self) -> str:
+        line = "Ballista" if self.siege_class == 55 else "Stone Thrower"
+
+        return f"A tower that shoots as your {line} line does, its upgrades and siege boons included."
+
 
 TOWERS = (
-    Tower("ballista_tower", "Ballista Tower", (279, 542), 55, 12, ((2, 300), (3, 100))),  # Ballista, Helepolis
-    Tower("catapult_tower", "Catapult Tower", (280, 550, 588), 13, 13, ((2, 100), (3, 300))),  # Stone Thrower...
+    Tower("ballista_tower", "Ballista Tower", (279, 542), 55, 12, ((2, 200), (3, 300))),  # Ballista, Helepolis
+    Tower("catapult_tower", "Catapult Tower", (280, 550, 588), 13, 13, ((2, 300), (3, 200))),  # Stone Thrower...
 )
 COPIED = (
     "attacks",
@@ -76,8 +83,11 @@ def add(mod: DataMod) -> None:
         mod.manifest[tower.key] = unit
         name = mod.strings.add(tower.title)
         creation = mod.strings.add(f"Build {tower.title}")  # the button's (it said Ballista Tower on both)
-        help_id = mod.strings.add(
-            f"Build <b>{tower.title}<b> (<cost>)\nA tower that shoots as your {tower.title.split()[0]} line does."
+        # the button's tooltip is the build text's id + TOOLTIP_OFFSET (RoR: 306335 "Build Ballista Tower", 326335 its
+        # tooltip); without it the button showed no name or text (playtest 2026-11-26)
+        tooltip = mod.strings.add_at(
+            creation + TOOLTIP_OFFSET,
+            f"Build <b>{tower.title}<b> (<cost>)\n{tower.blurb}\n<hp> <attack> <armor> <piercearmor> <range>",
         )
 
         for civ in mod.data.civs:
@@ -88,9 +98,9 @@ def add(mod: DataMod) -> None:
 
             built.name = f"Crucible {tower.key}"
             built.enabled = 0  # a trigger switches it on (run_meta)
-            built.language_dll_name = built.creatable.button_short_tooltip_id = name
+            built.language_dll_name = name
             built.language_dll_creation = creation
-            built.language_dll_help = built.creatable.button_extended_tooltip_id = help_id
+            built.language_dll_help = tooltip  # RoR's own towers point theirs elsewhere; the button reads the +20000
 
             for field in COPIED:
                 setattr(built.type_50, field, copy.deepcopy(getattr(siege.type_50, field)))

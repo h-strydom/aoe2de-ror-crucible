@@ -64,7 +64,7 @@ Built but not yet seen working in a playtest. Strike each off once confirmed.
 - Pregame slides with a tutorial.
 - Custom icons for all upgrades.
 - Achievements, with bonuses.
-- Hotkeys for our upgrades.
+- Hotkeys for all our custom buttons: hub upgrades, the Wonder's shop, the siege towers (2026-11-26).
 - A buildable wonder with unique bonuses.
 - A prestige mode.
 - Possible: the Legion gets +1 damage against buildings every 10 levels, against tower spam.

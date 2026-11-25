@@ -12,7 +12,7 @@ In the run, a level gives the player one more of something (a villager, a kept b
 unlocks units and techs; what each new upgrade does in the run comes in later steps of the plan.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 TOWN_CENTER, BARRACKS, WONDER, GRANARY, STORAGE_PIT = 109, 12, 276, 68, 562
 MARKET, ARCHERY_RANGE, STABLE = 84, 87, 101
@@ -84,7 +84,7 @@ class Upgrade:
     shows: tuple[int, ...] = ()  # unit types of the place's player handed over in the hub, `per` a level
     per: tuple[int, ...] = ()  # how many of `shows` each level hands over (default: one each, or all at once)
     caps: tuple[tuple[int, int], ...] = ()  # (tier, levels on offer once it's open): the Wonder's, which grow
-    cost: tuple[int, int, int, int] = (0, 0, 0, 0)  # food, wood, gold, stone a level (placeholders: free)
+    cost: tuple[int, int, int, int] = (0, 0, 0, 0)  # food, wood, gold, stone a level (PRICES fills it in)
     texts: tuple[str, ...] = ()  # the tooltip by levels bought (0 to `levels`), set live: what the next adds
 
     @property
@@ -705,7 +705,7 @@ HELEPOLISES = Upgrade(
 BALLISTA_TOWERS = Upgrade(
     "meta_ballista_tower",
     "Ballista Towers",
-    "The Granary's Siege Towers (after Ballistics) lets villagers build Ballista Towers (300 stone, 100 gold): your "
+    "The Granary's Siege Towers (after Ballistics) lets villagers build Ballista Towers (200 stone, 300 gold): your "
     "Ballista line in a tower, Helepolis and siege boons included.",
     "zenobias_tower",
     1,
@@ -713,7 +713,7 @@ BALLISTA_TOWERS = Upgrade(
 CATAPULT_TOWERS = Upgrade(
     "meta_catapult_tower",
     "Catapult Towers",
-    "The Granary's Siege Towers (after Ballistics) lets villagers build Catapult Towers (100 stone, 300 gold): your "
+    "The Granary's Siege Towers (after Ballistics) lets villagers build Catapult Towers (300 stone, 200 gold): your "
     "Stone Thrower line in a tower, Catapult, Heavy Catapult and siege boons included.",
     "zenobias_tower",
     2,
@@ -839,6 +839,98 @@ UPGRADES = (  # Clubmen before the Axemen upgrade: the hub swaps the Clubmen for
     SPIES,
     WONDER_TRICKLE,
 )
+
+# ---- prices: food, wood, gold, stone a level (first pass, 2026-11-26) ----
+# Simulated (crucible-wave-sim/prices.py: campaigns of runs, each wave paying its Legion age's resource): an average
+# player on Moderate (10 waves a run with nothing bought, 40 with everything) has everything after about 30 runs, a
+# good player on Hard (12 to 32 waves) after about 18. A tier is paid in what the player earns while buying it: food
+# and wood early, gold from the Bronze Age, stone only from Iron Age waves (deep runs).
+PRICES = {
+    "meta_starting_resources": (1, 1, 0, 0),
+    "meta_town_center_speed": (1, 1, 0, 0),
+    "meta_boon_slots": (3, 6, 3, 0),
+    "meta_boon_speed": (1, 2, 1, 0),
+    "meta_food_density": (1, 3, 2, 0),
+    "meta_wood_density": (1, 3, 2, 0),
+    "meta_mining_density": (1, 3, 2, 0),
+    "meta_villager_cost": (1, 2, 2, 1),
+    "meta_boon_discount": (1, 1, 0, 0),
+    "meta_ruins": (1, 1, 1, 0),
+    "meta_artifacts": (1, 1, 1, 0),
+    "meta_villagers": (1, 1, 0, 0),
+    "meta_houses": (1, 1, 0, 0),
+    "meta_granary": (1, 1, 0, 0),
+    "meta_storage_pit": (1, 1, 0, 0),
+    "meta_barracks": (1, 1, 0, 0),
+    "meta_clubmen": (1, 1, 0, 0),
+    "meta_barracks_2": (2, 2, 1, 0),
+    "meta_market": (2, 2, 1, 0),
+    "meta_archery_range": (2, 2, 1, 0),
+    "meta_stable": (2, 2, 1, 0),
+    "meta_axe": (2, 2, 1, 0),
+    "meta_axemen": (2, 2, 1, 0),
+    "meta_market_techs": (2, 2, 1, 0),
+    "meta_bowmen": (2, 2, 1, 0),
+    "meta_scout": (2, 2, 1, 0),
+    "meta_storage_pit_techs": (2, 2, 1, 0),
+    "meta_tower": (2, 2, 1, 0),
+    "meta_academy": (1, 3, 2, 0),
+    "meta_government_center": (1, 3, 2, 0),
+    "meta_siege_workshop": (1, 3, 2, 0),
+    "meta_temple": (1, 3, 2, 0),
+    "meta_sentry_tower": (1, 3, 2, 0),
+    "meta_storage_pit_techs_2": (1, 3, 2, 0),
+    "meta_market_techs_2": (1, 3, 2, 0),
+    "meta_wheel": (1, 3, 2, 0),
+    "meta_short_sword": (1, 3, 2, 0),
+    "meta_broad_sword": (1, 3, 2, 0),
+    "meta_improved_bow": (1, 3, 2, 0),
+    "meta_composite_bow": (1, 3, 2, 0),
+    "meta_camel": (1, 3, 2, 0),
+    "meta_cavalry": (1, 2, 1, 0),
+    "meta_government_techs": (1, 3, 2, 0),
+    "meta_temple_techs": (1, 3, 2, 0),
+    "meta_dock_techs": (1, 3, 2, 0),
+    "meta_guard_tower": (2, 3, 3, 1),
+    "meta_storage_pit_techs_3": (2, 3, 3, 1),
+    "meta_market_techs_3": (2, 3, 3, 1),
+    "meta_long_sword": (2, 3, 3, 1),
+    "meta_horse_archer": (2, 3, 3, 1),
+    "meta_heavy_cavalry": (2, 3, 3, 1),
+    "meta_phalangite": (2, 3, 3, 1),
+    "meta_catapult": (2, 3, 3, 1),
+    "meta_ballista": (2, 3, 3, 1),
+    "meta_government_techs_2": (2, 3, 3, 1),
+    "meta_temple_techs_2": (2, 3, 3, 1),
+    "meta_dock_techs_2": (2, 3, 3, 1),
+    "meta_legionary": (0, 4, 6, 2),
+    "meta_heavy_horse_archer": (0, 4, 6, 2),
+    "meta_elephant_archer": (0, 4, 6, 2),
+    "meta_cataphract": (0, 4, 6, 2),
+    "meta_war_elephant": (0, 4, 6, 2),
+    "meta_armored_elephant": (0, 4, 6, 2),
+    "meta_scythe_chariot": (0, 4, 6, 2),
+    "meta_centurion": (0, 4, 6, 2),
+    "meta_heavy_catapult": (0, 4, 6, 2),
+    "meta_helepolis": (0, 4, 6, 2),
+    "meta_ballista_tower": (0, 4, 6, 2),
+    "meta_catapult_tower": (0, 4, 6, 2),
+    "meta_ruin_trickle": (2, 2, 1, 0),
+    "meta_artifact_speed": (2, 2, 1, 0),
+    "meta_ruin_room": (1, 3, 2, 0),
+    "meta_artifact_cost": (1, 3, 2, 0),
+    "meta_ruin_cap": (2, 4, 4, 1),
+    "meta_artifact_special": (3, 5, 5, 1),
+    "meta_rerolls": (0, 2, 2, 1),
+    "meta_spies": (0, 9, 8, 3),
+    "meta_wonder_trickle": (0, 4, 3, 1),
+}
+UPGRADES = tuple(replace(u, cost=PRICES.get(u.key, u.cost)) for u in UPGRADES)
+_PRICED = {u.key: u for u in UPGRADES}
+
+for _name, _value in list(globals().items()):  # the named upgrades (TOWER, SPIES...) carry their prices too
+    if isinstance(_value, Upgrade) and _value.key in _PRICED:
+        globals()[_name] = _PRICED[_value.key]
 VILLAGERS = VILLAGERS_UPGRADE  # the name the run knows it by (the unit types are VILLAGER_TYPES)
 
 

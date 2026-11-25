@@ -27,6 +27,13 @@ class Strings:
 
         return string_id
 
+    def add_at(self, string_id: int, text: str) -> int:
+        """A string at a set id (one the game derives from another: a button's tooltip)."""
+        assert string_id not in self.texts and string_id >= self.next_id, string_id
+        self.texts[string_id] = text
+
+        return string_id
+
     def lines(self) -> str:
         """One `id "text"` line per string, newlines written as \\n."""
         return "".join(f'{string_id} "{text.replace(chr(10), "\\n")}"\n' for string_id, text in self.texts.items())
