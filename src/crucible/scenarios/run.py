@@ -19,7 +19,7 @@ from crucible import meta
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import SEND_WAVE
-from crucible.scenarios import bases, datamod_check, outposts, relics, run_meta, run_rules, run_xs, waves
+from crucible.scenarios import bases, briefing, datamod_check, outposts, relics, run_meta, run_rules, run_xs, waves
 from crucible.scenarios.maps import asset
 from crucible.shop import scenario as shop
 from crucible.shop.config import ShopConfig
@@ -128,6 +128,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             _diplomacy(o.handle)
             options_set(o.handle, {"victory_condition": "CUSTOM", "victory_conquest": False})  # only triggers end it
             player_set(o.handle, Faction.PLAYER, {"initial_player_view_x": 110, "initial_player_view_y": 110})
+            s.message_manager.instructions = briefing.RUN
 
             markers = outposts.take(s)  # the outpost markers: where their waves start, not Legion units
             _hand_over(s)

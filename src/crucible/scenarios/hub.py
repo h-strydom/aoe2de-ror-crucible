@@ -42,7 +42,7 @@ from crucible.datamod import count_icons
 from crucible.datamod.civs import SCENARIO_CIVS, Style
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import REROLL_FREE, REROLL_PAID, SEND_WAVE, SPIES, choice_key
-from crucible.scenarios import datamod_check
+from crucible.scenarios import briefing, datamod_check
 from crucible.scenarios.maps import asset
 
 NAME = "crucible_hub"
@@ -667,6 +667,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             ctx.xs(xs(ctx, techs))
             datamod_check.add(ctx, techs[meta.UPGRADES[0].tech], player=PLAYER)
             ctx.flush_xs()
+            s.message_manager.instructions = briefing.HUB
 
         out.mkdir(parents=True, exist_ok=True)
         path = out / f"{NAME}.aoe2scenario"
