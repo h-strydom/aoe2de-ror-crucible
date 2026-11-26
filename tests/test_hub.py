@@ -120,3 +120,19 @@ def test_every_upgrade_has_a_price_of_mixed_resources_and_no_early_stone():
         tier = u.tier or meta.place(u.place).tier
         assert sum(1 for amount in u.cost if amount) >= 2, u.key  # a mix of resources
         assert tier == 0 or tier >= 4 or u.cost[3] == 0, u.key  # stone only from Iron Age waves: late tiers
+
+
+def test_the_colosseums_prestige_asks_then_wipes_everything_and_refunds_nothing(tmp_path, techs):
+    o = SESSIONS.open(hub.build(tmp_path, techs))
+
+    try:
+        triggers = {t.name: t for t in o.scenario.trigger_manager.triggers}
+        asks = [triggers[f"Hub: prestige? {n}"] for n in range(hub.ASKS + 1)]
+        assert asks[0].enabled and not any(t.enabled for t in asks[1:])  # each "No" opens the next round
+        wipe = triggers["Hub: prestige 0"].effects
+        stored = {e.message for e in wipe if e.message}
+        assert stored == {*meta.KEYS, *meta.CURRENCY}
+        assert len([e for e in wipe if e.quantity == 0 and e.operation == 1]) >= 4  # the stockpile emptied (SET)
+        assert "meta_food" not in {e.message for e in triggers["Hub: prestige not yet 0"].effects}
+    finally:
+        SESSIONS.close(o.handle)

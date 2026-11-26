@@ -9,6 +9,9 @@ from crucible.datamod.mod import DataMod
 
 RESEARCH_TIME = 1  # as quick as it gets: at 0 the game researches a tech by itself (it won the hub at once)
 RESOURCE_IDS = (0, 1, 3, 2)  # meta.Upgrade.cost's food, wood, gold, stone as the data's resource ids
+PRESTIGE, PRESTIGE_BUTTON = "hub_prestige", 15  # the Colosseum's hard reset (2026-11-26): its manifest key, button
+PRESTIGE_TITLE = "Prestige and get nothing"
+PRESTIGE_TEXT = "A hard reset: every upgrade and all your resources are wiped, and nothing comes back."
 
 
 def aged(mod: DataMod, unit: int, age: int) -> int:
@@ -48,3 +51,16 @@ def add(mod: DataMod) -> None:
             research_time=RESEARCH_TIME,
             costs=costs(upgrade),
         )
+
+    mod.manifest[PRESTIGE] = mod.new_tech(
+        f"Crucible {PRESTIGE}",
+        effect=mod.new_effect(f"Crucible {PRESTIGE}", []),
+        title=PRESTIGE_TITLE,
+        description=PRESTIGE_TEXT,
+        tooltip=f"Research <b>{PRESTIGE_TITLE}<b>\n{PRESTIGE_TEXT}",
+        icon=icon,
+        location=meta.location(meta.place("colosseum"), mod.manifest),
+        button=PRESTIGE_BUTTON,
+        research_time=RESEARCH_TIME,
+        costs=[],
+    )

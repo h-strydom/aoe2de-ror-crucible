@@ -61,7 +61,9 @@ itself) for now.
 | Ballista Towers | 5 | Zenobia's Tower 1 | 1 | | the Granary's Siege Towers (after Ballistics) lets villagers build Ballista Towers (slot 12) |
 | Catapult Towers | 5 | Zenobia's Tower 2 | 1 | | the same for Catapult Towers (slot 13) |
 
-Tier 5 also has the Colosseum (prestige: expensive, game-changing upgrades that start you over; empty for now) and
+Tier 5 also has the Colosseum (prestige: expensive, game-changing upgrades that start you over; to come. Slot 15:
+Prestige and get nothing, a hard reset: asks first, then wipes every upgrade and the currency with no refund and
+starts the run; 2026-11-26) and
 Zenobia's Tower (added 2026-11-25). The siege towers are their siege line in a tower: the Ballista or Stone Thrower's
 attacks, ranges, reload and blast, upgraded with it (Helepolis; Catapult, Heavy Catapult) and by siege techs and
 boons (not their cost cuts), plus building and tower upgrades; no Guard Tower attack or range (datamod/siege_towers).

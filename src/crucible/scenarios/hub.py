@@ -40,6 +40,7 @@ from aoe2ed.tools.world import diplomacy_set, options_set, player_set
 from crucible import meta
 from crucible.datamod import count_icons
 from crucible.datamod.civs import SCENARIO_CIVS, Style
+from crucible.datamod.hub import PRESTIGE
 from crucible.datamod.mod import source_dat
 from crucible.datamod.shop import REROLL_FREE, REROLL_PAID, SEND_WAVE, SPIES, choice_key
 from crucible.scenarios import briefing, datamod_check
@@ -444,6 +445,68 @@ def _reset(ctx) -> None:
     ctx.triggers(*triggers)
 
 
+def _prestige(ctx, tech: int) -> None:
+    """The Colosseum's Prestige (2026-11-26): a hard reset. Researched, it asks "Are you sure?"; yes wipes every upgrade
+    and the currency, the stockpile with it (nothing refunded, unlike the reset), and wins: the run starts with
+    nothing. No brings the button back (switching a researched tech on makes it researchable again) for another round:
+    a decision can't be shown twice, so each round has its own, ASKS of them."""
+    wipe = [
+        effect
+        for key in (*meta.KEYS, *meta.CURRENCY)
+        for effect in (
+            {"type": "change_variable", "variable": key, "operation": "SET", "quantity": 0},
+            {"type": "store_key_value", "variable": key, "message": key},
+        )
+    ]
+    empty = [
+        {
+            "type": "modify_resource",
+            "tribute_list": resource,
+            "source_player": PLAYER,
+            "quantity": 0,
+            "operation": "SET",
+        }
+        for resource in (0, 1, 3, 2)  # food, wood, gold, stone
+    ]
+    win = {"type": "declare_victory", "source_player": PLAYER, "enabled": True}
+    enable = {"type": "enable_disable_technology", "source_player": PLAYER, "technology": tech}
+    names = [f"Hub: prestige? {n}" for n in range(ASKS + 1)]
+    triggers = []
+
+    for n, name in enumerate(names):
+        sure = ctx.next_decision_id()
+        again = [enable | {"enabled": 1}, {"type": "activate_trigger", "trigger_id": names[n + 1]}] if n < ASKS else []
+        triggers += [
+            {
+                "name": name,
+                "conditions": [{"type": "research_technology", "source_player": PLAYER, "technology": tech}],
+                "effects": [
+                    {
+                        "type": "create_decision",
+                        "decision_id": sure,
+                        "message": "Are you sure? Prestige wipes every upgrade and all your resources for good. "
+                        "Nothing comes back.",
+                        "message_option1": "Yes, wipe everything",
+                        "message_option2": "No, go back",
+                    }
+                ],
+                "enabled": n == 0,
+            },
+            {
+                "name": f"Hub: prestige {n}",
+                "conditions": [{"type": "decision_triggered", "decision_id": sure, "decision_option": 1}],
+                "effects": [*wipe, *empty, win],
+            },
+            {
+                "name": f"Hub: prestige not yet {n}",
+                "conditions": [{"type": "decision_triggered", "decision_id": sure, "decision_option": 2}],
+                "effects": again,
+            },
+        ]
+
+    ctx.triggers(*triggers)  # together: each round activates the next
+
+
 XS_HELPERS = """// ---- crucible hub: what's on offer ----
 int crucibleHubLast = -1;  // per upgrade, then per place: the last value sent
 
@@ -655,6 +718,7 @@ def build(out: Path, techs: dict[str, int]) -> Path:
             ctx = blocks.Ctx(s)
             _start(ctx, techs)
             _reset(ctx)
+            _prestige(ctx, techs[PRESTIGE])
 
             for upgrade in meta.UPGRADES:
                 _upgrade(ctx, upgrade, techs[upgrade.tech], plan.get(upgrade.key, []), techs)

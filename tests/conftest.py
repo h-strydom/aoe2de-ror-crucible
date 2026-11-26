@@ -5,6 +5,7 @@ from crucible.bonuses import catalogue
 from crucible.boons import catalogue as boons
 from crucible.datamod import boons as boon_techs
 from crucible.datamod import count_icons
+from crucible.datamod.hub import PRESTIGE
 from crucible.datamod.shop import REROLL_FREE, REROLL_PAID, SEND_WAVE, SPIES, choice_key
 from crucible.scenarios.relics import ARTIFACT_KEY
 
@@ -20,6 +21,7 @@ def techs() -> dict[str, int]:
         REROLL_PAID,
         SPIES,
         ARTIFACT_KEY,
+        PRESTIGE,
         *(u.tech for u in meta.UPGRADES),
     ]
     keys += [m.id for m in catalogue.ALL] + [p.copy_key for p in meta.PLACES if p.copy]
