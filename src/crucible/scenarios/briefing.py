@@ -41,7 +41,7 @@ HUB_SLIDES = (
             "resources per wave.",
             "- A building marked with (*) has upgrades on offer.",
             "- A building marked with (!) has upgrades on offer that you can afford.",
-            "- More researched upgrades unlock higher tiers.",
+            "- Research more upgrades to unlock higher tiers.",
             "",
             "When done use the available decision to save and exit, or refund your resources.",
         )
@@ -64,7 +64,7 @@ RUN_SLIDES = (
     "\n".join(
         (
             "How a run works:",
-            "- You start with your Wonder, Town Center and any upgrades you've researched in the hub.",
+            "- You start with your Wonder, Town Center and upgrades.",
             "- A wave marches every 5 minutes.",
             "- You can send waves early by using the button at the Wonder.",
             "- Defeating waves earns you resources to spend in the Hub.",
