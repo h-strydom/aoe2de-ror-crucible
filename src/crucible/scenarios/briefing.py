@@ -14,11 +14,12 @@ TEXT_FADE = 1.5  # seconds the text takes to appear: it fades in over this (over
 SLIDE_SECONDS = 600.0  # slides move on by themselves after this: long enough to sit and read (Next moves on)
 
 START = (
-    "You must play these missions through the custom campaign, with the Crucible data mod enabled. Mission will "
-    "automatically end if launched incorrectly to prevent save state corruption.",
+    "You must play these missions through the custom campaign, with the Crucible data mod enabled. The mission "
+    "ends automatically if it's launched incorrectly, to protect your saved progress.",
     "",
     # playtest 2026-11-26: Restart and Next level drop the data mod, and the map's check defeats you at once
-    "Restart and Next level do not keep the data mod, always run maps directly from the custom campaign screen.",
+    "Restart and Next level don't keep the data mod, so always start maps directly from the custom campaign "
+    "screen.",
 )
 FEEDBACK_SLIDE = f"Feedback, bugs and ideas are always welcome. You can open an issue at:\n{FEEDBACK}"
 
@@ -26,10 +27,10 @@ HUB_SLIDES = (
     "\n".join(
         (
             "Crucible: the Camp",
-            "Crucible is a roguelite. In each run defend your Wonder against the Legion's endless waves.",
+            "Crucible is a roguelite. In each run, you defend your Wonder against the Legion's endless waves.",
             "",
             "Defeating waves earns you resources to spend here in the camp.",
-            "Upgrades unlocked here are carried into subsequent runs.",
+            "Upgrades unlocked here carry over into later runs.",
             "",
             *START,
         )
@@ -43,7 +44,7 @@ HUB_SLIDES = (
             "- A building marked with (!) has upgrades on offer that you can afford.",
             "- Research more upgrades to unlock higher tiers.",
             "",
-            "When done use the available decision to save and exit, or refund your resources.",
+            "When you're done, use the decision to save and start the run, or to refund your resources.",
         )
     ),
     FEEDBACK_SLIDE,
@@ -67,9 +68,9 @@ RUN_SLIDES = (
             "- You start with your Wonder, Town Center and upgrades.",
             "- A wave marches every 5 minutes.",
             "- You can send waves early by using the button at the Wonder.",
-            "- Defeating waves earns you resources to spend in the Hub.",
-            "- Surrounding Legion bases will harass you.",
-            "- The run ends when your Wonder falls, or when you claim Victory.",
+            "- Defeating waves earns you resources to spend in the camp.",
+            "- Surrounding Legion bases will harass you. Destroy them for a boon.",
+            "- The run ends when your Wonder falls, or when you claim victory.",
         )
     ),
     FEEDBACK_SLIDE,
