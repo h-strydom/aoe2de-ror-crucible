@@ -109,6 +109,7 @@ def main(argv: list[str] | None = None) -> int:
         techs = build.manifest(folder)
         scenarios = [hub.build(OUT, techs), run.build(OUT, techs)]
         built = crucible_campaign.build(OUT, *scenarios)
+        crucible_campaign.write_intro(folder)
         print(folder, *scenarios, built, sep="\n")
 
         if args.install:
