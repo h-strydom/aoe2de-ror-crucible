@@ -8,7 +8,9 @@ is spelled out. A line break in the text is one on screen: each paragraph is one
 
 FEEDBACK = "github.com/h-strydom/aoe2de-ror-crucible"
 BACKGROUND = "textures/campaign/pcam3/trajan_background.dds"  # RoR's own (Trajan's campaign)
-TEXT_RECT = {"x": 230, "y": 400, "width": 1300, "height": 1350}  # of 3840 x 2160: the left of the screen
+TEXT_RECT = {"x": 1100, "y": 560, "width": 2000, "height": 1050}  # of 3840 x 2160: on the background's scroll
+# (measured off a playtest screenshot, 2026-11-26: at the left the text ran over the scroll's edge)
+TEXT_FADE = 1.5  # seconds the text takes to appear: it fades in over this (over the whole slide, it read as broken)
 CHARS_PER_SECOND = 14  # reading pace: how long a slide stays
 MIN_SECONDS, MAX_SECONDS = 8.0, 60.0
 
@@ -86,7 +88,7 @@ def _slide(text: str) -> dict:
 
     return {
         "Duration": duration,
-        "TextFadeDuration": round(duration - 0.2, 1),
+        "TextFadeDuration": TEXT_FADE,
         "FadeInTime": 0.2,
         "FadeOutTime": 0.2,
         "String": _plain(text),  # literal text works as well as a string id (ror-reimagined, verified 2026-11)
