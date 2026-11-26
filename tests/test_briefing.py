@@ -10,8 +10,11 @@ def test_each_briefing_explains_its_map_and_links_the_repo():
 
 
 def test_the_campaign_intro_shows_each_maps_briefing_as_slides(tmp_path):
-    path = campaign.write_intro(tmp_path)
-    assert path == tmp_path / "modes/Pompeii/resources/_common/campaign/Crucible.json"
+    built = tmp_path / "Crucible.aoe2campaign"
+    built.write_bytes(b"campaign")
+    folder = campaign.mod(tmp_path / "out", built)
+    assert (folder / "info.json").is_file()
+    assert {p.name for p in (folder / campaign.FOLDER).iterdir()} == {"Crucible.aoe2campaign", "Crucible.json"}
     scenarios = briefing.intro()["Scenarios"]
     assert len(scenarios) == 2  # the hub, then the run
 

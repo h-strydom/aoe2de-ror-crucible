@@ -109,14 +109,16 @@ def main(argv: list[str] | None = None) -> int:
         techs = build.manifest(folder)
         scenarios = [hub.build(OUT, techs), run.build(OUT, techs)]
         built = crucible_campaign.build(OUT, *scenarios)
-        crucible_campaign.write_intro(folder)
+        campaign_mod = crucible_campaign.mod(OUT, built)
         print(folder, *scenarios, built, sep="\n")
 
         if args.install:
             print(f"installed: {build.install(folder)}")
 
-            for path in (*scenarios, built):
+            for path in scenarios:
                 print(f"installed: {game.install(path, game='ror')['installed']}")
+
+            print(f"installed: {crucible_campaign.install(campaign_mod)}")
 
         return 0
 
