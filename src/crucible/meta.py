@@ -313,7 +313,7 @@ STARTING_HOUSES = START_GIVEN[HOUSE]  # of the base's houses, the player's in ev
 HOUSES = Upgrade(
     "meta_houses",
     "House",
-    f"Start each run with one more of your base's houses (you always have {STARTING_HOUSES}): yours, at full health.",
+    f"Start each run with one more of your base's houses (you always start with {STARTING_HOUSES}).",
     "town_center_1",
     2,
     5,
