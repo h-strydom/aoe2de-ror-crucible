@@ -20,7 +20,7 @@ from crucible.datamod.mod import DataMod
 from crucible.datamod.upgrades import WONDER
 
 BOON_BUTTONS = tuple(range(1, 11))
-MAX_OFFERED = 5  # boons per decision at most (the More boons upgrade)
+MAX_OFFERED = 5  # boons per choice at most (the More boons upgrade)
 CHOICE_BUTTONS = (11, 12)
 NEXT_WAVE_BUTTON = 15
 CHOICE_TIME = 1

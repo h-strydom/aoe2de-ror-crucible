@@ -40,7 +40,7 @@ def xs_data(
     reroll_signal: int = -1,
 ) -> str:
     """`techs` is the data mod's manifest; `choices_variable` is the trigger variable that re-enables the choices.
-    `slots_variable` (more boons per decision) and `speed_variable` (out of `speed_tiers`: shorter research, instant
+    `slots_variable` (more boons per choice) and `speed_variable` (out of `speed_tiers`: shorter research, instant
     at the last) are the trigger variables of meta upgrades, read at each offer; -1 for none. `discount_variable`:
     the boon discount's level, `discounts` the percent off each level adds. `rerolls_variable`: the Rerolls
     upgrade's level (-1: no reroll button); `reroll_signal`: the trigger variable that shows a reroll."""

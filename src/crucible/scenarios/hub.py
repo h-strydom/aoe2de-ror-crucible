@@ -586,17 +586,20 @@ def _cap(upgrade: meta.Upgrade, opened: dict[int, str]) -> str:
 
 
 def _texts(upgrades) -> list[str]:
-    """XS: an upgrade's tooltip by levels bought (`Upgrade.texts`), as crucibleHubText<n>(level)."""
+    """XS: an upgrade's tooltip by levels bought (`Upgrade.texts`), as crucibleHubText<n>(level). The text replaces
+    the whole tooltip, so each keeps the data mod's first line with its cost (without it, the price didn't show:
+    playtest 2026-11-27)."""
     lines = []
 
     for n, u in enumerate(upgrades):
         if not u.texts:
             continue
 
+        head = f"Research <b>{u.title}<b> (<cost>)\\n"
         lines.append(f"string crucibleHubText{n}(int level = 0) {{")
         for level, text in enumerate(u.texts[:-1]):
-            lines += [f"    if (level == {level}) {{", f'        return ("{text}");', "    }"]
-        lines += [f'    return ("{u.texts[-1]}");', "}", ""]
+            lines += [f"    if (level == {level}) {{", f'        return ("{head}{text}");', "    }"]
+        lines += [f'    return ("{head}{u.texts[-1]}");', "}", ""]
 
     return lines
 

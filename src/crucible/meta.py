@@ -167,12 +167,12 @@ TOWN_CENTER_SPEED = Upgrade(
 BOON_SLOTS = Upgrade(
     "meta_boon_slots",
     "More boons",
-    "Each decision offers one more boon.",
+    "Each boon choice offers one more boon.",
     "wonder",
     3,
     4,
     tier=3,
-    label="boons per decision",
+    label="boons per choice",
     caps=((3, 2), (4, 3), (5, 4)),
 )
 BOON_SPEED = Upgrade(
@@ -197,15 +197,14 @@ BOON_DISCOUNTS = (15, 12, 10, 9, 8, 6, 5, 4, 3, 3)  # percent off boons each lev
 BOON_DISCOUNT = Upgrade(
     "meta_boon_discount",
     "Cheaper boons",
-    "Boons cost less: 15% off at the first level, 75% at the tenth.",
+    f"Boons cost up to {sum(BOON_DISCOUNTS)}% less: {BOON_DISCOUNTS[0]}% less with the first level.",
     "wonder",
     10,
     len(BOON_DISCOUNTS),
     tier=1,
     label="boon discount",
     texts=tuple(
-        f"The next level takes {BOON_DISCOUNTS[n]}% more off boons: {sum(BOON_DISCOUNTS[: n + 1])}% off in all "
-        f"(now {sum(BOON_DISCOUNTS[:n])}%)."
+        f"Boons cost {sum(BOON_DISCOUNTS[: n + 1])}% less with the next level (now {sum(BOON_DISCOUNTS[:n])}% less)."
         for n in range(len(BOON_DISCOUNTS))
     )
     + (f"Boons cost {sum(BOON_DISCOUNTS)}% less: every level bought.",),
