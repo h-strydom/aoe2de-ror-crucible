@@ -162,7 +162,8 @@ class DataMod:
                     "Author": "aoe2de-ror-crucible",
                     "CacheStatus": 0,
                     "Title": MOD,
-                    "Description": "Crucible for Return of Rome: upgrades from every civ, handed out as techs.",
+                    "Description": "The data mod for Crucible. Leave it disabled and pick it as the Data Mod on the "
+                    "campaign screen.",
                 }
             ),
             encoding="utf-8",

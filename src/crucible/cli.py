@@ -44,7 +44,10 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="install the data mod (as a local mod: it clashes with the published one), the scenarios and the campaign",
     )
-    package = sub.add_parser("package", help="the data mod as a zip for the official mod site, with its page files")
+    package = sub.add_parser(
+        "package",
+        help="build the data mod and the campaign mod as zips for the official mod site, with their page files",
+    )
     package.add_argument("--to", type=Path, default=OUT / "package", help="where to put them (default: out/package)")
     args = parser.parse_args(argv)
 
@@ -125,8 +128,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "package":
         from crucible import package as mod_package
         from crucible.datamod import build
+        from crucible.scenarios import campaign as crucible_campaign
+        from crucible.scenarios import hub, run
 
-        for kind, path in mod_package.package(build.build([], OUT), args.to).items():
+        folder = build.build([], OUT)
+        techs = build.manifest(folder)
+        built = crucible_campaign.build(OUT, hub.build(OUT, techs), run.build(OUT, techs))
+        campaign_mod = crucible_campaign.mod(OUT, built)
+
+        for kind, path in mod_package.package(folder, campaign_mod, args.to).items():
             print(f"{kind}: {path}")
 
         return 0

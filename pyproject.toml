@@ -1,6 +1,6 @@
 [project]
 name = "aoe2de-ror-crucible"
-version = "0.1.0"
+version = "1.0.0"
 description = "A Crucible-style roguelite campaign for AoE2 DE Return of Rome: survival runs and a hub where progress carries over."
 authors = [
     { name = "Hannes Strydom", email = "13560787+h-strydom@users.noreply.github.com" }
